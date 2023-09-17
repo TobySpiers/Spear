@@ -19,25 +19,23 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core.h" />
-    <ClInclude Include="FlowstateManager.h" />
-    <ClInclude Include="SDLManager.h" />
-    <ClInclude Include="ServiceLocator.h" />
-    <ClInclude Include="TestFlowstate.h" />
+    <ClInclude Include="PlayFlowstate.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core.cpp" />
-    <ClCompile Include="FlowstateManager.cpp" />
-    <ClCompile Include="SDLManager.cpp" />
-    <ClCompile Include="SpearMain.cpp" />
-    <ClCompile Include="ServiceLocator.cpp" />
-    <ClCompile Include="TestFlowstate.cpp" />
+    <ClCompile Include="eFlowstate.h" />
+    <ClCompile Include="GameMain.cpp" />
+    <ClCompile Include="PlayFlowstate.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SpearEngine\SpearEngine.vcxproj">
+      <Project>{2c5d43de-fafb-4874-bc3a-2ba4bfad51fc}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{2c5d43de-fafb-4874-bc3a-2ba4bfad51fc}</ProjectGuid>
-    <RootNamespace>SpearEngine</RootNamespace>
+    <ProjectGuid>{296828cf-5f57-4a3a-9d32-66529f819603}</ProjectGuid>
+    <RootNamespace>SpearGame</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -133,6 +131,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
