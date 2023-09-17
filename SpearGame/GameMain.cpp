@@ -18,19 +18,19 @@ int main(int argc, char* argv[])
 	params.scale = 1;
 	Spear::Core::Initialise(params);
 
-	//// Setup states
-	//Spear::FlowstateManager& stateManager = Spear::ServiceLocator::GetFlowstateManager();
-	//PlayFlowstate statePlay;
-	//stateManager.RegisterState(&statePlay, (u32)eFlowstate::STATE_PLAY);
+	// Setup states
+	Spear::FlowstateManager& stateManager = Spear::ServiceLocator::GetFlowstateManager();
+	PlayFlowstate statePlay;
+	stateManager.RegisterState(&statePlay, (u32)eFlowstate::STATE_PLAY);
 
-	//// Entry state
-	//stateManager.SetInitialState((u32)eFlowstate::STATE_PLAY);
+	// Entry state
+	stateManager.SetInitialState((u32)eFlowstate::STATE_PLAY);
 
-	//// Run game
-	//Spear::Core::LaunchGameloop();
+	// Run game
+	Spear::Core::LaunchGameloop();
 
-	//// Shutdown
-	//Spear::Core::Cleanup();
+	// Shutdown
+	Spear::Core::Cleanup();
 
 	return 0;
 }
