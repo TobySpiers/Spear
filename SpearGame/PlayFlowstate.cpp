@@ -2,13 +2,29 @@
 #include "PlayFlowstate.h"
 #include "SpearEngine/ServiceLocator.h"
 #include "SpearEngine/SDLManager.h"
+#include "SpearEngine/InputManager.h"
+#include "eFlowstate.h"
 
 void PlayFlowstate::StateEnter()
 {
+	Spear::InputManager& inputManager = Spear::ServiceLocator::GetInputManager();
 
+	// temp: configure input keys
+	const int keyCount{5};
+	int keys[keyCount] =
+	{
+		SDL_SCANCODE_LEFT,
+		SDL_SCANCODE_RIGHT,
+		SDL_SCANCODE_UP,
+		SDL_SCANCODE_DOWN,
+
+		SDL_SCANCODE_ESCAPE
+	};
+
+	inputManager.RegisterKeys(keys, keyCount);
 }
 
-int PlayFlowstate::StateUpdate()
+int PlayFlowstate::StateUpdate(float deltaTime)
 {
 	// Handle SDL events
 	SDL_Event event;
@@ -16,14 +32,21 @@ int PlayFlowstate::StateUpdate()
 	switch (event.type)
 	{
 	case SDL_QUIT:
-		//Spear::Core::SignalShutdown();
+		Spear::Core::SignalShutdown();
 		break;
 
 	default:
 		break;
 	}
 
-	return -1;
+	// Input
+	Spear::InputManager& inputManager = Spear::ServiceLocator::GetInputManager();
+
+	if (inputManager.KeyStart(SDL_SCANCODE_ESCAPE))
+	{
+		Spear::Core::SignalShutdown();
+	}
+	return static_cast<int>(eFlowstate::STATE_THIS);
 }
 
 void PlayFlowstate::StateRender()

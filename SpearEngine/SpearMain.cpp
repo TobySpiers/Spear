@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 	stateManager.SetInitialState(0);
 
 	// Run game
-	Spear::Core::LaunchGameloop();
+	Spear::Core::RunGameloop(60);
 
 	// Shutdown
 	Spear::Core::Cleanup();

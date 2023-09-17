@@ -2,6 +2,7 @@
 #include "ServiceLocator.h"
 #include "FlowstateManager.h"
 #include "SDLManager.h"
+#include "InputManager.h"
 
 namespace Spear
 {
@@ -25,13 +26,31 @@ namespace Spear
 		Spear::ServiceLocator::Shutdown();
 	}
 
-	void Core::LaunchGameloop()
-	{
+	void Core::RunGameloop(int targetFPS)
+	{		
 		FlowstateManager& stateManager = ServiceLocator::GetFlowstateManager();
+		InputManager& inputManager = ServiceLocator::GetInputManager();
+
+		u64 frameStart{SDL_GetTicks64()};
+		u64 frameLength;
 		while (!m_shutdown)
 		{
+			float deltaTime = static_cast<float>(SDL_GetTicks64() - frameStart) / 1000.f;
+			frameStart = SDL_GetTicks64();
+
+			// Refresh input data
+			inputManager.RefreshInput();
+
 			// Update state
-			stateManager.Update();
+			stateManager.Update(deltaTime);
+
+			// Delay frame to match targetFPS if exceeded
+			const int frameDelay{ 1000 / targetFPS };
+			frameLength = SDL_GetTicks64() - frameStart;
+			if (frameDelay > frameLength)
+			{
+				SDL_Delay(frameDelay - frameLength);
+			}
 		}
 	}
 

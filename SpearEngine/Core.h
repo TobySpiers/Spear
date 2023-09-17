@@ -37,8 +37,8 @@ using s16 = int16_t;
 using s32 = int32_t;
 using s64 = int64_t;
 
-class SDL_Window;
-class SDL_Renderer;
+struct SDL_Window;
+struct SDL_Renderer;
 namespace Spear
 {
 	struct WindowParams
@@ -56,7 +56,7 @@ namespace Spear
 
 	public:
 		static void Initialise(const WindowParams& params);
-		static void LaunchGameloop();
+		static void RunGameloop(int targetFPS);
 		static void SignalShutdown();
 		static void Cleanup();
 

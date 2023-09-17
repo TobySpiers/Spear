@@ -3,6 +3,7 @@ namespace Spear
 {
 	class FlowstateManager;
 	class SDLManager;
+	class InputManager;
 
 	class ServiceLocator
 	{
@@ -15,5 +16,6 @@ namespace Spear
 
 		static FlowstateManager& GetFlowstateManager();
 		static SDLManager& GetSDLManager();
+		static InputManager& GetInputManager();
 	};
 }

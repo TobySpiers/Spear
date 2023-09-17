@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Core.h" />
     <ClInclude Include="FlowstateManager.h" />
+    <ClInclude Include="InputManager.h" />
     <ClInclude Include="SDLManager.h" />
     <ClInclude Include="ServiceLocator.h" />
     <ClInclude Include="TestFlowstate.h" />
@@ -28,6 +29,7 @@
   <ItemGroup>
     <ClCompile Include="Core.cpp" />
     <ClCompile Include="FlowstateManager.cpp" />
+    <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="SDLManager.cpp" />
     <ClCompile Include="SpearMain.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />

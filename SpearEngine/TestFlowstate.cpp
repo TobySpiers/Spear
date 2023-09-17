@@ -8,7 +8,7 @@ void TestFlowstate::StateEnter()
 
 }
 
-int TestFlowstate::StateUpdate()
+int TestFlowstate::StateUpdate(float deltaTime)
 {
 	// Handle SDL events
 	SDL_Event event;
