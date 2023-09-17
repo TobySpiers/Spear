@@ -11,7 +11,7 @@ public:
 	void StateEnter() override;
 
 	// Update game. Return a slot id to switch state, return -1 to remain in current state.
-	int StateUpdate() override;
+	int StateUpdate(float deltaTime) override;
 
 	// Render game
 	void StateRender() override;

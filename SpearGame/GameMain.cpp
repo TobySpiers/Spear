@@ -13,9 +13,9 @@ int main(int argc, char* argv[])
 	params.fullscreen = false;
 	params.xpos = SDL_WINDOWPOS_CENTERED;
 	params.ypos = SDL_WINDOWPOS_CENTERED;
-	params.width = 800;
-	params.height = 600;
-	params.scale = 1;
+	params.width = 1600;
+	params.height = 800;
+	params.scale = 6;
 	Spear::Core::Initialise(params);
 
 	// Setup states
@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 	stateManager.SetInitialState((u32)eFlowstate::STATE_PLAY);
 
 	// Run game
-	Spear::Core::LaunchGameloop();
+	Spear::Core::RunGameloop(60);
 
 	// Shutdown
 	Spear::Core::Cleanup();

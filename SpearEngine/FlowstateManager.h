@@ -16,7 +16,7 @@ namespace Spear
 		// Update game. Return a slot id to pick new state:
 		// return -1 to remain in current state.
 		// return -2 to quit.
-		virtual int StateUpdate() = 0;
+		virtual int StateUpdate(float deltaTime) = 0;
 
 		// Render game
 		virtual void StateRender() = 0;
@@ -36,10 +36,10 @@ namespace Spear
 		void RegisterState(Flowstate* pState, u32 slot);
 		void DeregisterState(u32 slot);
 		void SetInitialState(u32 slot);
-		void Update();
+		void Update(float deltaTime);
 
 	private:
 		std::unordered_map<u32, Flowstate*> m_registeredStates;
-		Flowstate* m_pCurState;
+		Flowstate* m_pCurState{nullptr};
 	};
 }

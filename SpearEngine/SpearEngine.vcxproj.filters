@@ -10,6 +10,9 @@
     <Filter Include="SpearFlowstates">
       <UniqueIdentifier>{4b5cb0c3-38f7-4d62-9658-09fceb65283e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SpearInput">
+      <UniqueIdentifier>{be86041b-fb75-467b-890c-bee2479c6667}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SpearMain.cpp">
@@ -30,6 +33,7 @@
     <ClCompile Include="TestFlowstate.cpp">
       <Filter>SpearFlowstates</Filter>
     </ClCompile>
+    <ClCompile Include="InputManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -47,5 +51,6 @@
     <ClInclude Include="TestFlowstate.h">
       <Filter>SpearFlowstates</Filter>
     </ClInclude>
+    <ClInclude Include="InputManager.h" />
   </ItemGroup>
 </Project>

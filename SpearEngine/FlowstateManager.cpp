@@ -22,9 +22,9 @@ namespace Spear
 		m_pCurState->StateEnter();
 	}
 
-	void FlowstateManager::Update()
+	void FlowstateManager::Update(float deltaTime)
 	{
-		s8 nextStateId = m_pCurState->StateUpdate();
+		s8 nextStateId = m_pCurState->StateUpdate(deltaTime);
 		Flowstate* pNextState{nullptr};
 		if (nextStateId >= 0)
 		{
