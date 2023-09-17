@@ -1,0 +1,9 @@
+.vs/
+Game/Game.vcxproj.user
+Game/x64/
+SpearEngine/x64/
+SpearGame/SpearGame.vcxproj.filters
+SpearGame/SpearGame.vcxproj.user
+SpearGame/x64/
+x64/
+*.bak
