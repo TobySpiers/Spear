@@ -1,6 +1,6 @@
 #include "Core.h"
 #include "FlowstateManager.h"
-#include "SDLManager.h"
+#include "GfxManager.h"
 #include "InputManager.h"
 
 #include "ServiceLocator.h"
@@ -8,7 +8,7 @@
 namespace Spear
 {
 	static FlowstateManager* s_pFlowstateManager{nullptr};
-	static SDLManager* s_pSdlManager{nullptr};
+	static GfxManager* s_pGfxManager{nullptr};
 	static InputManager* s_pInputManager{nullptr};
 
 	void ServiceLocator::Initialise()
@@ -18,9 +18,9 @@ namespace Spear
 			s_pFlowstateManager = new FlowstateManager;
 		}
 
-		if (!s_pSdlManager)
+		if (!s_pGfxManager)
 		{
-			s_pSdlManager = new SDLManager;
+			s_pGfxManager = new GfxManager;
 		}
 
 		if (!s_pInputManager)
@@ -34,8 +34,8 @@ namespace Spear
 		delete s_pFlowstateManager;
 		s_pFlowstateManager = nullptr;
 
-		delete s_pSdlManager;
-		s_pSdlManager = nullptr;
+		delete s_pGfxManager;
+		s_pGfxManager = nullptr;
 
 		delete s_pInputManager;
 		s_pInputManager = nullptr;
@@ -47,10 +47,10 @@ namespace Spear
 		return *s_pFlowstateManager;
 	}
 
-	SDLManager& ServiceLocator::GetSDLManager()
+	GfxManager& ServiceLocator::GetGfxManager()
 	{
-		ASSERT(s_pSdlManager);
-		return *s_pSdlManager;
+		ASSERT(s_pGfxManager);
+		return *s_pGfxManager;
 	}
 
 	InputManager& ServiceLocator::GetInputManager()

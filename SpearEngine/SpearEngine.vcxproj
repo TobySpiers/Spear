@@ -22,7 +22,7 @@
     <ClInclude Include="Core.h" />
     <ClInclude Include="FlowstateManager.h" />
     <ClInclude Include="InputManager.h" />
-    <ClInclude Include="SDLManager.h" />
+    <ClInclude Include="GfxManager.h" />
     <ClInclude Include="ServiceLocator.h" />
     <ClInclude Include="MathVector.h" />
   </ItemGroup>
@@ -31,7 +31,7 @@
     <ClCompile Include="Core.cpp" />
     <ClCompile Include="FlowstateManager.cpp" />
     <ClCompile Include="InputManager.cpp" />
-    <ClCompile Include="SDLManager.cpp" />
+    <ClCompile Include="GfxManager.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />
     <ClCompile Include="MathVector.cpp" />
   </ItemGroup>
