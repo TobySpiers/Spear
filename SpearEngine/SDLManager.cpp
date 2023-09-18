@@ -13,20 +13,29 @@ namespace Spear
 		// SDL setup
 		if (SDL_Init(SDL_INIT_EVERYTHING) == 0) // 0 = no error returned
 		{
-			std::cout << "SDL Initialised" << std::endl;
+			LOG("SDL Initialised");
 
-			int windowFlags = params.fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
-			m_window = SDL_CreateWindow(params.title, params.xpos, params.ypos, params.width, params.height, SDL_WINDOW_OPENGL);
+			// Specify our OpenGL version: version 4.1, core profile (no backward compat)
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+			// enable double-buffer to avoid screentearing, set depth buffer to 24 bits (common balance for precision/memory use)
+			SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+			SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+			// Create window with OpenGL surface
+			m_window = SDL_CreateWindow(params.title, params.xpos, params.ypos, params.width, params.height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | (params.fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
 			ASSERT(m_window);
 
-			SDL_GL_CreateContext(m_window);
+			// Context for working with OpenGL
+			m_context = SDL_GL_CreateContext(m_window);
 
-			SDL_GL_SwapWindow(m_window);
+			// Setup OpenGL function pointers
+			gladLoadGLLoader(SDL_GL_GetProcAddress);
 
-			m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-			ASSERT(m_renderer);
-
-			SDL_RenderSetScale(m_renderer, params.scale, params.scale);
+			LOG("scale not yet configured for glViewport");
+			glViewport(0, 0, params.width, params.height);
 		}
 	}
 
@@ -34,9 +43,8 @@ namespace Spear
 	{
 		// Shutdown SDL
 		SDL_DestroyWindow(m_window);
-		SDL_DestroyRenderer(m_renderer);
 		SDL_Quit();
-		std::cout << "SpearEngine::Core succesful shutdown" << std::endl;
+		LOG("SDL shutdown");
 	}
 
 	SDL_Window& SDLManager::GetWindow()
@@ -45,9 +53,9 @@ namespace Spear
 		return *m_window;
 	}
 
-	SDL_Renderer& SDLManager::GetRenderer()
+	SDL_GLContext& SDLManager::GetContext()
 	{
-		ASSERT(m_renderer);
-		return *m_renderer;
+		ASSERT(m_context);
+		return m_context;
 	}
 }

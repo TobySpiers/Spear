@@ -13,10 +13,10 @@ namespace Spear
 		void CreateWindow(const WindowParams& params);
 
 		SDL_Window& GetWindow();
-		SDL_Renderer& GetRenderer();
+		SDL_GLContext& GetContext();
 
 	private:
 		SDL_Window* m_window{nullptr};
-		SDL_Renderer* m_renderer{nullptr};
+		SDL_GLContext m_context;
 	};
 }
