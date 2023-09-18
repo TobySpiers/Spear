@@ -15,12 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="SpearMain.cpp">
-      <Filter>SpearCore</Filter>
-    </ClCompile>
-    <ClCompile Include="FlowstateManager.cpp">
-      <Filter>SpearCore</Filter>
-    </ClCompile>
     <ClCompile Include="ServiceLocator.cpp">
       <Filter>SpearCore</Filter>
     </ClCompile>
@@ -33,13 +27,15 @@
     <ClCompile Include="TestFlowstate.cpp">
       <Filter>SpearFlowstates</Filter>
     </ClCompile>
-    <ClCompile Include="InputManager.cpp" />
+    <ClCompile Include="InputManager.cpp">
+      <Filter>SpearInput</Filter>
+    </ClCompile>
+    <ClCompile Include="FlowstateManager.cpp">
+      <Filter>SpearCore</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
-      <Filter>SpearCore</Filter>
-    </ClInclude>
-    <ClInclude Include="FlowstateManager.h">
       <Filter>SpearCore</Filter>
     </ClInclude>
     <ClInclude Include="ServiceLocator.h">
@@ -51,6 +47,11 @@
     <ClInclude Include="TestFlowstate.h">
       <Filter>SpearFlowstates</Filter>
     </ClInclude>
-    <ClInclude Include="InputManager.h" />
+    <ClInclude Include="InputManager.h">
+      <Filter>SpearInput</Filter>
+    </ClInclude>
+    <ClInclude Include="FlowstateManager.h">
+      <Filter>SpearCore</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

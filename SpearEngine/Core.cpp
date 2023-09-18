@@ -23,7 +23,7 @@ namespace Spear
 	void Core::Cleanup()
 	{
 		// Shutdown SpearEngine services
-		Spear::ServiceLocator::Shutdown();
+		ServiceLocator::Shutdown();
 	}
 
 	void Core::RunGameloop(int targetFPS)
