@@ -25,6 +25,7 @@
     <ClInclude Include="SDLManager.h" />
     <ClInclude Include="ServiceLocator.h" />
     <ClInclude Include="TestFlowstate.h" />
+    <ClInclude Include="MathVector.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core.cpp" />
@@ -33,6 +34,7 @@
     <ClCompile Include="SDLManager.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />
     <ClCompile Include="TestFlowstate.cpp" />
+    <ClCompile Include="MathVector.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

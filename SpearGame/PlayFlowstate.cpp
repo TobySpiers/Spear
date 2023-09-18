@@ -23,19 +23,6 @@ void PlayFlowstate::StateEnter()
 
 int PlayFlowstate::StateUpdate(float deltaTime)
 {
-	// Handle SDL events
-	SDL_Event event;
-	SDL_PollEvent(&event); // get any pending event
-	switch (event.type)
-	{
-	case SDL_QUIT:
-		Spear::Core::SignalShutdown();
-		break;
-
-	default:
-		break;
-	}
-
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 	if (input.InputStart(INPUT_QUIT))
 	{
@@ -49,12 +36,33 @@ void PlayFlowstate::StateRender()
 {
 	SDL_Renderer& renderer = Spear::ServiceLocator::GetSDLManager().GetRenderer();
 
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager(); // temp
+
+	// Clear screen white
 	SDL_SetRenderDrawColor(&renderer, 255, 255, 255, 255);
 	SDL_RenderClear(&renderer);
 
+	// Mouse Rect
 	SDL_SetRenderDrawColor(&renderer, 0, 0, 0, 1);
-	SDL_RenderDrawLine(&renderer, 50, 50, 120, 200);
+	SDL_Rect rect;
+	rect.x = input.MousePos().x;
+	rect.y = input.MousePos().y;
+	rect.h = 50;
+	rect.w = 50;
+	SDL_RenderDrawRect(&renderer, &rect);
 
+	// Auto Rect
+	static int recX = 0;
+	recX += 1;
+	SDL_Rect rectAuto;
+	rectAuto.x = recX;
+	rectAuto.y = 50;
+	rectAuto.h = 50;
+	rectAuto.w = 50;
+	SDL_RenderFillRect(&renderer, &rectAuto);
+	
+
+	// Present screen
 	SDL_RenderPresent(&renderer);
 }
 

@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	params.ypos = SDL_WINDOWPOS_CENTERED;
 	params.width = 1600;
 	params.height = 800;
-	params.scale = 6;
+	params.scale = 1;
 	Spear::Core::Initialise(params);
 
 	// Setup states

@@ -20,6 +20,8 @@ namespace Spear
 		int mouseY{0};
 		const u32 rawMouseState = SDL_GetMouseState(&mouseX, &mouseY);
 		const u8* rawKeyState = SDL_GetKeyboardState(NULL);
+		m_mousePos.x = mouseX;
+		m_mousePos.y = mouseY;
 
 		// Update InputStates
 		for (int i = 0; i < m_bindingsSize; i++)
@@ -85,5 +87,10 @@ namespace Spear
 	{
 		ASSERT(input < m_bindingsSize && input >= 0);
 		return (m_inputStates[input] == INPUT_RELEASED);
+	}
+
+	Vector2D InputManager::MousePos()
+	{
+		return m_mousePos;
 	}
 }

@@ -16,10 +16,14 @@ namespace Spear
 			std::cout << "SDL Initialised" << std::endl;
 
 			int windowFlags = params.fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
-			m_window = SDL_CreateWindow(params.title, params.xpos, params.ypos, params.width, params.height, windowFlags);
+			m_window = SDL_CreateWindow(params.title, params.xpos, params.ypos, params.width, params.height, SDL_WINDOW_OPENGL);
 			ASSERT(m_window);
 
-			m_renderer = SDL_CreateRenderer(m_window, -1, 0);
+			SDL_GL_CreateContext(m_window);
+
+			SDL_GL_SwapWindow(m_window);
+
+			m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 			ASSERT(m_renderer);
 
 			SDL_RenderSetScale(m_renderer, params.scale, params.scale);

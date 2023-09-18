@@ -1,10 +1,12 @@
 #pragma once
 #include <SDL.h>
+#include <cmath>
 #include <string>
 #include <vector>
 #include <map>
 #include <unordered_map>
 #include <iostream>
+#include "MathVector.h"
 
 // Remove ability for class/struct to be constructed (only static members allowed)
 #define NO_CONSTRUCT(classname)						\

@@ -10,9 +10,6 @@
     <Filter Include="SpearFlowstates">
       <UniqueIdentifier>{4b5cb0c3-38f7-4d62-9658-09fceb65283e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SpearInput">
-      <UniqueIdentifier>{be86041b-fb75-467b-890c-bee2479c6667}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ServiceLocator.cpp">
@@ -27,10 +24,13 @@
     <ClCompile Include="TestFlowstate.cpp">
       <Filter>SpearFlowstates</Filter>
     </ClCompile>
-    <ClCompile Include="InputManager.cpp">
-      <Filter>SpearInput</Filter>
-    </ClCompile>
     <ClCompile Include="FlowstateManager.cpp">
+      <Filter>SpearCore</Filter>
+    </ClCompile>
+    <ClCompile Include="InputManager.cpp">
+      <Filter>SpearCore</Filter>
+    </ClCompile>
+    <ClCompile Include="MathVector.cpp">
       <Filter>SpearCore</Filter>
     </ClCompile>
   </ItemGroup>
@@ -47,10 +47,13 @@
     <ClInclude Include="TestFlowstate.h">
       <Filter>SpearFlowstates</Filter>
     </ClInclude>
-    <ClInclude Include="InputManager.h">
-      <Filter>SpearInput</Filter>
-    </ClInclude>
     <ClInclude Include="FlowstateManager.h">
+      <Filter>SpearCore</Filter>
+    </ClInclude>
+    <ClInclude Include="InputManager.h">
+      <Filter>SpearCore</Filter>
+    </ClInclude>
+    <ClInclude Include="MathVector.h">
       <Filter>SpearCore</Filter>
     </ClInclude>
   </ItemGroup>

@@ -28,15 +28,25 @@ namespace Spear
 
 	void Core::RunGameloop(int targetFPS)
 	{		
-		FlowstateManager& stateManager = ServiceLocator::GetFlowstateManager();
 		InputManager& inputManager = ServiceLocator::GetInputManager();
+		FlowstateManager& stateManager = ServiceLocator::GetFlowstateManager();
 
-		u64 frameStart{SDL_GetTicks64()};
-		u64 frameLength;
+		u64 frameStart;
+		float deltaTime{0.016f};
+		const u64 targetFrequency = SDL_GetPerformanceFrequency()/targetFPS;
 		while (!m_shutdown)
 		{
-			float deltaTime = static_cast<float>(SDL_GetTicks64() - frameStart) / 1000.f;
-			frameStart = SDL_GetTicks64();
+			frameStart = SDL_GetPerformanceCounter();
+
+			// Handle SDL events
+			SDL_Event event;
+			SDL_PollEvent(&event); // get any pending event
+			switch (event.type)
+			{
+			case SDL_QUIT:
+				SignalShutdown();
+				break;
+			}
 
 			// Refresh input data
 			inputManager.RefreshInput();
@@ -44,13 +54,10 @@ namespace Spear
 			// Update state
 			stateManager.Update(deltaTime);
 
-			// Delay frame to match targetFPS if exceeded
-			const int frameDelay{ 1000 / targetFPS };
-			frameLength = SDL_GetTicks64() - frameStart;
-			if (frameDelay > frameLength)
-			{
-				SDL_Delay(frameDelay - frameLength);
-			}
+			// spinlock to keep thread active while waiting
+			while(SDL_GetPerformanceCounter() - frameStart < targetFrequency)
+			{}
+			deltaTime = static_cast<float>(SDL_GetPerformanceCounter() - frameStart) / SDL_GetPerformanceFrequency();
 		}
 	}
 

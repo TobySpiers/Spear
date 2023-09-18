@@ -1,5 +1,7 @@
 #pragma once
 
+struct Vector2D;
+
 namespace Spear
 {
 	class InputManager
@@ -16,14 +18,16 @@ namespace Spear
 		bool InputStart(int key);
 		bool InputHold(int key);
 		bool InputRelease(int key);
+		Vector2D MousePos();
 
 	private:
 		void UpdateInputState(bool active, int* state);
 
 		static const int KEYBINDINGS_LIMIT{ 20 };
-		u8 m_bindingsSize{0};
+		Vector2D m_mousePos{0.f, 0.f};
 		int m_inputBindings[KEYBINDINGS_LIMIT]; // bind ENUM INTs to SDL_SCANCODEs
 		int m_inputStates[KEYBINDINGS_LIMIT]; // bind ENUM INTS to InputState vals
+		u8 m_bindingsSize{ 0 };
 
 		enum InputState
 		{
