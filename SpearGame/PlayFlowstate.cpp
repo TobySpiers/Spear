@@ -34,36 +34,10 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 
 void PlayFlowstate::StateRender()
 {
-	SDL_Renderer& renderer = Spear::ServiceLocator::GetSDLManager().GetRenderer();
+	glClearColor(1.0f, 0.5f, 0.5f, 1.f);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager(); // temp
-
-	// Clear screen white
-	SDL_SetRenderDrawColor(&renderer, 255, 255, 255, 255);
-	SDL_RenderClear(&renderer);
-
-	// Mouse Rect
-	SDL_SetRenderDrawColor(&renderer, 0, 0, 0, 1);
-	SDL_Rect rect;
-	rect.x = input.MousePos().x;
-	rect.y = input.MousePos().y;
-	rect.h = 50;
-	rect.w = 50;
-	SDL_RenderDrawRect(&renderer, &rect);
-
-	// Auto Rect
-	static int recX = 0;
-	recX += 1;
-	SDL_Rect rectAuto;
-	rectAuto.x = recX;
-	rectAuto.y = 50;
-	rectAuto.h = 50;
-	rectAuto.w = 50;
-	SDL_RenderFillRect(&renderer, &rectAuto);
-	
-
-	// Present screen
-	SDL_RenderPresent(&renderer);
+	SDL_GL_SwapWindow(&Spear::ServiceLocator::GetSDLManager().GetWindow());
 }
 
 void PlayFlowstate::StateExit()

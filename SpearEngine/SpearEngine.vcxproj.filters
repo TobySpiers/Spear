@@ -7,9 +7,6 @@
     <Filter Include="SpearGraphics">
       <UniqueIdentifier>{93c1a58d-0044-4604-b514-f76b1365dd0d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SpearFlowstates">
-      <UniqueIdentifier>{4b5cb0c3-38f7-4d62-9658-09fceb65283e}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ServiceLocator.cpp">
@@ -21,9 +18,6 @@
     <ClCompile Include="SDLManager.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="TestFlowstate.cpp">
-      <Filter>SpearFlowstates</Filter>
-    </ClCompile>
     <ClCompile Include="FlowstateManager.cpp">
       <Filter>SpearCore</Filter>
     </ClCompile>
@@ -32,6 +26,9 @@
     </ClCompile>
     <ClCompile Include="MathVector.cpp">
       <Filter>SpearCore</Filter>
+    </ClCompile>
+    <ClCompile Include="..\glad\src\glad.c">
+      <Filter>SpearGraphics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -43,9 +40,6 @@
     </ClInclude>
     <ClInclude Include="SDLManager.h">
       <Filter>SpearGraphics</Filter>
-    </ClInclude>
-    <ClInclude Include="TestFlowstate.h">
-      <Filter>SpearFlowstates</Filter>
     </ClInclude>
     <ClInclude Include="FlowstateManager.h">
       <Filter>SpearCore</Filter>

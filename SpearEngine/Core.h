@@ -1,5 +1,9 @@
 #pragma once
+//third party libraries
 #include <SDL.h>
+#include <glad/glad.h>
+
+// common includes
 #include <cmath>
 #include <string>
 #include <vector>
@@ -7,6 +11,9 @@
 #include <unordered_map>
 #include <iostream>
 #include "MathVector.h"
+
+#define LOG(mssg)				\
+std::cout << mssg << std::endl;
 
 // Remove ability for class/struct to be constructed (only static members allowed)
 #define NO_CONSTRUCT(classname)						\
