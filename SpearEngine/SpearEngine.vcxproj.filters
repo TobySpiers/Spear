@@ -15,7 +15,7 @@
     <ClCompile Include="Core.cpp">
       <Filter>SpearCore</Filter>
     </ClCompile>
-    <ClCompile Include="SDLManager.cpp">
+    <ClCompile Include="GfxManager.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
     <ClCompile Include="FlowstateManager.cpp">
@@ -38,7 +38,7 @@
     <ClInclude Include="ServiceLocator.h">
       <Filter>SpearCore</Filter>
     </ClInclude>
-    <ClInclude Include="SDLManager.h">
+    <ClInclude Include="GfxManager.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
     <ClInclude Include="FlowstateManager.h">

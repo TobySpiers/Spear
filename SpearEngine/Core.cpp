@@ -1,7 +1,7 @@
 #include "Core.h"
 #include "ServiceLocator.h"
 #include "FlowstateManager.h"
-#include "SDLManager.h"
+#include "GfxManager.h"
 #include "InputManager.h"
 
 namespace Spear
@@ -16,8 +16,8 @@ namespace Spear
 		ServiceLocator::Initialise();
 
 		// Create window managed by ServiceLocator
-		SDLManager& sdlManager = ServiceLocator::GetSDLManager();
-		sdlManager.CreateWindow(params);
+		GfxManager& gfxManager = ServiceLocator::GetGfxManager();
+		gfxManager.CreateWindow(params);
 	}
 
 	void Core::Cleanup()
