@@ -3,76 +3,87 @@
 
 namespace Spear
 {
-	InputManager::InputManager()
+	void InputManager::ConfigureInputs(int* bindings, int totalBindings)
 	{
-		m_keyStates.reserve(32); // assuming a max limit of 32 unique keys needed for gameplay
-	}
-
-	void InputManager::RegisterKeys(int* pKeyList, u8 size)
-	{
-		m_keyStates.clear();
-		for (u8 i = 0; i < size; i++)
+		m_bindingsSize = totalBindings;
+		for (int i = 0; i < m_bindingsSize; i++)
 		{
-			m_keyStates.insert({pKeyList[i], 0});
+			m_inputBindings[i] = bindings[i];
+			m_inputStates[i] = 0;
 		}
 	}
 
 	void InputManager::RefreshInput()
 	{
-		const u8* rawState = SDL_GetKeyboardState(NULL);
+		// Get latest input data
+		int mouseX{0};
+		int mouseY{0};
+		const u32 rawMouseState = SDL_GetMouseState(&mouseX, &mouseY);
+		const u8* rawKeyState = SDL_GetKeyboardState(NULL);
 
-		for (const auto& pair : m_keyStates)
+		// Update InputStates
+		for (int i = 0; i < m_bindingsSize; i++)
 		{
-			// if registered key is currently pressed...
-			if (rawState[pair.first])
+			if (m_inputBindings[i] <= SDL_BUTTON_RIGHT)
 			{
-				// inactive -> start
-				// start -> active
-				switch (m_keyStates.at(pair.first))
-				{
-				case KEY_INACTIVE:
-					m_keyStates.at(pair.first) = KEY_START;
-					break;
-
-				case KEY_START:
-					m_keyStates.at(pair.first) = KEY_ACTIVE;
-					break;
-				}
+				// Update MouseBinding
+				UpdateInputState((rawMouseState & SDL_BUTTON(m_inputBindings[i])), &m_inputStates[i]);
 			}
 			else
 			{
-				// start/active -> released
-				// released -> inactive
-				switch (m_keyStates.at(pair.first))
-				{
-				case KEY_START:
-				case KEY_ACTIVE:
-					m_keyStates.at(pair.first) = KEY_RELEASED;
-					break;
-
-				case KEY_RELEASED:
-					m_keyStates.at(pair.first) = KEY_INACTIVE;
-					break;
-				}
+				// Update KeyBinding
+				UpdateInputState(rawKeyState[m_inputBindings[i]], &m_inputStates[i]);
 			}
 		}
 	}
 
-	bool InputManager::KeyStart(int key)
+	void InputManager::UpdateInputState(bool isActive, int* state)
 	{
-		ASSERT(m_keyStates.count(key));
-		return (m_keyStates.at(key) == KEY_START);
+		ASSERT(state != nullptr);
+		if (isActive)
+		{
+			switch (*state)
+			{
+				case INPUT_INACTIVE:
+				*state = INPUT_START;
+				break;
+
+				case INPUT_START:
+				*state = INPUT_ACTIVE;
+				break;
+			}
+		}
+		else
+		{
+			switch (*state)
+			{
+				case INPUT_ACTIVE:
+				case INPUT_START:
+				*state = INPUT_RELEASED;
+				break;
+
+				case INPUT_RELEASED:
+				*state = INPUT_INACTIVE;
+				break;
+			}
+		}
 	}
 
-	bool InputManager::KeyHold(int key)
+	bool InputManager::InputStart(int input)
 	{
-		ASSERT(m_keyStates.count(key));
-		return (m_keyStates.at(key) == KEY_ACTIVE || m_keyStates.at(key) == KEY_START);
+		ASSERT(input < m_bindingsSize && input >= 0);
+		return (m_inputStates[input] == INPUT_START);
 	}
 
-	bool InputManager::KeyRelease(int key)
+	bool InputManager::InputHold(int input)
 	{
-		ASSERT(m_keyStates.count(key));
-		return (m_keyStates.at(key) == KEY_RELEASED);
+		ASSERT(input < m_bindingsSize && input >= 0);
+		return (m_inputStates[input] == INPUT_ACTIVE || m_inputStates[input] == INPUT_START);
+	}
+
+	bool InputManager::InputRelease(int input)
+	{
+		ASSERT(input < m_bindingsSize && input >= 0);
+		return (m_inputStates[input] == INPUT_RELEASED);
 	}
 }

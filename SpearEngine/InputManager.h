@@ -7,25 +7,30 @@ namespace Spear
 	public:
 		NO_COPY(InputManager);
 
-		InputManager();
+		InputManager(){};
 		~InputManager(){};
 
-		void RegisterKeys(int* pKeyList, u8 size);
-
+		void ConfigureInputs(int* bindings, int totalBindings);
 		void RefreshInput();
-		bool KeyStart(int key);
-		bool KeyHold(int key);
-		bool KeyRelease(int key);
+
+		bool InputStart(int key);
+		bool InputHold(int key);
+		bool InputRelease(int key);
 
 	private:
-		std::unordered_map<int, u8> m_keyStates;
+		void UpdateInputState(bool active, int* state);
 
-		enum KeyState
+		static const int KEYBINDINGS_LIMIT{ 20 };
+		u8 m_bindingsSize{0};
+		int m_inputBindings[KEYBINDINGS_LIMIT]; // bind ENUM INTs to SDL_SCANCODEs
+		int m_inputStates[KEYBINDINGS_LIMIT]; // bind ENUM INTS to InputState vals
+
+		enum InputState
 		{
-			KEY_INACTIVE,
-			KEY_START,
-			KEY_ACTIVE,
-			KEY_RELEASED
+			INPUT_INACTIVE,
+			INPUT_START,
+			INPUT_ACTIVE,
+			INPUT_RELEASED
 		};
 	};
 };

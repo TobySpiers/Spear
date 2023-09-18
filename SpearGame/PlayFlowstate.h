@@ -20,3 +20,17 @@ public:
 	void StateExit() override;
 };
 
+enum InputActions
+{
+	INPUT_UP,
+	INPUT_RIGHT,
+	INPUT_DOWN,
+	INPUT_LEFT,
+
+	INPUT_SHOOT,
+	INPUT_ALTSHOOT,
+
+	INPUT_QUIT,
+
+	INPUT_COUNT
+};
