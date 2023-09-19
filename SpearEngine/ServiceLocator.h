@@ -2,8 +2,9 @@
 namespace Spear
 {
 	class FlowstateManager;
-	class GfxManager;
+	class WindowManager;
 	class InputManager;
+	class Renderer;
 
 	class ServiceLocator
 	{
@@ -11,11 +12,12 @@ namespace Spear
 		NO_CONSTRUCT(ServiceLocator);
 
 		public:
-		static void Initialise();
+		static void Initialise(const WindowParams& params);
 		static void Shutdown();
 
 		static FlowstateManager& GetFlowstateManager();
-		static GfxManager& GetGfxManager();
+		static WindowManager& GetWindowManager();
 		static InputManager& GetInputManager();
+		static Renderer& GetRenderer();
 	};
 }

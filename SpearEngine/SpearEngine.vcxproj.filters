@@ -15,7 +15,7 @@
     <ClCompile Include="Core.cpp">
       <Filter>SpearCore</Filter>
     </ClCompile>
-    <ClCompile Include="GfxManager.cpp">
+    <ClCompile Include="WindowManager.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
     <ClCompile Include="FlowstateManager.cpp">
@@ -30,6 +30,12 @@
     <ClCompile Include="..\glad\src\glad.c">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="ShaderCompiler.cpp">
+      <Filter>SpearGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>SpearGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -38,7 +44,7 @@
     <ClInclude Include="ServiceLocator.h">
       <Filter>SpearCore</Filter>
     </ClInclude>
-    <ClInclude Include="GfxManager.h">
+    <ClInclude Include="WindowManager.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
     <ClInclude Include="FlowstateManager.h">
@@ -49,6 +55,12 @@
     </ClInclude>
     <ClInclude Include="MathVector.h">
       <Filter>SpearCore</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderCompiler.h">
+      <Filter>SpearGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>SpearGraphics</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -22,18 +22,22 @@
     <ClInclude Include="Core.h" />
     <ClInclude Include="FlowstateManager.h" />
     <ClInclude Include="InputManager.h" />
-    <ClInclude Include="GfxManager.h" />
+    <ClInclude Include="WindowManager.h" />
+    <ClInclude Include="Renderer.h" />
     <ClInclude Include="ServiceLocator.h" />
     <ClInclude Include="MathVector.h" />
+    <ClInclude Include="ShaderCompiler.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\glad\src\glad.c" />
     <ClCompile Include="Core.cpp" />
     <ClCompile Include="FlowstateManager.cpp" />
     <ClCompile Include="InputManager.cpp" />
-    <ClCompile Include="GfxManager.cpp" />
+    <ClCompile Include="WindowManager.cpp" />
+    <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />
     <ClCompile Include="MathVector.cpp" />
+    <ClCompile Include="ShaderCompiler.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

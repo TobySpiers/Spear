@@ -1,7 +1,8 @@
 #include "SpearEngine/Core.h"
 #include "SpearEngine/ServiceLocator.h"
-#include "SpearEngine/GfxManager.h"
+#include "SpearEngine/WindowManager.h"
 #include "SpearEngine/InputManager.h"
+#include "SpearEngine/Renderer.h"
 
 #include "eFlowstate.h"
 #include "PlayFlowstate.h"
@@ -34,22 +35,8 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 
 void PlayFlowstate::StateRender()
 {
-	Spear::GfxManager& gfx = Spear::ServiceLocator::GetGfxManager();
-
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
-
-	glClearColor(1.0f, 0.5f, 0.5f, 1.f);
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); 
-
-	glUseProgram(gfx.GetPipeline());
-
-	glBindVertexArray(gfx.GetVertexArray());
-	glBindBuffer(GL_ARRAY_BUFFER, gfx.GetVertexBuffer());
-
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-
-	SDL_GL_SwapWindow(&gfx.GetWindow());
+	Spear::ServiceLocator::GetRenderer().Render();
+	SDL_GL_SwapWindow(&Spear::ServiceLocator::GetWindowManager().GetWindow());
 }
 
 void PlayFlowstate::StateExit()
