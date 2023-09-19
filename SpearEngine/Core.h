@@ -12,8 +12,10 @@
 #include <iostream>
 #include "MathVector.h"
 
-#define LOG(mssg)				\
-std::cout << mssg << std::endl;
+#ifdef _DEBUG
+#define GLCheck(x) GLClearErrors(); x; GLPrintErrors(__FILE__, #x, __LINE__);
+#define LOG(mssg) std::cout << mssg << std::endl;
+#endif
 
 // Remove ability for class/struct to be constructed (only static members allowed)
 #define NO_CONSTRUCT(classname)						\
@@ -50,6 +52,9 @@ struct SDL_Window;
 struct SDL_Renderer;
 namespace Spear
 {
+	void GLClearErrors();
+	void GLPrintErrors(const char* file, const char* function, int line);
+	
 	struct WindowParams
 	{
 		float scale{1.f};

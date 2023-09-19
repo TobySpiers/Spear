@@ -1,7 +1,7 @@
 #include "Core.h"
 #include "ServiceLocator.h"
 #include "FlowstateManager.h"
-#include "GfxManager.h"
+#include "WindowManager.h"
 #include "InputManager.h"
 
 namespace Spear
@@ -13,11 +13,7 @@ namespace Spear
 	void Core::Initialise(const WindowParams& params)
 	{
 		// Initialise SpearEngine services
-		ServiceLocator::Initialise();
-
-		// Create window managed by ServiceLocator
-		GfxManager& gfxManager = ServiceLocator::GetGfxManager();
-		gfxManager.CreateWindow(params);
+		ServiceLocator::Initialise(params);
 	}
 
 	void Core::Cleanup()
@@ -64,5 +60,23 @@ namespace Spear
 	void Core::SignalShutdown()
 	{
 		m_shutdown = true;
+	}
+
+
+	void GLClearErrors()
+	{
+		while(GLenum error = glGetError()){}
+	}
+	void GLPrintErrors(const char* file, const char* function, int line)
+	{
+		while (GLenum error = glGetError())
+		{
+			std::cout << "OpenGL Error:"
+				<< "\n\tFile: " << file
+				<< "\n\tLine: " << line
+				<< "\n\tFunction: " << function
+				<< "\n\tError Code: " << error
+				<< std::endl;
+		}
 	}
 }
