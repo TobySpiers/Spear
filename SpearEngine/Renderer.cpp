@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "ShaderCompiler.h"
 
+
 namespace Spear
 {
 	Renderer::Renderer()
@@ -27,6 +28,13 @@ namespace Spear
 			0.f, 1.f, 0.f,		// color 2
 			0.f, 0.f, 1.f,		// color 3
 			1.f, 0.f, 0.f		// color 4
+		};
+
+		const std::vector<GLfloat> vertexTexcoord{
+			0.f, 0.f,
+			1.f, 0.f,
+			0.f, 1.f,
+			1.f, 1.f
 		};
 
 		// create 1 vertex array
@@ -85,6 +93,31 @@ namespace Spear
 		);
 
 		// ============================================
+		// SETUP BUFFER for TEX COORD:
+		// ============================================
+
+		// buffer
+		glGenBuffers(1, &m_vertexBufferTexcoord);
+		glBindBuffer(GL_ARRAY_BUFFER, m_vertexBufferTexcoord);
+		glBufferData(
+			GL_ARRAY_BUFFER,
+			vertexTexcoord.size() * sizeof(GLfloat),
+			vertexTexcoord.data(),
+			GL_STATIC_DRAW
+		);
+
+		// attrib
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(
+			2,			// slot 2
+			2,			// 2 values per coord
+			GL_FLOAT,
+			GL_FALSE,	// no stride
+			0,
+			(GLvoid*)0
+		);
+
+		// ============================================
 		// SETUP INDEX BUFFER:
 		// ============================================
 
@@ -98,7 +131,7 @@ namespace Spear
 		);
 
 		// ============================================
-		// FINISH:
+		// FINISH CONFIGURING VERTEX ARRAY OBJECT (VAO):
 		// ============================================
 		glBindVertexArray(0); // unbind the vertex array (by binding 0) as we are finished modifying it
 
@@ -106,6 +139,18 @@ namespace Spear
 		// CREATE SHADER PROGRAM:
 		// ============================================
 		m_shaderProgram = ShaderCompiler::CreateShaderProgram("../Shaders/TriangleVS.glsl", "../Shaders/TriangleFS.glsl");
+
+		// ============================================
+		// TEXTURE LOADING:
+		// ============================================
+
+		m_texture.LoadTextureFromFile("../Assets/imageBig.png");
+
+		glUseProgram(m_shaderProgram);
+		GLint textureLocation = glGetUniformLocation(m_shaderProgram, "textureSampler");
+		glUniform1i(textureLocation, 0);
+
+		glUseProgram(0);
 	}
 
 	void Renderer::Render()
@@ -119,6 +164,10 @@ namespace Spear
 		glUseProgram(m_shaderProgram);
 
 		glBindVertexArray(m_vertexArray); // vertex array we created holds info on both buffers
+
+		
+
+		glBindTexture(GL_TEXTURE_2D, m_texture.GetTextureId()); // bind the texture we created from the bmp
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 

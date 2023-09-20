@@ -1,4 +1,5 @@
 #pragma once
+#include "Texture.h"
 
 namespace Spear
 {
@@ -16,6 +17,10 @@ namespace Spear
 
 		GLuint m_vertexBufferPos{ 0 };
 		GLuint m_vertexBufferCol{ 0 };
+		GLuint m_vertexBufferTexcoord{0};
+
 		GLuint m_indexBuffer{0};
+
+		Texture m_texture;
 	};
 }

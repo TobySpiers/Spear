@@ -3,6 +3,7 @@
 #include "FlowstateManager.h"
 #include "WindowManager.h"
 #include "InputManager.h"
+#include "SDL_Image.h"
 
 namespace Spear
 {
@@ -12,7 +13,28 @@ namespace Spear
 
 	void Core::Initialise(const WindowParams& params)
 	{
-		// Initialise SpearEngine services
+		// SDL setup
+		if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
+		{
+			LOG("SDL failed to initialise...");
+		}
+
+		// SDL_Image init (#ToDo: move to some type of LoadedTextures class)
+		if (IMG_Init(IMG_INIT_PNG) != IMG_INIT_PNG)
+		{
+			LOG("SDL_Image failed to initialise..");
+		}
+
+		// Specify our OpenGL version: version 4.1, profile mask = core profile (no backward compat)
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+		// enable double-buffer to avoid screentearing, set depth buffer to 24 bits (common balance for precision/memory use)
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+		// Initialise all services
 		ServiceLocator::Initialise(params);
 	}
 
@@ -20,6 +42,8 @@ namespace Spear
 	{
 		// Shutdown SpearEngine services
 		ServiceLocator::Shutdown();
+		IMG_Quit();
+		SDL_Quit();
 	}
 
 	void Core::RunGameloop(int targetFPS)
