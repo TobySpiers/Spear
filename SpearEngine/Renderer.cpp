@@ -31,10 +31,10 @@ namespace Spear
 		};
 
 		const std::vector<GLfloat> vertexTexcoord{
-			0.f, 0.f,
-			1.f, 0.f,
 			0.f, 1.f,
-			1.f, 1.f
+			1.f, 1.f,
+			0.f, 0.f,
+			1.f, 0.f
 		};
 
 		// create 1 vertex array
@@ -164,8 +164,6 @@ namespace Spear
 		glUseProgram(m_shaderProgram);
 
 		glBindVertexArray(m_vertexArray); // vertex array we created holds info on both buffers
-
-		
 
 		glBindTexture(GL_TEXTURE_2D, m_texture.GetTextureId()); // bind the texture we created from the bmp
 

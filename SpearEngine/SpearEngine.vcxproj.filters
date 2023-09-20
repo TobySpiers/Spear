@@ -39,6 +39,7 @@
     <ClCompile Include="Texture.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="LineRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -68,5 +69,6 @@
     <ClInclude Include="Texture.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
+    <ClInclude Include="LineRenderer.h" />
   </ItemGroup>
 </Project>

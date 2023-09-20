@@ -3,6 +3,7 @@
 #include "WindowManager.h"
 #include "InputManager.h"
 #include "Renderer.h"
+#include "LineRenderer.h"
 
 #include "ServiceLocator.h"
 
@@ -12,6 +13,7 @@ namespace Spear
 	static WindowManager* s_pWindowManager{nullptr};
 	static InputManager* s_pInputManager{nullptr};
 	static Renderer* s_pRenderer{nullptr};
+	static LineRenderer* s_pLineRenderer{nullptr};
 
 	void ServiceLocator::Initialise(const WindowParams& params)
 	{
@@ -34,6 +36,11 @@ namespace Spear
 		{
 			s_pRenderer = new Renderer;
 		}
+
+		if (!s_pLineRenderer)
+		{
+			s_pLineRenderer = new LineRenderer;
+		}
 	}
 
 	void ServiceLocator::Shutdown()
@@ -49,6 +56,9 @@ namespace Spear
 
 		delete s_pRenderer;
 		s_pRenderer = nullptr;
+
+		delete s_pLineRenderer;
+		s_pLineRenderer = nullptr;
 	}
 
 	FlowstateManager& ServiceLocator::GetFlowstateManager()
@@ -73,5 +83,11 @@ namespace Spear
 	{
 		ASSERT(s_pRenderer);
 		return *s_pRenderer;
+	}
+
+	LineRenderer& ServiceLocator::GetLineRenderer()
+	{
+		ASSERT(s_pLineRenderer);
+		return *s_pLineRenderer;
 	}
 }
