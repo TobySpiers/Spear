@@ -27,13 +27,16 @@
     <ClCompile Include="MathVector.cpp">
       <Filter>SpearCore</Filter>
     </ClCompile>
-    <ClCompile Include="..\glad\src\glad.c">
-      <Filter>SpearGraphics</Filter>
-    </ClCompile>
     <ClCompile Include="ShaderCompiler.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
     <ClCompile Include="Renderer.cpp">
+      <Filter>SpearGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\glad\src\glad.c">
+      <Filter>SpearGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
   </ItemGroup>
@@ -60,6 +63,9 @@
       <Filter>SpearGraphics</Filter>
     </ClInclude>
     <ClInclude Include="Renderer.h">
+      <Filter>SpearGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
   </ItemGroup>

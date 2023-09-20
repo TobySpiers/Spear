@@ -9,7 +9,7 @@ namespace Spear
 		for (int i = 0; i < m_bindingsSize; i++)
 		{
 			m_inputBindings[i] = bindings[i];
-			m_inputStates[i] = 0;
+			m_inputStates[i] = INPUT_INACTIVE;
 		}
 	}
 
