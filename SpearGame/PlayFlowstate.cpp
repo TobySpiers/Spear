@@ -2,7 +2,7 @@
 #include "SpearEngine/ServiceLocator.h"
 #include "SpearEngine/WindowManager.h"
 #include "SpearEngine/InputManager.h"
-#include "SpearEngine/Renderer.h"
+#include "SpearEngine/LineRenderer.h"
 
 #include "eFlowstate.h"
 #include "PlayFlowstate.h"
@@ -35,7 +35,7 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 
 void PlayFlowstate::StateRender()
 {
-	Spear::ServiceLocator::GetRenderer().Render();
+	Spear::ServiceLocator::GetLineRenderer().Render();
 	SDL_GL_SwapWindow(&Spear::ServiceLocator::GetWindowManager().GetWindow());
 }
 
