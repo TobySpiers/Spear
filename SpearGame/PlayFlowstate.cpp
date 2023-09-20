@@ -30,22 +30,22 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 		Spear::Core::SignalShutdown();
 	}
 	
-	//Spear::LineData lineA;
-	//lineA.end = Vector2D(0.0, 0.8);
-	//lineA.r = 1.f;
+	Spear::LineData lineA;
+	lineA.end = Vector2D(0.0, 0.8);
+	lineA.r = 1.f;
 
-	//Spear::LineData lineB;
-	//lineB.end = Vector2D(0.0, -0.8);
-	//lineB.g = 1.f;
+	Spear::LineData lineB;
+	lineB.end = Vector2D(0.0, -0.8);
+	lineB.g = 1.f;
 
-	//Spear::LineData lineC;
-	//lineC.end = Vector2D(0.8, 0.0);
-	//lineC.b = 1.f;
+	Spear::LineData lineC;
+	lineC.end = Vector2D(0.8, 0.0);
+	lineC.b = 1.f;
 
-	//Spear::LineRenderer& r = Spear::ServiceLocator::GetLineRenderer();
-	//r.AddLine(lineA);
-	//r.AddLine(lineB);
-	//r.AddLine(lineC);
+	Spear::LineRenderer& r = Spear::ServiceLocator::GetLineRenderer();
+	r.AddLine(lineA);
+	r.AddLine(lineB);
+	r.AddLine(lineC);
 
 	return static_cast<int>(eFlowstate::STATE_THIS);
 }
