@@ -138,7 +138,7 @@ namespace Spear
 		);
 
 		glEnable(GL_LINE_SMOOTH);
-		glLineWidth(m_lineWidth);
+ 		glLineWidth(m_lineWidth);
 
 		GLCheck(glDrawArraysInstanced(GL_LINES, 0, 2, m_lineCount)); // 2 vertices per instance, m_lineCount instances
 		m_lineCount = 0;

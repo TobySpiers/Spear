@@ -68,6 +68,9 @@ namespace Spear
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
 
+		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.resolution };
+		Spear::ServiceLocator::GetLineRenderer().SetLineWidth(lineWidth);
+
 		float anglePerRay{ param.fieldOfView / param.resolution };
 
 		// For each ray
@@ -102,17 +105,20 @@ namespace Spear
 				}
 			}
 
-			int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.resolution };
 			int xScreenPos{ static_cast<int>(Core::GetWindowSize().x) - (i * lineWidth)};
-
 			const float nearDistance{50.f};
-			const float farDistance{2000.f};
+			const float farDistance{1000.f};
 
-			Spear::ServiceLocator::GetLineRenderer().SetLineWidth(lineWidth);
+			float angleDiff{param.rotation - (anglePerRay * i)};
+			if(angleDiff < 0){angleDiff += PI*2;}
+			else if(angleDiff > PI*2){angleDiff -= PI*2;}
+
 			if (foundIntersect)
 			{
 				// could optimise this by using Squared length value
-				float clampedDistance = std::max(std::min(Vector2D(param.pos - intersect).Length(), farDistance), nearDistance);
+				float distance{ Vector2D(param.pos - intersect).Length() };
+
+				float clampedDistance = std::max(std::min(distance, farDistance), nearDistance);
 				float percent{1 - ((clampedDistance - nearDistance) / farDistance)};
 				float height = Core::GetWindowSize().y * percent;
 				float mid{ Core::GetWindowSize().y / 2 };
@@ -121,6 +127,7 @@ namespace Spear
 				line.start = Vector2D(xScreenPos, mid - (height / 2));
 				line.end = Vector2D(xScreenPos, mid + (height / 2));
 				line.colour = intersectColour;
+				line.colour.a = percent;
 				rend.AddLine(line);
 			}
 		}
