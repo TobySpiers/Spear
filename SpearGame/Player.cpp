@@ -8,7 +8,7 @@
 
 Player::Player()
 {
-	m_rayParams.fieldOfView = TO_RADIANS(80.f);
+	m_rayParams.fieldOfView = TO_RADIANS(90.f);
 }
 
 void Player::SetPos(const Vector2D& pos)
@@ -22,19 +22,19 @@ void Player::Update()
 
 	if (input.InputHold(INPUT_UP))
 	{
-		m_pos.y -= m_moveSpeed;
+		m_pos = m_pos + Vector2D(sin(m_rotation), cos(m_rotation)) * m_moveSpeed;
 	}
 	else if (input.InputHold(INPUT_DOWN))
 	{
-		m_pos.y += m_moveSpeed;
+		m_pos = m_pos - Vector2D(sin(m_rotation), cos(m_rotation)) * m_moveSpeed;
 	}
 	if (input.InputHold(INPUT_LEFT))
 	{
-		m_pos.x -= m_moveSpeed;
+		m_pos = m_pos - Vector2D(-cos(m_rotation), sin(m_rotation)) * m_moveSpeed;
 	}
 	else if (input.InputHold(INPUT_RIGHT))
 	{
-		m_pos.x += m_moveSpeed;
+		m_pos = m_pos + Vector2D(-cos(m_rotation), sin(m_rotation)) * m_moveSpeed;
 	}
 
 	if (input.InputHold(INPUT_ROTATE_LEFT))
@@ -47,7 +47,7 @@ void Player::Update()
 	}
 
 	m_rayParams.pos = m_pos;
-	m_rayParams.rotation = m_rotation;
+	m_rayParams.rotation = m_rotation - TO_RADIANS(45.f);
 }
 
 void Player::Draw(bool perspective) const
