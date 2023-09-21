@@ -19,11 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Player.h" />
     <ClInclude Include="PlayFlowstate.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eFlowstate.h" />
     <ClCompile Include="GameMain.cpp" />
+    <ClCompile Include="Player.cpp" />
     <ClCompile Include="PlayFlowstate.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -19,10 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Colour.h" />
     <ClInclude Include="Core.h" />
     <ClInclude Include="FlowstateManager.h" />
     <ClInclude Include="InputManager.h" />
     <ClInclude Include="LineRenderer.h" />
+    <ClInclude Include="Raycaster.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="WindowManager.h" />
     <ClInclude Include="Renderer.h" />
@@ -36,6 +38,7 @@
     <ClCompile Include="FlowstateManager.cpp" />
     <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="LineRenderer.cpp" />
+    <ClCompile Include="Raycaster.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="WindowManager.cpp" />
     <ClCompile Include="Renderer.cpp" />

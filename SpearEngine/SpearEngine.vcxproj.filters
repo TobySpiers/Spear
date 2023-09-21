@@ -7,6 +7,9 @@
     <Filter Include="SpearGraphics">
       <UniqueIdentifier>{93c1a58d-0044-4604-b514-f76b1365dd0d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Maths">
+      <UniqueIdentifier>{29d067d9-dc1c-4ac4-b56f-0064a2066d4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ServiceLocator.cpp">
@@ -24,9 +27,6 @@
     <ClCompile Include="InputManager.cpp">
       <Filter>SpearCore</Filter>
     </ClCompile>
-    <ClCompile Include="MathVector.cpp">
-      <Filter>SpearCore</Filter>
-    </ClCompile>
     <ClCompile Include="ShaderCompiler.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
@@ -41,6 +41,12 @@
     </ClCompile>
     <ClCompile Include="LineRenderer.cpp">
       <Filter>SpearGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Raycaster.cpp">
+      <Filter>SpearGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="MathVector.cpp">
+      <Filter>Maths</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -59,9 +65,6 @@
     <ClInclude Include="InputManager.h">
       <Filter>SpearCore</Filter>
     </ClInclude>
-    <ClInclude Include="MathVector.h">
-      <Filter>SpearCore</Filter>
-    </ClInclude>
     <ClInclude Include="ShaderCompiler.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
@@ -71,6 +74,17 @@
     <ClInclude Include="Texture.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
-    <ClInclude Include="LineRenderer.h" />
+    <ClInclude Include="LineRenderer.h">
+      <Filter>SpearGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Raycaster.h">
+      <Filter>SpearGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="MathVector.h">
+      <Filter>Maths</Filter>
+    </ClInclude>
+    <ClInclude Include="Colour.h">
+      <Filter>Maths</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

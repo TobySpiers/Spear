@@ -10,7 +10,10 @@
 #include <map>
 #include <unordered_map>
 #include <iostream>
+
+// common custom classes
 #include "MathVector.h"
+#include "Colour.h"
 
 #ifdef _DEBUG
 #define GLCheck(x) GLClearErrors(); x; GLPrintErrors(__FILE__, #x, __LINE__);
@@ -40,6 +43,7 @@ if (!(x))					\
 #endif
 
 #define PI 3.14159265359f
+#define TO_RADIANS(x) ((x) * (PI / 180))
 
 using u8 = uint8_t;
 using u16 = uint16_t;

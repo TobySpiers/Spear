@@ -87,6 +87,7 @@ namespace Spear
 
 			// Swap buffers
 			SDL_GL_SwapWindow(&ServiceLocator::GetWindowManager().GetWindow());
+			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 			// spinlock to keep thread active while waiting
 			while(SDL_GetPerformanceCounter() - frameStart < targetFrequency)

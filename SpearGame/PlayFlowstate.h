@@ -1,5 +1,6 @@
 #pragma once
 #include "SpearEngine/FlowstateManager.h"
+#include "Player.h"
 
 class PlayFlowstate : public Spear::Flowstate
 {
@@ -18,6 +19,8 @@ public:
 
 	// Called once when state ends
 	void StateExit() override;
+
+	Player player;
 };
 
 enum InputActions
@@ -26,6 +29,8 @@ enum InputActions
 	INPUT_RIGHT,
 	INPUT_DOWN,
 	INPUT_LEFT,
+	INPUT_ROTATE_LEFT,
+	INPUT_ROTATE_RIGHT,
 
 	INPUT_SHOOT,
 	INPUT_ALTSHOOT,
