@@ -2,7 +2,7 @@
 
 namespace Spear
 {
-	constexpr int LINE_MAX{ 600 };
+	constexpr int LINE_MAX{ 1000 };
 	constexpr int FLOATS_PER_POS{4};
 	constexpr int FLOATS_PER_COLOR{4};
 	constexpr int INSTANCE_POS_MAX{FLOATS_PER_POS * LINE_MAX};
@@ -10,26 +10,18 @@ namespace Spear
 
 	struct LinePolyData
 	{
+		Colour colour;
 		Vector2D pos{0.f, 0.f};
 		float radius{0.f};
 		float rotation{0.f};
 		int segments{3};
-
-		float r{ 0.f };
-		float g{ 0.f };
-		float b{ 0.f };
-		float alpha{ 1.f };
 	};
 
 	struct LineData
 	{
+		Colour colour;
 		Vector2D start{0.f, 0.f};
 		Vector2D end{0.f, 0.f};
-
-		float r{0.f};
-		float g{0.f};
-		float b{0.f};
-		float alpha{1.f};
 	};
 
 	class LineRenderer

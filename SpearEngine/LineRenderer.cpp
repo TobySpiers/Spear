@@ -79,10 +79,10 @@ namespace Spear
 		m_instancePosData[posIndex + 3] = endPos.y;
 
 		int colIndex{FLOATS_PER_COLOR * m_lineCount};
-		m_instanceColorData[posIndex + 0] = line.r;
-		m_instanceColorData[posIndex + 1] = line.g;
-		m_instanceColorData[posIndex + 2] = line.b;
-		m_instanceColorData[posIndex + 3] = line.alpha;
+		m_instanceColorData[posIndex + 0] = line.colour.r;
+		m_instanceColorData[posIndex + 1] = line.colour.g;
+		m_instanceColorData[posIndex + 2] = line.colour.b;
+		m_instanceColorData[posIndex + 3] = line.colour.a;
 
 		m_lineCount++;
 	}
@@ -103,10 +103,7 @@ namespace Spear
 			LineData line;
 			line.start = poly.pos + Vector2D(sin(poly.rotation + (increment * i)), cos(poly.rotation + (increment * i))) * poly.radius;
 			line.end = poly.pos + Vector2D(sin(poly.rotation + (increment * nextIndex)), cos(poly.rotation + (increment * nextIndex))) * poly.radius;
-			line.r = poly.r;
-			line.g = poly.g;
-			line.b = poly.b;
-			line.alpha = poly.alpha;
+			line.colour = poly.colour;
 
 			AddLine(line);
 		}
@@ -117,10 +114,6 @@ namespace Spear
 		// Enable blending for transparency... #Refactor?
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		// CLEAR
-		glClearColor(0.5f, 0.5f, 0.5f, 1.f);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 		// SETUP VAO
 		glUseProgram(m_shaderProgram);

@@ -16,6 +16,7 @@ struct Vector2D
 
 	// scalar operators
 	Vector2D operator*(const float& scalar) const;
+	Vector2D operator*=(const float& scalar);
 	Vector2D operator/(const float& scalar) const;
 
 	// vector operators

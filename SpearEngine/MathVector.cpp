@@ -9,6 +9,12 @@ Vector2D Vector2D::operator*(const float& scalar) const
 {
 	return Vector2D(x * scalar, y * scalar);
 }
+Vector2D Vector2D::operator*=(const float& scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
 Vector2D operator*(double scalar, const Vector2D& vec)
 {
 	return (vec * scalar);
