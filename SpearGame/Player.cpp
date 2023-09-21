@@ -50,19 +50,26 @@ void Player::Update()
 	m_rayParams.rotation = m_rotation;
 }
 
-void Player::Draw() const
+void Player::Draw(bool perspective) const
 {
-	// draw rays
-	Spear::Raycaster::Draw2D(m_rayParams);
+	if (perspective)
+	{
+		Spear::Raycaster::Draw3D(m_rayParams);
+	}
+	else
+	{
+		// draw rays
+		Spear::Raycaster::Draw2D(m_rayParams);
 
-	// draw player on top
-	Spear::LinePolyData poly;
-	poly.colour = Red;
-	poly.radius = 10.f;
-	poly.segments = 3;
-	poly.pos = m_pos;
-	poly.rotation = m_rotation + TO_RADIANS(45.f);
-	Spear::ServiceLocator::GetLineRenderer().AddLinePoly(poly);
+		// draw player on top
+		Spear::LinePolyData poly;
+		poly.colour = Red;
+		poly.radius = 10.f;
+		poly.segments = 3;
+		poly.pos = m_pos;
+		poly.rotation = m_rotation + TO_RADIANS(45.f);
+		Spear::ServiceLocator::GetLineRenderer().AddLinePoly(poly);
+	}	
 }
 
 void Player::RegisterWalls(Spear::RaycastWall* walls, int size)

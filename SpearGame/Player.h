@@ -8,7 +8,7 @@ public:
 
 	void SetPos(const Vector2D& pos);
 	void Update();
-	void Draw() const;
+	void Draw(bool perspective) const;
 	void RegisterWalls(Spear::RaycastWall* pWalls, int size);
 
 private:

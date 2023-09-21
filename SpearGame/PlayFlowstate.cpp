@@ -15,6 +15,8 @@ void PlayFlowstate::StateEnter()
 {
 	// Configure Inputs
 	int config[INPUT_COUNT];
+	config[INPUT_TOGGLE] = SDL_SCANCODE_SPACE;
+
 	config[INPUT_UP] = SDL_SCANCODE_W;
 	config[INPUT_LEFT] = SDL_SCANCODE_A;
 	config[INPUT_RIGHT] = SDL_SCANCODE_D;
@@ -30,9 +32,6 @@ void PlayFlowstate::StateEnter()
 
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
-
-	// Set line resolution
-	Spear::ServiceLocator::GetLineRenderer().SetLineWidth(1.f);
 
 	// Position player in middle of screen
 	Vector2D screen{Spear::Core::GetWindowSize()};
@@ -55,12 +54,18 @@ void PlayFlowstate::StateEnter()
 	player.RegisterWalls(pWalls, wallSize);
 }
 
+bool viewPerspective{false};
 int PlayFlowstate::StateUpdate(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 	if (input.InputStart(INPUT_QUIT))
 	{
 		Spear::Core::SignalShutdown();
+	}
+
+	if (input.InputStart(INPUT_TOGGLE))
+	{
+		viewPerspective = !viewPerspective;
 	}
 
 	player.Update();
@@ -71,10 +76,14 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 void PlayFlowstate::StateRender()
 {
 
-	player.Draw();
-	for (int i = 0; i < wallSize; i++)
+	player.Draw(viewPerspective);
+
+	if(!viewPerspective)
 	{
-		pWalls[i].Draw();
+		for (int i = 0; i < wallSize; i++)
+		{
+			pWalls[i].Draw();
+		}
 	}
 	Spear::ServiceLocator::GetLineRenderer().Render();
 }

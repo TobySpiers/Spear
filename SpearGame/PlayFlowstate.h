@@ -25,6 +25,8 @@ public:
 
 enum InputActions
 {
+	INPUT_TOGGLE,
+
 	INPUT_UP,
 	INPUT_RIGHT,
 	INPUT_DOWN,
