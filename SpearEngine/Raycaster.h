@@ -15,10 +15,10 @@ namespace Spear
 	struct RaycastParams
 	{
 		Vector2D pos{ 0.f, 0.f };
-		float viewDistance{ 1000 };
+		float viewDistance{ 2000 };
 		float fieldOfView{ TO_RADIANS(360.f) };
 		float rotation{ 0.f };
-		int rayCount{ 800 };
+		int resolution{ 200 };
 
 		RaycastWall* pWalls{ nullptr };
 		int wallCount{ 0 };
