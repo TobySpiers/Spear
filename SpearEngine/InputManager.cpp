@@ -89,7 +89,7 @@ namespace Spear
 		return (m_inputStates[input] == INPUT_RELEASED);
 	}
 
-	Vector2D InputManager::MousePos()
+	Vector2D InputManager::GetMousePos()
 	{
 		return m_mousePos;
 	}

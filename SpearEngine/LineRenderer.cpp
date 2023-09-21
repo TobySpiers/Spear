@@ -87,6 +87,31 @@ namespace Spear
 		m_lineCount++;
 	}
 
+	void LineRenderer::AddLinePoly(const LinePolyData& poly)
+	{
+		// line, triangle, square, or bigger
+		ASSERT(poly.segments > 1);
+
+		// decompose into individual lines
+		// not the most efficient approach mem-wise as vertices get duplicated
+		// but main use-case for lines will be discrete vertical lines for raycasting, so this will do for now
+		float increment {(PI * 2) / poly.segments};
+		for (int i = 0; i < poly.segments; i++)
+		{
+			int nextIndex{ (i == poly.segments - 1) ? 0 : i + 1 };
+
+			LineData line;
+			line.start = poly.pos + Vector2D(sin(poly.rotation + (increment * i)), cos(poly.rotation + (increment * i))) * poly.radius;
+			line.end = poly.pos + Vector2D(sin(poly.rotation + (increment * nextIndex)), cos(poly.rotation + (increment * nextIndex))) * poly.radius;
+			line.r = poly.r;
+			line.g = poly.g;
+			line.b = poly.b;
+			line.alpha = poly.alpha;
+
+			AddLine(line);
+		}
+	}
+
 	void LineRenderer::Render()
 	{
 		// Enable blending for transparency... #Refactor?
@@ -119,7 +144,7 @@ namespace Spear
 			m_instanceColorData
 		);
 
-		//glEnable(GL_LINE_SMOOTH);
+		glEnable(GL_LINE_SMOOTH);
 		glLineWidth(m_lineWidth);
 
 		GLCheck(glDrawArraysInstanced(GL_LINES, 0, 2, m_lineCount)); // 2 vertices per instance, m_lineCount instances

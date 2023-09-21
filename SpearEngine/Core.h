@@ -39,6 +39,8 @@ if (!(x))					\
 }							
 #endif
 
+#define PI 3.14159265359f
+
 using u8 = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
@@ -79,7 +81,6 @@ namespace Spear
 		static float GetWindowScale();
 
 		static Vector2D GetNormalizedDeviceCoordinate(const Vector2D& inCoord);
-		static float NormalizeCoordinate(float inCoord, float ratio);
 
 	private:
 		static bool m_shutdown;
