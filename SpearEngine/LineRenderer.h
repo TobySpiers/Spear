@@ -2,7 +2,7 @@
 
 namespace Spear
 {
-	constexpr int LINE_MAX{ 800 };
+	constexpr int LINE_MAX{ 600 };
 	constexpr int FLOATS_PER_POS{4};
 	constexpr int FLOATS_PER_COLOR{4};
 	constexpr int INSTANCE_POS_MAX{FLOATS_PER_POS * LINE_MAX};
@@ -26,6 +26,7 @@ namespace Spear
 	public:
 		LineRenderer();
 		void AddLine(const LineData& line);
+		void SetLineWidth(float width){m_lineWidth = width;};
 		void Render();
 
 	private:
@@ -38,6 +39,7 @@ namespace Spear
 		int m_lineCount{0};
 
 		// render data
+		float m_lineWidth{1.f};
 		GLuint m_vertexArrayObj{0};
 		GLuint m_instancePosBuffer{0};
 		GLuint m_instanceColorBuffer{0};

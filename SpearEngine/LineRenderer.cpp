@@ -57,6 +57,8 @@ namespace Spear
 
 		// COMPILE SHADER
 		m_shaderProgram = ShaderCompiler::CreateShaderProgram("../Shaders/LineVS.glsl", "../Shaders/LineFS.glsl");
+
+		LOG("LOG: Line renderer reserved " << sizeof(GLfloat) * (INSTANCE_COL_MAX + INSTANCE_POS_MAX) << " bytes in CPU/GPU memory");
 	}
 
 	void LineRenderer::AddLine(const LineData& line)
@@ -67,11 +69,14 @@ namespace Spear
 			return;
 		}
 
+		const Vector2D startPos{Core::GetNormalizedDeviceCoordinate(line.start)};
+		const Vector2D endPos{Core::GetNormalizedDeviceCoordinate(line.end)};
+
 		int posIndex{FLOATS_PER_POS * m_lineCount};
-		m_instancePosData[posIndex + 0] = line.start.x;
-		m_instancePosData[posIndex + 1] = line.start.y;
-		m_instancePosData[posIndex + 2] = line.end.x;
-		m_instancePosData[posIndex + 3] = line.end.y;
+		m_instancePosData[posIndex + 0] = startPos.x;
+		m_instancePosData[posIndex + 1] = startPos.y;
+		m_instancePosData[posIndex + 2] = endPos.x;
+		m_instancePosData[posIndex + 3] = endPos.y;
 
 		int colIndex{FLOATS_PER_COLOR * m_lineCount};
 		m_instanceColorData[posIndex + 0] = line.r;
@@ -115,7 +120,7 @@ namespace Spear
 		);
 
 		//glEnable(GL_LINE_SMOOTH);
-		//glLineWidth(10.0f);
+		glLineWidth(m_lineWidth);
 
 		GLCheck(glDrawArraysInstanced(GL_LINES, 0, 2, m_lineCount)); // 2 vertices per instance, m_lineCount instances
 		m_lineCount = 0;
