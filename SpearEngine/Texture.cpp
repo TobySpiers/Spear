@@ -20,7 +20,7 @@ namespace Spear
 
 		if (pSurface->format->format != SDL_PIXELFORMAT_RGBA32 && pSurface->format->format != SDL_PIXELFORMAT_BGRA32)
 		{
-			LOG(std::string("\nWARNING: Converting image to suitable texture format: ") + filename);
+			LOG(std::string("\nWARNING: Converted image from non-suitable texture format: ") + filename);
 			SDL_Surface* pConvertedSurface = SDL_ConvertSurfaceFormat(pSurface, SDL_PIXELFORMAT_RGBA32, 0);
 			if (!pConvertedSurface)
 			{

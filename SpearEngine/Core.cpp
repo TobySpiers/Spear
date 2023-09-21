@@ -2,6 +2,7 @@
 #include "ServiceLocator.h"
 #include "FlowstateManager.h"
 #include "InputManager.h"
+#include "WindowManager.h"
 #include "SDL_Image.h"
 
 namespace Spear
@@ -84,6 +85,9 @@ namespace Spear
 			// Update state
 			stateManager.Update(deltaTime);
 
+			// Swap buffers
+			SDL_GL_SwapWindow(&ServiceLocator::GetWindowManager().GetWindow());
+
 			// spinlock to keep thread active while waiting
 			while(SDL_GetPerformanceCounter() - frameStart < targetFrequency)
 			{}
@@ -117,13 +121,8 @@ namespace Spear
 	Vector2D Core::GetNormalizedDeviceCoordinate(const Vector2D& inCoord)
 	{
 		return Vector2D(
-			NormalizeCoordinate(inCoord.x, m_windowParams.width),
-			NormalizeCoordinate(inCoord.y, m_windowParams.height)
+			-1 + (2 * (inCoord.x / m_windowParams.width)),
+			1 - (2 * (inCoord.y / m_windowParams.height))
 		);
 	}
-	float Core::NormalizeCoordinate(float inCoord, float ratio)
-	{
-		return -1 + (2 * (inCoord / ratio));
-	}
-
 }

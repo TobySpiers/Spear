@@ -18,7 +18,7 @@ namespace Spear
 		bool InputStart(int key);
 		bool InputHold(int key);
 		bool InputRelease(int key);
-		Vector2D MousePos();
+		Vector2D GetMousePos();
 
 	private:
 		void UpdateInputState(bool active, int* state);

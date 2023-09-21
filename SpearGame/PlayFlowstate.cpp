@@ -1,6 +1,5 @@
 #include "SpearEngine/Core.h"
 #include "SpearEngine/ServiceLocator.h"
-#include "SpearEngine/WindowManager.h"
 #include "SpearEngine/InputManager.h"
 #include "SpearEngine/LineRenderer.h"
 
@@ -31,35 +30,35 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 	}
 	
 	static float elapsedTime{0.f};
-	elapsedTime += deltaTime * 1000.f;
+	elapsedTime += deltaTime;
 
-	int dir{1};
-	float yOffset{1.f};
-	for (int x = 1; x < Spear::Core::GetWindowSize().x; x += 6)
+	static int segment{3};
+	static int inc{1};
+	if (elapsedTime > 0.3f)
 	{
-		Spear::LineData line;
-		line.start = Vector2D((x + (int)elapsedTime) % (int)Spear::Core::GetWindowSize().x, yOffset);
-		line.end = Vector2D((x + (int)elapsedTime) % (int)Spear::Core::GetWindowSize().x, Spear::Core::GetWindowSize().y);
-		line.r = ((x / 3) % 3) == 0 ? 1.f : 0.f;
-		line.g = ((x / 3) % 3) == 1 ? 1.f : 0.f;
-		line.b = ((x / 3) % 3) == 2 ? 1.f : 0.f;
-		Spear::ServiceLocator::GetLineRenderer().AddLine(line);
-
-		yOffset += (10 * dir);
-		if (yOffset > Spear::Core::GetWindowSize().y || yOffset < 1)
+		elapsedTime = 0.f;
+		segment += inc;
+		if (segment == 6 || segment == 2)
 		{
-			dir *= -1;
+			inc *= -1;
 		}
 	}
-	Spear::ServiceLocator::GetLineRenderer().SetLineWidth(6.f);
+
+	Spear::LinePolyData poly;
+	poly.pos = Spear::ServiceLocator::GetInputManager().GetMousePos();
+	poly.radius = 50.f;
+	poly.segments = segment;
+	poly.rotation = elapsedTime;
+	poly.r = 1.0f;
+	Spear::ServiceLocator::GetLineRenderer().AddLinePoly(poly);
 
 	return static_cast<int>(eFlowstate::STATE_THIS);
 }
 
 void PlayFlowstate::StateRender()
 {
+	Spear::ServiceLocator::GetLineRenderer().SetLineWidth(5.f);
 	Spear::ServiceLocator::GetLineRenderer().Render();
-	SDL_GL_SwapWindow(&Spear::ServiceLocator::GetWindowManager().GetWindow());
 }
 
 void PlayFlowstate::StateExit()

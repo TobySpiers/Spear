@@ -153,11 +153,6 @@ namespace Spear
 		glUseProgram(0);
 	}
 
-	Renderer::~Renderer()
-	{
-		m_texture.FreeTexture();
-	}
-
 	void Renderer::Render()
 	{
 		/*glDisable(GL_DEPTH_TEST);

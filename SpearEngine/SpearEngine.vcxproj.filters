@@ -39,7 +39,9 @@
     <ClCompile Include="Texture.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="LineRenderer.cpp" />
+    <ClCompile Include="LineRenderer.cpp">
+      <Filter>SpearGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">

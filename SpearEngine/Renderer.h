@@ -9,7 +9,7 @@ namespace Spear
 
 	public:
 		Renderer();
-		~Renderer();
+		~Renderer(){};
 		void Render();
 
 	private:
