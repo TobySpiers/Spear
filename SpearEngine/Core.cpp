@@ -1,18 +1,36 @@
 #include "Core.h"
 #include "ServiceLocator.h"
 #include "FlowstateManager.h"
-#include "WindowManager.h"
 #include "InputManager.h"
 #include "SDL_Image.h"
 
 namespace Spear
 {
 	bool Core::m_shutdown{false};
-	SDL_Window* Core::m_window{nullptr};
-	SDL_Renderer* Core::m_renderer{nullptr};
+	WindowParams Core::m_windowParams;
+
+	void GLClearErrors()
+	{
+		while (GLenum error = glGetError()) {}
+	}
+	void GLPrintErrors(const char* file, const char* function, int line)
+	{
+		while (GLenum error = glGetError())
+		{
+			std::cout << "OpenGL Error:"
+				<< "\n\tFile: " << file
+				<< "\n\tLine: " << line
+				<< "\n\tFunction: " << function
+				<< "\n\tError Code: " << error
+				<< std::endl;
+		}
+	}
 
 	void Core::Initialise(const WindowParams& params)
 	{
+		// Store window params
+		m_windowParams = params;
+
 		// SDL setup
 		if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
 		{
@@ -36,14 +54,6 @@ namespace Spear
 
 		// Initialise all services
 		ServiceLocator::Initialise(params);
-	}
-
-	void Core::Cleanup()
-	{
-		// Shutdown SpearEngine services
-		ServiceLocator::Shutdown();
-		IMG_Quit();
-		SDL_Quit();
 	}
 
 	void Core::RunGameloop(int targetFPS)
@@ -86,21 +96,34 @@ namespace Spear
 		m_shutdown = true;
 	}
 
+	void Core::Cleanup()
+	{
+		// Shutdown SpearEngine services
+		ServiceLocator::Shutdown();
+		IMG_Quit();
+		SDL_Quit();
+	}
 
-	void GLClearErrors()
+	Vector2D Core::GetWindowSize()
 	{
-		while(GLenum error = glGetError()){}
+		return Vector2D(m_windowParams.width, m_windowParams.height);
 	}
-	void GLPrintErrors(const char* file, const char* function, int line)
+	float Core::GetWindowScale()
 	{
-		while (GLenum error = glGetError())
-		{
-			std::cout << "OpenGL Error:"
-				<< "\n\tFile: " << file
-				<< "\n\tLine: " << line
-				<< "\n\tFunction: " << function
-				<< "\n\tError Code: " << error
-				<< std::endl;
-		}
+		return m_windowParams.scale;
 	}
+
+	// Convert WindowCoordinate (0,0 BottomLeft) to DeviceCoordinate (-1,-1 BottomLeft)
+	Vector2D Core::GetNormalizedDeviceCoordinate(const Vector2D& inCoord)
+	{
+		return Vector2D(
+			NormalizeCoordinate(inCoord.x, m_windowParams.width),
+			NormalizeCoordinate(inCoord.y, m_windowParams.height)
+		);
+	}
+	float Core::NormalizeCoordinate(float inCoord, float ratio)
+	{
+		return -1 + (2 * (inCoord / ratio));
+	}
+
 }

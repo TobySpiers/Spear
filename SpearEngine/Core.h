@@ -75,9 +75,14 @@ namespace Spear
 		static void SignalShutdown();
 		static void Cleanup();
 
+		static Vector2D GetWindowSize();
+		static float GetWindowScale();
+
+		static Vector2D GetNormalizedDeviceCoordinate(const Vector2D& inCoord);
+		static float NormalizeCoordinate(float inCoord, float ratio);
+
 	private:
 		static bool m_shutdown;
-		static SDL_Window* m_window;
-		static SDL_Renderer* m_renderer;
+		static WindowParams m_windowParams;
 	};
 }

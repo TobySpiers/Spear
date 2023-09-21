@@ -30,22 +30,28 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 		Spear::Core::SignalShutdown();
 	}
 	
-	Spear::LineData lineA;
-	lineA.end = Vector2D(0.0, 0.8);
-	lineA.r = 1.f;
+	static float elapsedTime{0.f};
+	elapsedTime += deltaTime * 1000.f;
 
-	Spear::LineData lineB;
-	lineB.end = Vector2D(0.0, -0.8);
-	lineB.g = 1.f;
+	int dir{1};
+	float yOffset{1.f};
+	for (int x = 1; x < Spear::Core::GetWindowSize().x; x += 6)
+	{
+		Spear::LineData line;
+		line.start = Vector2D((x + (int)elapsedTime) % (int)Spear::Core::GetWindowSize().x, yOffset);
+		line.end = Vector2D((x + (int)elapsedTime) % (int)Spear::Core::GetWindowSize().x, Spear::Core::GetWindowSize().y);
+		line.r = ((x / 3) % 3) == 0 ? 1.f : 0.f;
+		line.g = ((x / 3) % 3) == 1 ? 1.f : 0.f;
+		line.b = ((x / 3) % 3) == 2 ? 1.f : 0.f;
+		Spear::ServiceLocator::GetLineRenderer().AddLine(line);
 
-	Spear::LineData lineC;
-	lineC.end = Vector2D(0.8, 0.0);
-	lineC.b = 1.f;
-
-	Spear::LineRenderer& r = Spear::ServiceLocator::GetLineRenderer();
-	r.AddLine(lineA);
-	r.AddLine(lineB);
-	r.AddLine(lineC);
+		yOffset += (10 * dir);
+		if (yOffset > Spear::Core::GetWindowSize().y || yOffset < 1)
+		{
+			dir *= -1;
+		}
+	}
+	Spear::ServiceLocator::GetLineRenderer().SetLineWidth(6.f);
 
 	return static_cast<int>(eFlowstate::STATE_THIS);
 }
