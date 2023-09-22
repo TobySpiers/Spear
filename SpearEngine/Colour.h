@@ -10,10 +10,11 @@ struct Colour
 	float g{0.f};
 	float b{0.f};
 	float a{1.0f};
-};
 
-static const Colour Red {1, 0, 0, 1};
-static const Colour Green {0, 1, 0, 1};
-static const Colour Blue {0, 0, 1, 1};
-static const Colour White {1, 1, 1, 1};
-static const Colour Black {0, 0, 0, 1};
+	static const Colour Red() {return {1, 0, 0, 1};};
+	static const Colour Green() { return {0, 1, 0, 1}; };
+	static const Colour Blue() { return {0, 0, 1, 1}; };
+	static const Colour White() { return {1, 1, 1, 1}; };
+	static const Colour Black() { return {0, 0, 0, 1}; };
+	static const Colour Invisible() { return {0, 0, 0, 0}; };
+};

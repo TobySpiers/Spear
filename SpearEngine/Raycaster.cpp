@@ -23,29 +23,37 @@ namespace Spear
 	void Raycaster::Draw2D(const RaycastParams& param)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
+		rend.SetLineWidth(1.0f);
 
-		float anglePerRay{param.fieldOfView / param.resolution};
+		// Define the 'screen'
+		const float halfFov{ param.fieldOfView / 2 };
+		const Vector2D forward{ Normalize(Vector2D(cos(param.rotation), sin(param.rotation))) };
+		const Vector2D screenPlaneL{ param.pos + (Vector2D(cos(param.rotation + halfFov), sin(param.rotation + halfFov)) * param.farClip) };
+		const Vector2D screenPlaneR{ param.pos + (Vector2D(cos(param.rotation - halfFov), sin(param.rotation - halfFov)) * param.farClip) };
+		const Vector2D screenVector{ screenPlaneR - screenPlaneL };
+		// Define the 'rays'
+		const Vector2D raySpacingDir{ forward.Normal() * -1 };
+		const float raySpacingLength{ screenVector.Length() / param.resolution };
 
 		// For each ray
 		for (int i = 0; i < param.resolution; i++)
 		{
-
-			Vector2D ray{ sin(param.rotation + (anglePerRay * i)), cos(param.rotation + (anglePerRay * i)) };
-			ray *= param.viewDistance;
+			Vector2D rayEndPoint{screenPlaneL + (raySpacingDir * raySpacingLength * i)};
+			Vector2D ray{rayEndPoint - param.pos};
 
 			// Check each wall...
 			Vector2D intersect;
-			bool foundIntersect{false};
+			bool foundIntersect{ false };
 			for (int w = 0; w < param.wallCount; w++)
 			{
 				RaycastWall& wall = param.pWalls[w];
-				
+
 				// Check for an intersect...
 				Vector2D result;
 				if (VectorIntersection(param.pos, ray, wall.origin, wall.vec, result))
 				{
 					// Check if it was nearer than any previous discovered intersect...
-					float distance{Vector2D(param.pos - result).LengthSqr()};
+					float distance{ Vector2D(param.pos - result).LengthSqr()};
 					float existingDistance{ Vector2D(param.pos - intersect).LengthSqr() };
 					if (!foundIntersect || distance < existingDistance)
 					{
@@ -58,8 +66,8 @@ namespace Spear
 
 			LineData line;
 			line.start = param.pos;
-			line.end = foundIntersect ? intersect : param.pos + ray;
-			line.colour = White;
+			line.end = foundIntersect? intersect : rayEndPoint;
+			line.colour = Colour::White();
 			rend.AddLine(line);
 		}
 	}
@@ -67,23 +75,34 @@ namespace Spear
 	void Raycaster::Draw3D(const RaycastParams& param)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
-
 		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.resolution };
-		Spear::ServiceLocator::GetLineRenderer().SetLineWidth(lineWidth);
+		rend.SetLineWidth(lineWidth);
 
-		float anglePerRay{ param.fieldOfView / param.resolution };
+		// Define a flat 'screen plane' to evenly distribute rays onto
+		// This distribution ensures objects do not squash/stretch as they traverse the screen
+		// If we don't do this, radial-distribution results in larger gaps between rays at further edges of flat surfaces
+		const float halfFov{ param.fieldOfView / 2 };
+		const Vector2D forward{ Normalize(Vector2D(cos(param.rotation), sin(param.rotation))) };
+		const Vector2D screenPlaneL{ param.pos + (Vector2D(cos(param.rotation - halfFov), sin(param.rotation - halfFov)) * param.farClip) };
+		const Vector2D screenPlaneR{ param.pos + (Vector2D(cos(param.rotation + halfFov), sin(param.rotation + halfFov)) * param.farClip) };
+		const Vector2D screenVector{ screenPlaneR - screenPlaneL };
 
-		// For each ray
-		for (int i = 0; i < param.resolution; i++)
+		// Define ray spacing
+		const Vector2D raySpacingDir{ forward.Normal() * -1 };
+		const float raySpacingLength{ screenVector.Length() / param.resolution };
+
+		// For each ray...
+		for (int screenX = 0; screenX < param.resolution; screenX++)
 		{
+			Vector2D rayEndPoint{ screenPlaneL - (raySpacingDir * raySpacingLength * screenX) };
+			Vector2D ray{ rayEndPoint - param.pos };
 
-			Vector2D ray{ sin(param.rotation + (anglePerRay * i)), cos(param.rotation + (anglePerRay * i)) };
-			ray *= param.viewDistance;
+			// Initial ray data
+			float nearestLength{ param.farClip };
+			Colour rayColour = Colour::Invisible();
+			Vector2D intersection{0.f, 0.f};
 
 			// Check each wall...
-			Vector2D intersect;
-			Colour intersectColour;
-			bool foundIntersect{ false };
 			for (int w = 0; w < param.wallCount; w++)
 			{
 				RaycastWall& wall = param.pWalls[w];
@@ -92,45 +111,38 @@ namespace Spear
 				Vector2D result;
 				if (VectorIntersection(param.pos, ray, wall.origin, wall.vec, result))
 				{
-					// Check if it was nearer than any previous discovered intersect...
-					float distance{ Vector2D(param.pos - result).LengthSqr() };
-					float existingDistance{ Vector2D(param.pos - intersect).LengthSqr() };
-					if (!foundIntersect || distance < existingDistance)
+					// If it was nearer than previous intersect...
+					float newLength{ Vector2D(param.pos - result).Length() };
+					if (newLength < nearestLength)
 					{
-						// Store result
-						intersect = result;
-						intersectColour = wall.colour;
-						foundIntersect = true;
+						// Update ray data
+						nearestLength = newLength;
+						rayColour = wall.colour;
+						intersection = result;
 					}
 				}
 			}
 
-			int xScreenPos{ static_cast<int>(Core::GetWindowSize().x) - (i * lineWidth)};
-			const float nearDistance{50.f};
-			const float farDistance{1000.f};
-
-			float angleDiff{param.rotation - (anglePerRay * i)};
-			if(angleDiff < 0){angleDiff += PI*2;}
-			else if(angleDiff > PI*2){angleDiff -= PI*2;}
-
-			if (foundIntersect)
+			if (rayColour.a != 0)
 			{
-				// could optimise this by using Squared length value
-				float distance{ Vector2D(param.pos - intersect).Length() };
+				// Project THIS RAY onto the FORWARD VECTOR of the camera to get distance from camera with no fisheye distortion
+				float depth{ Projection(intersection - param.pos, forward * param.farClip).Length() };
+				if (depth < param.nearClip)
+				{
+					continue;
+				}
+				depth *= param.depthCorrection;
+				rayColour.a = (1.f / (depth / 4));
 
-				float clampedDistance = std::max(std::min(distance, farDistance), nearDistance);
-				float percent{1 - ((clampedDistance - nearDistance) / farDistance)};
-				float height = Core::GetWindowSize().y * percent;
-				float mid{ Core::GetWindowSize().y / 2 };
+				float height{ (Core::GetWindowSize().y / 2.0f) / depth };
+				float mid{ Core::GetWindowSize().y / 2.0f };
 
 				LineData line;
-				line.start = Vector2D(xScreenPos, mid - (height / 2));
-				line.end = Vector2D(xScreenPos, mid + (height / 2));
-				line.colour = intersectColour;
-				line.colour.a = percent;
+				line.start = Vector2D((screenX * lineWidth) + (lineWidth / 2), mid - height);
+				line.end = Vector2D((screenX * lineWidth) + (lineWidth / 2), mid + height);
+				line.colour = rayColour;
 				rend.AddLine(line);
 			}
 		}
 	}
-
 }

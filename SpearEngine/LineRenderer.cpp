@@ -101,8 +101,8 @@ namespace Spear
 			int nextIndex{ (i == poly.segments - 1) ? 0 : i + 1 };
 
 			LineData line;
-			line.start = poly.pos + Vector2D(sin(poly.rotation + (increment * i)), cos(poly.rotation + (increment * i))) * poly.radius;
-			line.end = poly.pos + Vector2D(sin(poly.rotation + (increment * nextIndex)), cos(poly.rotation + (increment * nextIndex))) * poly.radius;
+			line.start = poly.pos + Vector2D(cos(poly.rotation + (increment * i)), sin(poly.rotation + (increment * i))) * poly.radius;
+			line.end = poly.pos + Vector2D(cos(poly.rotation + (increment * nextIndex)), sin(poly.rotation + (increment * nextIndex))) * poly.radius;
 			line.colour = poly.colour;
 
 			AddLine(line);

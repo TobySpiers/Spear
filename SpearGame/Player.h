@@ -14,7 +14,7 @@ public:
 private:
 	Spear::RaycastParams m_rayParams;
 	Vector2D m_pos{0.f, 0.f};
-	float m_rotation{TO_RADIANS(180.f)};
+	float m_rotation{TO_RADIANS(-90.f)};
 	float m_moveSpeed{10.f};
 	float m_turnSpeed{TO_RADIANS(5.f)};
 };
