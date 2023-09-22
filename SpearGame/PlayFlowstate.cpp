@@ -41,15 +41,15 @@ void PlayFlowstate::StateEnter()
 	pWalls = new Spear::RaycastWall[wallSize];
 	pWalls[0].origin = Vector2D(screen.x / 3, 200);
 	pWalls[0].vec = Vector2D(0, 400);
-	pWalls[0].colour = Red;
+	pWalls[0].colour = Colour::Red();
 
 	pWalls[1].origin = Vector2D(screen.x - (screen.x / 3), 200);
 	pWalls[1].vec = Vector2D(0, 400);
-	pWalls[1].colour = Blue;
+	pWalls[1].colour = Colour::Blue();
 
 	pWalls[2].origin = Vector2D(400, 200);
 	pWalls[2].vec = Vector2D(800, 0);
-	pWalls[2].colour = Green;
+	pWalls[2].colour = Colour::Green();
 
 	player.RegisterWalls(pWalls, wallSize);
 }

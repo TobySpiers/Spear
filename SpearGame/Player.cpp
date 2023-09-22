@@ -22,38 +22,39 @@ void Player::Update()
 
 	if (input.InputHold(INPUT_UP))
 	{
-		m_pos = m_pos + Vector2D(sin(m_rotation), cos(m_rotation)) * m_moveSpeed;
+		m_pos = m_pos + Vector2D(cos(m_rotation), sin(m_rotation)) * m_moveSpeed;
 	}
 	else if (input.InputHold(INPUT_DOWN))
 	{
-		m_pos = m_pos - Vector2D(sin(m_rotation), cos(m_rotation)) * m_moveSpeed;
+		m_pos = m_pos - Vector2D(cos(m_rotation), sin(m_rotation)) * m_moveSpeed;
 	}
 	if (input.InputHold(INPUT_LEFT))
 	{
-		m_pos = m_pos - Vector2D(-cos(m_rotation), sin(m_rotation)) * m_moveSpeed;
+		m_pos = m_pos - Vector2D(-sin(m_rotation), cos(m_rotation)) * m_moveSpeed;
 	}
 	else if (input.InputHold(INPUT_RIGHT))
 	{
-		m_pos = m_pos + Vector2D(-cos(m_rotation), sin(m_rotation)) * m_moveSpeed;
+		m_pos = m_pos + Vector2D(-sin(m_rotation), cos(m_rotation)) * m_moveSpeed;
 	}
 
 	if (input.InputHold(INPUT_ROTATE_LEFT))
 	{
-		m_rotation += m_turnSpeed;
+		m_rotation -= m_turnSpeed;
 	}
 	else if (input.InputHold(INPUT_ROTATE_RIGHT))
 	{
-		m_rotation -= m_turnSpeed;
+		m_rotation += m_turnSpeed;
 	}
 
 	m_rayParams.pos = m_pos;
-	m_rayParams.rotation = m_rotation - TO_RADIANS(45.f);
+	m_rayParams.rotation = m_rotation;
 }
 
 void Player::Draw(bool perspective) const
 {
 	if (perspective)
 	{
+		// raycasting render
 		Spear::Raycaster::Draw3D(m_rayParams);
 	}
 	else
@@ -63,11 +64,11 @@ void Player::Draw(bool perspective) const
 
 		// draw player on top
 		Spear::LinePolyData poly;
-		poly.colour = Red;
+		poly.colour = Colour::Red();
 		poly.radius = 10.f;
 		poly.segments = 3;
 		poly.pos = m_pos;
-		poly.rotation = m_rotation + TO_RADIANS(45.f);
+		poly.rotation = m_rotation;
 		Spear::ServiceLocator::GetLineRenderer().AddLinePoly(poly);
 	}	
 }
