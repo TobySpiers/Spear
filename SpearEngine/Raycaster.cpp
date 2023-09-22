@@ -8,19 +8,7 @@
 
 namespace Spear
 {
-	void RaycastWall::Draw()
-	{
-		LineRenderer& rend = ServiceLocator::GetLineRenderer();
-		
-		LineData line;
-		line.start = origin;
-		line.end = origin + vec;
-		line.colour = colour;
-
-		rend.AddLine(line);
-	}
-
-	void Raycaster::Draw2D(const RaycastParams& param)
+	void Raycaster::Draw2DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
 		rend.SetLineWidth(1.0f);
@@ -35,7 +23,18 @@ namespace Spear
 		const Vector2D raySpacingDir{ forward.Normal() * -1 };
 		const float raySpacingLength{ screenVector.Length() / param.resolution };
 
-		// For each ray
+		// Draw each wall
+		for (int i = 0; i < wallCount; i++)
+		{
+			LineData line;
+			line.start = pWalls[i].origin;
+			line.end = pWalls[i].origin + pWalls[i].vec;
+			line.colour = pWalls[i].colour;
+
+			rend.AddLine(line);
+		}
+
+		// Draw each ray
 		for (int i = 0; i < param.resolution; i++)
 		{
 			Vector2D rayEndPoint{screenPlaneL + (raySpacingDir * raySpacingLength * i)};
@@ -44,9 +43,9 @@ namespace Spear
 			// Check each wall...
 			Vector2D intersect;
 			bool foundIntersect{ false };
-			for (int w = 0; w < param.wallCount; w++)
+			for (int w = 0; w < wallCount; w++)
 			{
-				RaycastWall& wall = param.pWalls[w];
+				RaycastWall& wall = pWalls[w];
 
 				// Check for an intersect...
 				Vector2D result;
@@ -72,7 +71,7 @@ namespace Spear
 		}
 	}
 
-	void Raycaster::Draw3D(const RaycastParams& param)
+	void Raycaster::Draw3DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
 		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.resolution };
@@ -103,9 +102,9 @@ namespace Spear
 			Vector2D intersection{0.f, 0.f};
 
 			// Check each wall...
-			for (int w = 0; w < param.wallCount; w++)
+			for (int w = 0; w < wallCount; w++)
 			{
-				RaycastWall& wall = param.pWalls[w];
+				RaycastWall& wall = pWalls[w];
 
 				// Check for an intersect...
 				Vector2D result;

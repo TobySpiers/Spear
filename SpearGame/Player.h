@@ -17,5 +17,8 @@ private:
 	float m_rotation{TO_RADIANS(-90.f)};
 	float m_moveSpeed{10.f};
 	float m_turnSpeed{TO_RADIANS(5.f)};
+
+	Spear::RaycastWall* m_pWalls{nullptr};
+	int m_wallCount{0};
 };
 
