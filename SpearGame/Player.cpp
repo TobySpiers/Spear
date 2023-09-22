@@ -55,12 +55,12 @@ void Player::Draw(bool perspective) const
 	if (perspective)
 	{
 		// raycasting render
-		Spear::Raycaster::Draw3D(m_rayParams);
+		Spear::Raycaster::Draw3DWalls(m_rayParams, m_pWalls, m_wallCount);
 	}
 	else
 	{
 		// draw rays
-		Spear::Raycaster::Draw2D(m_rayParams);
+		Spear::Raycaster::Draw2DWalls(m_rayParams, m_pWalls, m_wallCount);
 
 		// draw player on top
 		Spear::LinePolyData poly;
@@ -75,6 +75,6 @@ void Player::Draw(bool perspective) const
 
 void Player::RegisterWalls(Spear::RaycastWall* walls, int size)
 {
-	m_rayParams.pWalls = walls;
-	m_rayParams.wallCount = size;
+	m_pWalls = walls;
+	m_wallCount = size;
 }

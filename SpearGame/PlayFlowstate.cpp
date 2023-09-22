@@ -78,13 +78,6 @@ void PlayFlowstate::StateRender()
 
 	player.Draw(viewPerspective);
 
-	if(!viewPerspective)
-	{
-		for (int i = 0; i < wallSize; i++)
-		{
-			pWalls[i].Draw();
-		}
-	}
 	Spear::ServiceLocator::GetLineRenderer().Render();
 }
 

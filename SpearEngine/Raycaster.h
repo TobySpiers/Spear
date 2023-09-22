@@ -7,7 +7,11 @@ namespace Spear
 	// Cons: only supports 'square tile' grid formations
 	struct RaycastDDAGrid
 	{
+		int* pGrid{nullptr};
+		int width{0};
+		int height{0};
 
+		int tileDimension{50};
 	};
 
 	// a loose 2D wall
@@ -19,8 +23,6 @@ namespace Spear
 		Colour colour;
 		Vector2D origin;
 		Vector2D vec;
-
-		void Draw();
 	};
 
 	struct RaycastParams
@@ -33,9 +35,6 @@ namespace Spear
 		float nearClip{5};
 		float farClip{ 5000 };
 		int resolution{ 200 };
-
-		RaycastWall* pWalls{ nullptr };
-		int wallCount{ 0 };
 	};
 
 	// class to cast and render rays
@@ -44,7 +43,10 @@ namespace Spear
 		NO_CONSTRUCT(Raycaster);
 
 	public:
-		static void Draw2D(const RaycastParams& param);
-		static void Draw3D(const RaycastParams& param);
+		static void Draw2DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount);
+		static void Draw3DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount);
+
+		static void Draw2DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid);
+		static void Draw3DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid);
 	};
 }
