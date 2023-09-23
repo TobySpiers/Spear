@@ -25,10 +25,13 @@ struct Vector2
 	Vector2<T> operator*(const float& scalar) const {return Vector2<T>(x * scalar, y * scalar); };
 	Vector2<T> operator*=(const float& scalar) {*this = *this * scalar; return *this;};
 	Vector2<T> operator/(const float& scalar) const { return Vector2<T>(x / scalar, y / scalar); };
+	Vector2<T> operator/=(const float& scalar) { *this = *this / scalar; return *this; };
 
 	// vector operators
 	Vector2<T> operator+(const Vector2<T>& other) const { return Vector2<T>(x + other.x, y + other.y); };
+	Vector2<T> operator+=(const Vector2<T>& other) { *this = *this + other; return *this; };
 	Vector2<T> operator-(const Vector2<T>& other) const { return Vector2<T>(x - other.x, y - other.y); };
+	Vector2<T> operator-=(const Vector2<T>& other) { *this = *this - other; return *this; };
 
 	// Explicit Conversions Only
 	Vector2<int> ToInt() {return Vector2<int>(static_cast<int>(x), static_cast<int>(y)); };
