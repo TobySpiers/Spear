@@ -50,9 +50,9 @@ void Player::Draw(bool perspective) const
 	if (perspective)
 	{
 		// raycasting render
-		Spear::Raycaster::Draw3DWalls(m_rayParams, m_pWalls, m_wallCount);
+		//Spear::Raycaster::Draw3DWalls(m_rayParams, m_pWalls, m_wallCount);
 
-		//Spear::Raycaster::Draw3DGrid(m_rayParams, m_pRayGrid);
+		Spear::Raycaster::Draw3DGrid(m_rayParams, m_pRayGrid);
 	}
 	else
 	{

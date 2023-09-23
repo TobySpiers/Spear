@@ -34,9 +34,9 @@ struct Vector2
 	Vector2<T> operator-=(const Vector2<T>& other) { *this = *this - other; return *this; };
 
 	// Explicit Conversions Only
-	Vector2<int> ToInt() {return Vector2<int>(static_cast<int>(x), static_cast<int>(y)); };
-	Vector2<float> ToFloat() {return Vector2<float>(static_cast<int>(x), static_cast<float>(y)); };
-	Vector2<double> ToDouble() {return Vector2<double>(static_cast<int>(x), static_cast<double>(y)); };
+	Vector2<int> ToInt() const {return Vector2<int>(static_cast<int>(x), static_cast<int>(y)); };
+	Vector2<float> ToFloat() const {return Vector2<float>(static_cast<int>(x), static_cast<float>(y)); };
+	Vector2<double> ToDouble() const {return Vector2<double>(static_cast<int>(x), static_cast<double>(y)); };
 };
 
 
