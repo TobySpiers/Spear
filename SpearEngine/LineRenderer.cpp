@@ -69,8 +69,8 @@ namespace Spear
 			return;
 		}
 
-		const Vector2D startPos{Core::GetNormalizedDeviceCoordinate(line.start)};
-		const Vector2D endPos{Core::GetNormalizedDeviceCoordinate(line.end)};
+		const Vector2f startPos{Core::GetNormalizedDeviceCoordinate(line.start)};
+		const Vector2f endPos{Core::GetNormalizedDeviceCoordinate(line.end)};
 
 		int posIndex{FLOATS_PER_POS * m_lineCount};
 		m_instancePosData[posIndex + 0] = startPos.x;
@@ -101,8 +101,8 @@ namespace Spear
 			int nextIndex{ (i == poly.segments - 1) ? 0 : i + 1 };
 
 			LineData line;
-			line.start = poly.pos + Vector2D(cos(poly.rotation + (increment * i)), sin(poly.rotation + (increment * i))) * poly.radius;
-			line.end = poly.pos + Vector2D(cos(poly.rotation + (increment * nextIndex)), sin(poly.rotation + (increment * nextIndex))) * poly.radius;
+			line.start = poly.pos + Vector2f(cos(poly.rotation + (increment * i)), sin(poly.rotation + (increment * i))) * poly.radius;
+			line.end = poly.pos + Vector2f(cos(poly.rotation + (increment * nextIndex)), sin(poly.rotation + (increment * nextIndex))) * poly.radius;
 			line.colour = poly.colour;
 
 			AddLine(line);

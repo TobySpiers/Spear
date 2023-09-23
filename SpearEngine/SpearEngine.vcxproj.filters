@@ -45,9 +45,6 @@
     <ClCompile Include="Raycaster.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="MathVector.cpp">
-      <Filter>Maths</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">

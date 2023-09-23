@@ -43,7 +43,6 @@
     <ClCompile Include="WindowManager.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />
-    <ClCompile Include="MathVector.cpp" />
     <ClCompile Include="ShaderCompiler.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

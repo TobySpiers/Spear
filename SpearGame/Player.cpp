@@ -11,30 +11,25 @@ Player::Player()
 	m_rayParams.fieldOfView = TO_RADIANS(90.f);
 }
 
-void Player::SetPos(const Vector2D& pos)
-{
-	m_pos = pos;
-}
-
-void Player::Update()
+void Player::Update(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 
 	if (input.InputHold(INPUT_UP))
 	{
-		m_pos = m_pos + Vector2D(cos(m_rotation), sin(m_rotation)) * m_moveSpeed;
+		m_pos = m_pos + Vector2f(cos(m_rotation), sin(m_rotation)) * m_moveSpeed * deltaTime;
 	}
 	else if (input.InputHold(INPUT_DOWN))
 	{
-		m_pos = m_pos - Vector2D(cos(m_rotation), sin(m_rotation)) * m_moveSpeed;
+		m_pos = m_pos - Vector2f(cos(m_rotation), sin(m_rotation)) * m_moveSpeed * deltaTime;
 	}
 	if (input.InputHold(INPUT_LEFT))
 	{
-		m_pos = m_pos - Vector2D(-sin(m_rotation), cos(m_rotation)) * m_moveSpeed;
+		m_pos = m_pos - Vector2f(-sin(m_rotation), cos(m_rotation)) * m_moveSpeed * deltaTime;
 	}
 	else if (input.InputHold(INPUT_RIGHT))
 	{
-		m_pos = m_pos + Vector2D(-sin(m_rotation), cos(m_rotation)) * m_moveSpeed;
+		m_pos = m_pos + Vector2f(-sin(m_rotation), cos(m_rotation)) * m_moveSpeed * deltaTime;
 	}
 
 	if (input.InputHold(INPUT_ROTATE_LEFT))
@@ -56,20 +51,14 @@ void Player::Draw(bool perspective) const
 	{
 		// raycasting render
 		Spear::Raycaster::Draw3DWalls(m_rayParams, m_pWalls, m_wallCount);
+
+		//Spear::Raycaster::Draw3DGrid(m_rayParams, m_pRayGrid);
 	}
 	else
 	{
-		// draw rays
-		Spear::Raycaster::Draw2DWalls(m_rayParams, m_pWalls, m_wallCount);
-
-		// draw player on top
-		Spear::LinePolyData poly;
-		poly.colour = Colour::Red();
-		poly.radius = 10.f;
-		poly.segments = 3;
-		poly.pos = m_pos;
-		poly.rotation = m_rotation;
-		Spear::ServiceLocator::GetLineRenderer().AddLinePoly(poly);
+		// draw 2D
+		//Spear::Raycaster::Draw2DWalls(m_rayParams, m_pWalls, m_wallCount);
+		Spear::Raycaster::Draw2DGrid(m_rayParams, m_pRayGrid);
 	}	
 }
 

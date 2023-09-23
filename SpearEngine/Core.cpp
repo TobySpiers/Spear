@@ -109,9 +109,9 @@ namespace Spear
 		SDL_Quit();
 	}
 
-	Vector2D Core::GetWindowSize()
+	Vector2i Core::GetWindowSize()
 	{
-		return Vector2D(m_windowParams.width, m_windowParams.height);
+		return Vector2i(m_windowParams.width, m_windowParams.height);
 	}
 	float Core::GetWindowScale()
 	{
@@ -119,9 +119,9 @@ namespace Spear
 	}
 
 	// Convert WindowCoordinate (0,0 BottomLeft) to DeviceCoordinate (-1,-1 BottomLeft)
-	Vector2D Core::GetNormalizedDeviceCoordinate(const Vector2D& inCoord)
+	Vector2f Core::GetNormalizedDeviceCoordinate(const Vector2f& inCoord)
 	{
-		return Vector2D(
+		return Vector2f(
 			-1 + (2 * (inCoord.x / m_windowParams.width)),
 			1 - (2 * (inCoord.y / m_windowParams.height))
 		);
