@@ -11,7 +11,7 @@ namespace Spear
 	struct LinePolyData
 	{
 		Colour colour;
-		Vector2D pos{0.f, 0.f};
+		Vector2f pos{0.f, 0.f};
 		float radius{0.f};
 		float rotation{0.f};
 		int segments{3};
@@ -20,8 +20,8 @@ namespace Spear
 	struct LineData
 	{
 		Colour colour;
-		Vector2D start{0.f, 0.f};
-		Vector2D end{0.f, 0.f};
+		Vector2f start{0.f, 0.f};
+		Vector2f end{0.f, 0.f};
 	};
 
 	class LineRenderer

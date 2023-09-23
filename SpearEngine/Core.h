@@ -81,10 +81,10 @@ namespace Spear
 		static void SignalShutdown();
 		static void Cleanup();
 
-		static Vector2D GetWindowSize();
+		static Vector2i GetWindowSize();
 		static float GetWindowScale();
 
-		static Vector2D GetNormalizedDeviceCoordinate(const Vector2D& inCoord);
+		static Vector2f GetNormalizedDeviceCoordinate(const Vector2f& inCoord);
 
 	private:
 		static bool m_shutdown;

@@ -8,6 +8,8 @@
 #include "Player.h"
 #include "PlayFlowstate.h"
 
+Spear::RaycastDDAGrid rayGrid;
+
 Spear::RaycastWall* pWalls{nullptr};
 const int wallSize{3};
 
@@ -33,25 +35,40 @@ void PlayFlowstate::StateEnter()
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
 
-	// Position player in middle of screen
-	Vector2D screen{Spear::Core::GetWindowSize()};
-	player.SetPos(Vector2D(screen.x / 2, screen.y / 2));
-
 	// Create some walls and register them with player
+	Vector2f screen{Spear::Core::GetWindowSize().ToFloat()};
 	pWalls = new Spear::RaycastWall[wallSize];
-	pWalls[0].origin = Vector2D(screen.x / 3, 200);
-	pWalls[0].vec = Vector2D(0, 400);
+	pWalls[0].origin = Vector2f(screen.x / 3, 200);
+	pWalls[0].vec = Vector2f(0, 400);
 	pWalls[0].colour = Colour::Red();
-
-	pWalls[1].origin = Vector2D(screen.x - (screen.x / 3), 200);
-	pWalls[1].vec = Vector2D(0, 400);
+	pWalls[1].origin = Vector2f(screen.x - (screen.x / 3), 200);
+	pWalls[1].vec = Vector2f(0, 400);
 	pWalls[1].colour = Colour::Blue();
-
-	pWalls[2].origin = Vector2D(400, 200);
-	pWalls[2].vec = Vector2D(800, 0);
+	pWalls[2].origin = Vector2f(400, 200);
+	pWalls[2].vec = Vector2f(800, 0);
 	pWalls[2].colour = Colour::Green();
-
 	player.RegisterWalls(pWalls, wallSize);
+
+	// Create a basic DDA grid
+	rayGrid.tileDimension = 1;
+	rayGrid.width = 10;
+	rayGrid.height = 10;
+	rayGrid.pValues = new u8[rayGrid.width * rayGrid.height] {
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 0, 0, 0, 0, 1, 0, 0, 1,
+		1, 0, 0, 1, 0, 0, 1, 0, 0, 1,
+		1, 0, 1, 1, 1, 0, 1, 1, 0, 1,
+		1, 0, 0, 1, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 1, 1, 1, 0, 0, 1, 1, 1, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+	};
+	player.RegisterGrid(&rayGrid);
+
+	// Position player in middle of screen
+	player.SetPos(Vector2f((static_cast<float>(rayGrid.width / 2)), (static_cast<float>(rayGrid.height) / 2)));
 }
 
 bool viewPerspective{false};
@@ -68,7 +85,7 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 		viewPerspective = !viewPerspective;
 	}
 
-	player.Update();
+	player.Update(deltaTime);
 
 	return static_cast<int>(eFlowstate::STATE_THIS);
 }
@@ -83,5 +100,6 @@ void PlayFlowstate::StateRender()
 
 void PlayFlowstate::StateExit()
 {
-
+	delete[] pWalls;
+	delete[] rayGrid.pValues;
 }
