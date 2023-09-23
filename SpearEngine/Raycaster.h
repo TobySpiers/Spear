@@ -28,10 +28,10 @@ namespace Spear
 		Vector2f pos{ 0.f, 0.f };
 		float fieldOfView{ TO_RADIANS(360.f) };
 		float rotation{ 0.f };
-		float depthCorrection{0.005f};
+		float depthCorrection{0.5f};
 
 		float nearClip{5};
-		float farClip{ 5000 };
+		float farClip{ 10 };
 		int resolution{ 200 };
 
 		// 2D is rendered 1 pixel per tile... this zooms 2D rendering
@@ -42,6 +42,13 @@ namespace Spear
 	class Raycaster
 	{
 		NO_CONSTRUCT(Raycaster);
+
+		enum eRayHit
+		{
+			RAY_NOHIT = 0,
+			RAY_HIT_FRONT,
+			RAY_HIT_SIDE
+		};
 
 	public:
 		static void Draw2DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount);

@@ -24,8 +24,8 @@ void PlayFlowstate::StateEnter()
 	config[INPUT_RIGHT] = SDL_SCANCODE_D;
 	config[INPUT_DOWN] = SDL_SCANCODE_S;
 
-	config[INPUT_ROTATE_LEFT] = SDL_SCANCODE_LEFT;
-	config[INPUT_ROTATE_RIGHT] = SDL_SCANCODE_RIGHT;
+	config[INPUT_ROTATE_LEFT] = SDL_SCANCODE_Q;
+	config[INPUT_ROTATE_RIGHT] = SDL_SCANCODE_E;
 
 	config[INPUT_SHOOT] = SDL_BUTTON_LEFT;
 	config[INPUT_ALTSHOOT] = SDL_BUTTON_RIGHT;
@@ -53,15 +53,16 @@ void PlayFlowstate::StateEnter()
 	rayGrid.width = 10;
 	rayGrid.height = 10;
 	rayGrid.pValues = new u8[rayGrid.width * rayGrid.height] {
+		
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 0, 0, 0, 0, 1, 0, 0, 1,
-		1, 0, 0, 1, 0, 0, 1, 0, 0, 1,
-		1, 0, 1, 1, 1, 0, 1, 1, 0, 1,
-		1, 0, 0, 1, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 1, 1, 1, 0, 0, 1, 1, 1, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+		1, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+		1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
+		1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+		1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+		1, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+		1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 	};
 	player.RegisterGrid(&rayGrid);
