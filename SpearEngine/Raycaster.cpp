@@ -158,8 +158,8 @@ namespace Spear
 				LinePolyData square;
 				square.segments = 4;
 				square.colour = pGrid->pValues[x + (y * pGrid->width)] ? Colour::Blue() : Colour::White();
-				square.pos = Vector2f(x * pGrid->tileDimension, y * pGrid->tileDimension) + Vector2f(pGrid->tileDimension / 2, pGrid->tileDimension / 2);
-				square.radius = static_cast<float>(pGrid->tileDimension) * 0.65f; // this is radius of each corner (not width/height)... sizing slightly under 0.707 for visual niceness
+				square.pos = Vector2f(0.5f + x, 0.5f + y);
+				square.radius = 0.65f; // this is radius of each corner (not width/height)... sizing slightly under 0.707 for visual niceness
 				square.rotation = TO_RADIANS(45.f);
 
 				square.pos *= param.scale2D;
@@ -175,6 +175,7 @@ namespace Spear
 		poly.radius = 0.2f * param.scale2D;
 		poly.segments = 3;
 		poly.pos = param.pos * param.scale2D;
+		poly.pos += Vector2f(0.5f, 0.5f);
 		poly.rotation = param.rotation;
 		rend.AddLinePoly(poly);
 

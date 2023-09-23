@@ -10,8 +10,6 @@ namespace Spear
 		u8* pValues{nullptr};
 		u8 width{0};
 		u8 height{0};
-
-		u8 tileDimension{50};
 	};
 
 	// a loose 2D wall

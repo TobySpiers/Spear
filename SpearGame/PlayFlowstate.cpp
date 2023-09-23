@@ -50,7 +50,6 @@ void PlayFlowstate::StateEnter()
 	player.RegisterWalls(pWalls, wallSize);
 
 	// Create a basic DDA grid
-	rayGrid.tileDimension = 1;
 	rayGrid.width = 10;
 	rayGrid.height = 10;
 	rayGrid.pValues = new u8[rayGrid.width * rayGrid.height] {
