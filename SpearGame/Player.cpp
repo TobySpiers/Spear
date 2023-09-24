@@ -1,7 +1,7 @@
 #include "SpearEngine/Core.h"
 #include "SpearEngine/ServiceLocator.h"
 #include "SpearEngine/InputManager.h"
-#include "SpearEngine/LineRenderer.h"
+#include "SpearEngine/ScreenRenderer.h"
 
 #include "PlayFlowstate.h"
 #include "Player.h"

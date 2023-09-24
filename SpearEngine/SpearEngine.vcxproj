@@ -23,7 +23,7 @@
     <ClInclude Include="Core.h" />
     <ClInclude Include="FlowstateManager.h" />
     <ClInclude Include="InputManager.h" />
-    <ClInclude Include="LineRenderer.h" />
+    <ClInclude Include="ScreenRenderer.h" />
     <ClInclude Include="Raycaster.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="WindowManager.h" />
@@ -37,7 +37,7 @@
     <ClCompile Include="Core.cpp" />
     <ClCompile Include="FlowstateManager.cpp" />
     <ClCompile Include="InputManager.cpp" />
-    <ClCompile Include="LineRenderer.cpp" />
+    <ClCompile Include="ScreenRenderer.cpp" />
     <ClCompile Include="Raycaster.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="WindowManager.cpp" />

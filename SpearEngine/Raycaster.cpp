@@ -1,6 +1,6 @@
 #include "Core.h"
 #include "ServiceLocator.h"
-#include "LineRenderer.h"
+#include "ScreenRenderer.h"
 
 #include "Raycaster.h"
 
@@ -10,7 +10,7 @@ namespace Spear
 {
 	void Raycaster::Draw2DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount)
 	{
-		LineRenderer& rend = ServiceLocator::GetLineRenderer();
+		ScreenRenderer& rend = ServiceLocator::GetLineRenderer();
 		rend.SetLineWidth(1.0f);
 
 		// Define the 'screen'
@@ -26,7 +26,7 @@ namespace Spear
 		// Draw each wall
 		for (int i = 0; i < wallCount; i++)
 		{
-			LineRenderer::LineData line;
+			ScreenRenderer::LineData line;
 			line.start = pWalls[i].origin;
 			line.end = pWalls[i].origin + pWalls[i].vec;
 			line.colour = pWalls[i].colour;
@@ -63,17 +63,17 @@ namespace Spear
 				}
 			}
 
-			LineRenderer::LineData line;
+			ScreenRenderer::LineData line;
 			line.start = param.pos;
 			line.end = foundIntersect? intersect : rayEndPoint;
-			line.colour = Colour::White();
+			line.colour = Colour4f::White();
 			rend.AddLine(line);
 		}
 	}
 
 	void Raycaster::Draw3DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount)
 	{
-		LineRenderer& rend = ServiceLocator::GetLineRenderer();
+		ScreenRenderer& rend = ServiceLocator::GetLineRenderer();
 		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.xResolution };
 		rend.SetLineWidth(lineWidth);
 
@@ -98,7 +98,7 @@ namespace Spear
 
 			// Initial ray data
 			float nearestLength{ param.farClip };
-			Colour rayColour = Colour::Invisible();
+			Colour4f rayColour = Colour4f::Invisible();
 			Vector2f intersection{0.f, 0.f};
 
 			// Check each wall...
@@ -136,7 +136,7 @@ namespace Spear
 				float height{ (Core::GetWindowSize().y / 2.0f) / depth };
 				float mid{ Core::GetWindowSize().y / 2.0f };
 
-				LineRenderer::LineData line;
+				ScreenRenderer::LineData line;
 				line.start = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid - height);
 				line.end = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid + height);
 				line.colour = rayColour;
@@ -147,7 +147,7 @@ namespace Spear
 
 	void Raycaster::Draw2DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid)
 	{
-		LineRenderer& rend = ServiceLocator::GetLineRenderer();
+		ScreenRenderer& rend = ServiceLocator::GetLineRenderer();
 		rend.SetLineWidth(2.0f);
 
 		// Draw tiles
@@ -155,16 +155,16 @@ namespace Spear
 		{
 			for (int y = 0; y < pGrid->height; y++)
 			{
-				LineRenderer::LinePolyData square;
+				ScreenRenderer::LinePolyData square;
 				square.segments = 4;
-				square.colour = pGrid->pValues[x + (y * pGrid->width)] ? Colour::Blue() : Colour::White();
+				square.colour = pGrid->pValues[x + (y * pGrid->width)] ? Colour4f::Blue() : Colour4f::White();
 				square.pos = Vector2f(x, y) + Vector2f(0.5, 0.5f);
 				square.radius = 0.65f; // this is radius of each corner (not width/height)... sizing slightly under 0.707 for visual niceness
 				square.rotation = TO_RADIANS(45.f);
 
 				if (x == param.pos.ToInt().x && y == param.pos.ToInt().y)
 				{
-					square.colour = Colour::Green();
+					square.colour = Colour4f::Green();
 				}
 
 				square.pos *= param.scale2D;
@@ -175,8 +175,8 @@ namespace Spear
 		}
 
 		// Draw player
-		LineRenderer::LinePolyData poly;
-		poly.colour = Colour::Red();
+		ScreenRenderer::LinePolyData poly;
+		poly.colour = Colour4f::Red();
 		poly.radius = 0.2f * param.scale2D;
 		poly.segments = 3;
 		poly.pos = param.pos * param.scale2D;
@@ -275,11 +275,11 @@ namespace Spear
 			// ====================================
 			// RENDER
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-			LineRenderer::LineData line;
+			ScreenRenderer::LineData line;
 			if (tileFound)
 			{
 				rayEnd = rayStart + rayDir * distance;
-				line.colour = Colour::Red();
+				line.colour = Colour4f::Red();
 			}
 			line.start = param.pos * param.scale2D;
 			line.end = rayEnd * param.scale2D;
@@ -289,7 +289,7 @@ namespace Spear
 	
 	void Raycaster::Draw3DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid)
 	{
-		LineRenderer& rend = ServiceLocator::GetLineRenderer();
+		ScreenRenderer& rend = ServiceLocator::GetLineRenderer();
 
 		// Calculate our resolution
 		float pixelWidth{ static_cast<float>(Core::GetWindowSize().x) / param.xResolution };
@@ -402,12 +402,12 @@ namespace Spear
 				float height{ (Core::GetWindowSize().y / 2.0f) / depth };
 				float mid{ Core::GetWindowSize().y / 2.0f };
 
-				LineRenderer::LineData line;
+				ScreenRenderer::LineData line;
 				line.start = Vector2f((screenX * pixelWidth), mid - height);
 				line.end = Vector2f((screenX * pixelWidth), mid + height);
 				line.start.y = line.start.y - fmod(line.start.y, pixelHeight);
 				line.end.y = line.end.y - fmod(line.end.y, pixelHeight);
-				line.colour = rayHit == RAY_HIT_FRONT ? Colour::White() : Colour(0.9f, 0.9f, 0.9f, 1.0f);
+				line.colour = rayHit == RAY_HIT_FRONT ? Colour4f::White() : Colour4f(0.9f, 0.9f, 0.9f, 1.0f);
 
 				// UV X coord
 				if (rayHit == RAY_HIT_FRONT)

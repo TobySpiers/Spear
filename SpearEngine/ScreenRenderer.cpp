@@ -1,11 +1,11 @@
 #include "Core.h"
-#include "LineRenderer.h"
+#include "ScreenRenderer.h"
 #include "ShaderCompiler.h"
 
 namespace Spear
 {
 
-	LineRenderer::LineRenderer()
+	ScreenRenderer::ScreenRenderer()
 	{
 		// CREATE VAO
 		glGenVertexArrays(1, &m_vertexArrayObj);
@@ -81,16 +81,23 @@ namespace Spear
 		m_shaderProgram = ShaderCompiler::CreateShaderProgram("../Shaders/LineVS.glsl", "../Shaders/LineFS.glsl");
 
 		// TEMP: LOAD TEXTURE
-		m_texture.LoadTextureFromFile("../Assets/wall8.png");
+//		m_texture.SetDataFromFile("../Assets/wall8.png");
+
+		// testing custom data (2x2 RGB)
+		GLfloat rawTex[2 * 2 * 3] = {
+			1, 1, 1,	0, 0, 0,
+			1, 0, 1,	0, 1, 0
+		};
+		m_texture.SetDataFromArrayRGB(rawTex, 2, 2);
 
 		LOG("LOG: Line renderer reserved " << sizeof(GLfloat) * (INSTANCE_COL_MAX + INSTANCE_POS_MAX + INSTANCE_UV_MAX) << " bytes in CPU/GPU memory");
 	}
 
-	void LineRenderer::AddLine(const LineData& line)
+	void ScreenRenderer::AddLine(const LineData& line)
 	{
 		if (m_lineCount >= LINE_MAX)
 		{
-			LOG("WARNING: LineRenderer line count exceeded! Skipping lines");
+			LOG("WARNING: ScreenRenderer line count exceeded! Skipping lines");
 			return;
 		}
 
@@ -115,7 +122,7 @@ namespace Spear
 		m_lineCount++;
 	}
 
-	void LineRenderer::AddLinePoly(const LinePolyData& poly)
+	void ScreenRenderer::AddLinePoly(const LinePolyData& poly)
 	{
 		// line, triangle, square, or bigger
 		ASSERT(poly.segments > 1);
@@ -137,7 +144,7 @@ namespace Spear
 		}
 	}
 
-	void LineRenderer::Render()
+	void ScreenRenderer::Render()
 	{
 		// Enable blending for transparency... #Refactor?
 		glEnable(GL_BLEND);

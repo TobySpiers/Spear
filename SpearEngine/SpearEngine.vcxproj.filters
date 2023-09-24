@@ -39,7 +39,7 @@
     <ClCompile Include="Texture.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="LineRenderer.cpp">
+    <ClCompile Include="ScreenRenderer.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
     <ClCompile Include="Raycaster.cpp">
@@ -71,7 +71,7 @@
     <ClInclude Include="Texture.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
-    <ClInclude Include="LineRenderer.h">
+    <ClInclude Include="ScreenRenderer.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
     <ClInclude Include="Raycaster.h">

@@ -11,15 +11,15 @@ namespace Spear
 	constexpr int INSTANCE_UV_MAX{LINE_MAX};
 
 
-	// Renders 2D screen lines (no polygons, no textures)
-	class LineRenderer
+	// Renders 2D data to the screen (no 3D polygons)
+	class ScreenRenderer
 	{
-		NO_COPY(LineRenderer);
+		NO_COPY(ScreenRenderer);
 	public:
 		
 		struct LinePolyData
 		{
-			Colour colour;
+			Colour4f colour;
 			Vector2f pos{ 0.f, 0.f };
 			float radius{ 0.f };
 			float rotation{ 0.f };
@@ -28,13 +28,13 @@ namespace Spear
 
 		struct LineData
 		{
-			Colour colour;
+			Colour4f colour;
 			Vector2f start{ 0.f, 0.f };
 			Vector2f end{ 0.f, 0.f };
 			float texPosX{0.f};
 		};
 
-		LineRenderer();
+		ScreenRenderer();
 		void AddLine(const LineData& line);
 		void AddLinePoly(const LinePolyData& circle);
 		void SetLineWidth(float width){m_lineWidth = width;};

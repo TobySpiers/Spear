@@ -5,10 +5,11 @@ namespace Spear
 	class Texture
 	{
 	public:
-		Texture(){};
+		Texture();
 		~Texture();
 
-		bool LoadTextureFromFile(const char* filename);
+		bool SetDataFromFile(const char* filename);
+		bool SetDataFromArrayRGB(float* pPixels, int width, int height);
 		void FreeTexture();
 
 		GLuint GetTextureId(){return m_textureId;};

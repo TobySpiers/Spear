@@ -18,7 +18,7 @@ namespace Spear
 	// Note: potential for ray-reflections/mirrors...?
 	struct RaycastWall
 	{
-		Colour colour;
+		Colour4f colour;
 		Vector2f origin;
 		Vector2f vec;
 	};
