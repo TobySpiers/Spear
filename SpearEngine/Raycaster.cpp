@@ -290,8 +290,8 @@ namespace Spear
 	void Raycaster::Draw3DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
-		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.rayResolution };
-		rend.SetLineWidth(lineWidth);
+		float lineWidth{ static_cast<float>(Core::GetWindowSize().x) / param.rayResolution };
+		rend.SetLineWidth(lineWidth * 2);
 
 		// Screen Plane ray-distribution to avoid squash/stretch warping
 		const float halfFov{ param.fieldOfView / 2 };
@@ -400,8 +400,8 @@ namespace Spear
 				float mid{ Core::GetWindowSize().y / 2.0f };
 
 				LineRenderer::LineData line;
-				line.start = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid - height);
-				line.end = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid + height);
+				line.start = Vector2f((screenX * lineWidth), mid - height);
+				line.end = Vector2f((screenX * lineWidth), mid + height);
 				line.colour = rayHit == RAY_HIT_FRONT ? Colour::White() : Colour(0.9f, 0.9f, 0.9f, 1.0f);
 
 				// UV X coord

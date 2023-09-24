@@ -14,8 +14,8 @@ public:
 	void RegisterWalls(Spear::RaycastWall* pWalls, int size);
 	void RegisterGrid(Spear::RaycastDDAGrid* pGrid){m_pRayGrid = pGrid;};
 
-private:
 	Spear::RaycastParams m_rayParams;
+private:
 	Vector2f m_pos{0.f, 0.f};
 	float m_moveSpeed{2.f};
 	float m_rotation{TO_RADIANS(-90.f)};

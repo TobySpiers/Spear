@@ -85,6 +85,15 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 		viewPerspective = !viewPerspective;
 	}
 
+	if (input.InputHold(INPUT_SHOOT))
+	{
+		player.m_rayParams.rayResolution++;
+	}
+	else if (input.InputHold(INPUT_ALTSHOOT))
+	{
+		player.m_rayParams.rayResolution--;
+	}
+
 	player.Update(deltaTime);
 
 	return static_cast<int>(eFlowstate::STATE_THIS);
