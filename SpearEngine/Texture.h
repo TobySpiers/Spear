@@ -12,9 +12,9 @@ namespace Spear
 		bool SetDataFromArrayRGB(float* pPixels, int width, int height);
 		void FreeTexture();
 
-		GLuint GetTextureId(){return m_textureId;};
-		GLuint GetWidth(){return m_textureWidth;};
-		GLuint GetHeight(){return m_textureHeight;};
+		GLuint GetTextureId() const{return m_textureId;};
+		GLuint GetWidth() const{return m_textureWidth;};
+		GLuint GetHeight() const{return m_textureHeight;};
 
 	private:
 		GLuint m_textureId{0};

@@ -35,6 +35,7 @@ namespace Spear
 		};
 
 		ScreenRenderer();
+		void SetBackground(const Texture& tex);
 		void AddLine(const LineData& line);
 		void AddLinePoly(const LinePolyData& circle);
 		void SetLineWidth(float width){m_lineWidth = width;};
@@ -57,7 +58,11 @@ namespace Spear
 		GLuint m_instancePosBuffer{0};
 		GLuint m_instanceColorBuffer{0};
 		GLuint m_instanceUVBuffer{0};
-		GLuint m_shaderProgram{ 0 };
+		GLuint m_shaderLine{ 0 };
+
+		// background texture ID
+		GLuint m_backgroundTex{0};
+		GLuint m_shaderBackground{0};
 
 		// temp: texture data
 		Texture m_texture;
