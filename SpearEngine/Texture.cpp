@@ -11,7 +11,7 @@ namespace Spear
 
 	bool Texture::LoadTextureFromFile(const char* filename)
 	{
-		SDL_Surface* pSurface = IMG_Load("../Assets/imageBig.png");
+		SDL_Surface* pSurface = IMG_Load(filename);
 		if (!pSurface)
 		{
 			LOG(std::string("Texture failed to load: ") + filename);

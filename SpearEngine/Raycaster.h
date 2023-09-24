@@ -26,13 +26,14 @@ namespace Spear
 	struct RaycastParams
 	{
 		Vector2f pos{ 0.f, 0.f };
-		float fieldOfView{ TO_RADIANS(360.f) };
+		float fieldOfView{ TO_RADIANS(75.f) };
 		float rotation{ 0.f };
-		float depthCorrection{0.5f};
+		float depthCorrection{0.75f};
 
 		float nearClip{5};
-		float farClip{ 50 };
-		int resolution{ 100 };
+		float farClip{50};
+		int rayResolution{200};
+		int texResolution{8};
 
 		// 2D is rendered 1 pixel per tile... this zooms 2D rendering
 		float scale2D{ 75.f };

@@ -21,7 +21,7 @@ namespace Spear
 			GL_STATIC_DRAW
 		);
 
-		// SETUP POS ATTRIB
+		// + POS ATTRIB
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(
 			0,
@@ -43,7 +43,7 @@ namespace Spear
 			GL_STATIC_DRAW
 		);
 
-		// SETUP COL ATTRIB
+		// + COL ATTRIB
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(
 			1,
@@ -55,10 +55,35 @@ namespace Spear
 		);
 		glVertexAttribDivisor(1, 1);
 
+		// SETUP UV BUFFER
+		glGenBuffers(2, &m_instanceUVBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, m_instanceUVBuffer);
+		glBufferData(
+			GL_ARRAY_BUFFER,
+			LINE_MAX * sizeof(GLfloat),
+			nullptr,
+			GL_STATIC_DRAW
+		);
+
+		// + UV ATTRIB
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(
+			2,
+			1, // 1 value per instance (uv X pos)
+			GL_FLOAT,
+			GL_FALSE,
+			0,
+			(GLvoid*)0
+		);
+		glVertexAttribDivisor(2, 1);
+
 		// COMPILE SHADER
 		m_shaderProgram = ShaderCompiler::CreateShaderProgram("../Shaders/LineVS.glsl", "../Shaders/LineFS.glsl");
 
-		LOG("LOG: Line renderer reserved " << sizeof(GLfloat) * (INSTANCE_COL_MAX + INSTANCE_POS_MAX) << " bytes in CPU/GPU memory");
+		// TEMP: LOAD TEXTURE
+		m_texture.LoadTextureFromFile("../Assets/wall8.png");
+
+		LOG("LOG: Line renderer reserved " << sizeof(GLfloat) * (INSTANCE_COL_MAX + INSTANCE_POS_MAX + INSTANCE_UV_MAX) << " bytes in CPU/GPU memory");
 	}
 
 	void LineRenderer::AddLine(const LineData& line)
@@ -79,10 +104,13 @@ namespace Spear
 		m_instancePosData[posIndex + 3] = endPos.y;
 
 		int colIndex{FLOATS_PER_COLOR * m_lineCount};
-		m_instanceColorData[posIndex + 0] = line.colour.r;
-		m_instanceColorData[posIndex + 1] = line.colour.g;
-		m_instanceColorData[posIndex + 2] = line.colour.b;
-		m_instanceColorData[posIndex + 3] = line.colour.a;
+		m_instanceColorData[colIndex + 0] = line.colour.r;
+		m_instanceColorData[colIndex + 1] = line.colour.g;
+		m_instanceColorData[colIndex + 2] = line.colour.b;
+		m_instanceColorData[colIndex + 3] = line.colour.a;
+
+		int uvIndex{m_lineCount};
+		m_instanceUVData[uvIndex] = line.texPosX;
 
 		m_lineCount++;
 	}
@@ -137,10 +165,24 @@ namespace Spear
 			m_instanceColorData
 		);
 
+		// UPLOAD UV DATA
+		glBindBuffer(GL_ARRAY_BUFFER, m_instanceUVBuffer);
+		glBufferSubData(
+			GL_ARRAY_BUFFER,
+			0,
+			UVDataSize(),
+			m_instanceUVData
+		);
+
+		// BIND TEXTURE
+		glBindTexture(GL_TEXTURE_2D, m_texture.GetTextureId());
+
 		// UPLOAD CONSTANT DATA
+		GLint texLoc = glGetUniformLocation(m_shaderProgram, "texture");
+		glUniform1i(texLoc, 0);
 		GLint widthLoc = glGetUniformLocation(m_shaderProgram, "lineWidth");
 		glUniform2f(widthLoc, m_lineWidth / Core::GetWindowSize().x, m_lineWidth / Core::GetWindowSize().y);
-	
+		
 		// RENDER
 		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, m_lineCount)); // 4 vertices per instance, m_lineCount instances
 		m_lineCount = 0;

@@ -8,7 +8,6 @@
 
 Player::Player()
 {
-	m_rayParams.fieldOfView = TO_RADIANS(90.f);
 }
 
 void Player::Update(float deltaTime)
