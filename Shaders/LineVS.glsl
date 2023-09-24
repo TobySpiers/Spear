@@ -4,8 +4,10 @@ uniform vec2 lineWidth;
 
 layout(location = 0) in vec4 inPos;
 layout(location = 1) in vec4 inColor;
+layout(location = 2) in float inTexPosX;
 
 out vec4 v_color;
+out vec2 v_texCoord;
 
 void main() 
 {
@@ -28,4 +30,13 @@ void main()
 	
 	gl_Position = vec4(linePoints[gl_VertexID].xy, 0.0, 1.0);	
 	v_color = inColor;
+	
+	
+	
+	vec2 uvCoords[4];
+	uvCoords[0] = vec2(inTexPosX, 0);
+	uvCoords[1] = vec2(inTexPosX, 0);
+	uvCoords[2] = vec2(inTexPosX, 1);
+	uvCoords[3] = vec2(inTexPosX, 1);
+	v_texCoord = uvCoords[gl_VertexID];
 }

@@ -21,7 +21,7 @@ namespace Spear
 		const Vector2f screenVector{ screenPlaneR - screenPlaneL };
 		// Define the 'rays'
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
-		const float raySpacingLength{ screenVector.Length() / param.resolution };
+		const float raySpacingLength{ screenVector.Length() / param.rayResolution };
 
 		// Draw each wall
 		for (int i = 0; i < wallCount; i++)
@@ -35,7 +35,7 @@ namespace Spear
 		}
 
 		// Draw each ray
-		for (int i = 0; i < param.resolution; i++)
+		for (int i = 0; i < param.rayResolution; i++)
 		{
 			Vector2f rayEndPoint{screenPlaneL + (raySpacingDir * raySpacingLength * i)};
 			Vector2f ray{rayEndPoint - param.pos};
@@ -74,7 +74,7 @@ namespace Spear
 	void Raycaster::Draw3DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
-		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.resolution };
+		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.rayResolution };
 		rend.SetLineWidth(lineWidth);
 
 		// Define a flat 'screen plane' to evenly distribute rays onto
@@ -88,10 +88,10 @@ namespace Spear
 
 		// Define ray spacing
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
-		const float raySpacingLength{ screenVector.Length() / param.resolution };
+		const float raySpacingLength{ screenVector.Length() / param.rayResolution };
 
 		// For each ray...
-		for (int screenX = 0; screenX < param.resolution; screenX++)
+		for (int screenX = 0; screenX < param.rayResolution; screenX++)
 		{
 			Vector2f rayEndPoint{ screenPlaneL - (raySpacingDir * raySpacingLength * screenX) };
 			Vector2f ray{ rayEndPoint - param.pos };
@@ -191,10 +191,10 @@ namespace Spear
 		const Vector2f screenVector{ screenPlaneR - screenPlaneL };
 
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
-		const float raySpacingLength{ screenVector.Length() / param.resolution };
+		const float raySpacingLength{ screenVector.Length() / param.rayResolution };
 
 		// Using DDA (digital differential analysis) to quickly calculate intersections
-		for(int x = 0; x < param.resolution; x++)
+		for(int x = 0; x < param.rayResolution; x++)
 		{
 			Vector2f rayStart = param.pos;
 			Vector2f rayEnd{ screenPlaneL - (raySpacingDir * raySpacingLength * x) };
@@ -290,7 +290,7 @@ namespace Spear
 	void Raycaster::Draw3DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
-		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.resolution };
+		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.rayResolution };
 		rend.SetLineWidth(lineWidth);
 
 		// Screen Plane ray-distribution to avoid squash/stretch warping
@@ -301,10 +301,11 @@ namespace Spear
 		const Vector2f screenVector{ screenPlaneR - screenPlaneL };
 
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
-		const float raySpacingLength{ screenVector.Length() / param.resolution };
+		const float raySpacingLength{ screenVector.Length() / param.rayResolution };
 
 		// Using DDA (digital differential analysis) to quickly calculate intersections
-		for (int screenX = 0; screenX < param.resolution; screenX++)
+		const float texStep{1.0f / param.texResolution};
+		for (int screenX = 0; screenX < param.rayResolution; screenX++)
 		{
 			Vector2f rayStart = param.pos;
 			Vector2f rayEnd{ screenPlaneL - (raySpacingDir * raySpacingLength * screenX) };
@@ -402,6 +403,20 @@ namespace Spear
 				line.start = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid - height);
 				line.end = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid + height);
 				line.colour = rayHit == RAY_HIT_FRONT ? Colour::White() : Colour(0.9f, 0.9f, 0.9f, 1.0f);
+
+				// UV X coord
+				if (rayHit == RAY_HIT_FRONT)
+				{
+					int tileStart = static_cast<int>(intersection.x); // truncate to find start of tile
+					line.texPosX = intersection.x - tileStart;
+				}
+				else
+				{
+					int tileStart = static_cast<int>(intersection.y); // truncate to find start of tile
+					line.texPosX = intersection.y - tileStart;
+				}
+				line.texPosX = line.texPosX - fmod(line.texPosX, texStep);
+
 				rend.AddLine(line);
 			}
 		}
