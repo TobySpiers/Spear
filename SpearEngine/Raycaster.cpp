@@ -21,7 +21,7 @@ namespace Spear
 		const Vector2f screenVector{ screenPlaneR - screenPlaneL };
 		// Define the 'rays'
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
-		const float raySpacingLength{ screenVector.Length() / param.rayResolution };
+		const float raySpacingLength{ screenVector.Length() / param.xResolution };
 
 		// Draw each wall
 		for (int i = 0; i < wallCount; i++)
@@ -35,7 +35,7 @@ namespace Spear
 		}
 
 		// Draw each ray
-		for (int i = 0; i < param.rayResolution; i++)
+		for (int i = 0; i < param.xResolution; i++)
 		{
 			Vector2f rayEndPoint{screenPlaneL + (raySpacingDir * raySpacingLength * i)};
 			Vector2f ray{rayEndPoint - param.pos};
@@ -74,7 +74,7 @@ namespace Spear
 	void Raycaster::Draw3DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
-		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.rayResolution };
+		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / param.xResolution };
 		rend.SetLineWidth(lineWidth);
 
 		// Define a flat 'screen plane' to evenly distribute rays onto
@@ -88,10 +88,10 @@ namespace Spear
 
 		// Define ray spacing
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
-		const float raySpacingLength{ screenVector.Length() / param.rayResolution };
+		const float raySpacingLength{ screenVector.Length() / param.xResolution };
 
 		// For each ray...
-		for (int screenX = 0; screenX < param.rayResolution; screenX++)
+		for (int screenX = 0; screenX < param.xResolution; screenX++)
 		{
 			Vector2f rayEndPoint{ screenPlaneL - (raySpacingDir * raySpacingLength * screenX) };
 			Vector2f ray{ rayEndPoint - param.pos };
@@ -148,7 +148,7 @@ namespace Spear
 	void Raycaster::Draw2DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
-		rend.SetLineWidth(1.0f);
+		rend.SetLineWidth(2.0f);
 
 		// Draw tiles
 		for (int x = 0; x < pGrid->width; x++)
@@ -191,10 +191,10 @@ namespace Spear
 		const Vector2f screenVector{ screenPlaneR - screenPlaneL };
 
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
-		const float raySpacingLength{ screenVector.Length() / param.rayResolution };
+		const float raySpacingLength{ screenVector.Length() / param.xResolution };
 
 		// Using DDA (digital differential analysis) to quickly calculate intersections
-		for(int x = 0; x < param.rayResolution; x++)
+		for(int x = 0; x < param.xResolution; x++)
 		{
 			Vector2f rayStart = param.pos;
 			Vector2f rayEnd{ screenPlaneL - (raySpacingDir * raySpacingLength * x) };
@@ -290,8 +290,11 @@ namespace Spear
 	void Raycaster::Draw3DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid)
 	{
 		LineRenderer& rend = ServiceLocator::GetLineRenderer();
-		float lineWidth{ static_cast<float>(Core::GetWindowSize().x) / param.rayResolution };
-		rend.SetLineWidth(lineWidth * 2);
+
+		// Calculate our resolution
+		float pixelWidth{ static_cast<float>(Core::GetWindowSize().x) / param.xResolution };
+		float pixelHeight {static_cast<float>(Core::GetWindowSize().y) / param.yResolution };
+		rend.SetLineWidth(pixelWidth * 2);
 
 		// Screen Plane ray-distribution to avoid squash/stretch warping
 		const float halfFov{ param.fieldOfView / 2 };
@@ -301,11 +304,11 @@ namespace Spear
 		const Vector2f screenVector{ screenPlaneR - screenPlaneL };
 
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
-		const float raySpacingLength{ screenVector.Length() / param.rayResolution };
+		const float raySpacingLength{ screenVector.Length() / param.xResolution };
 
 		// Using DDA (digital differential analysis) to quickly calculate intersections
 		const float texStep{1.0f / param.texResolution};
-		for (int screenX = 0; screenX < param.rayResolution; screenX++)
+		for (int screenX = 0; screenX < param.xResolution; screenX++)
 		{
 			Vector2f rayStart = param.pos;
 			Vector2f rayEnd{ screenPlaneL - (raySpacingDir * raySpacingLength * screenX) };
@@ -400,8 +403,10 @@ namespace Spear
 				float mid{ Core::GetWindowSize().y / 2.0f };
 
 				LineRenderer::LineData line;
-				line.start = Vector2f((screenX * lineWidth), mid - height);
-				line.end = Vector2f((screenX * lineWidth), mid + height);
+				line.start = Vector2f((screenX * pixelWidth), mid - height);
+				line.end = Vector2f((screenX * pixelWidth), mid + height);
+				line.start.y = line.start.y - fmod(line.start.y, pixelHeight);
+				line.end.y = line.end.y - fmod(line.end.y, pixelHeight);
 				line.colour = rayHit == RAY_HIT_FRONT ? Colour::White() : Colour(0.9f, 0.9f, 0.9f, 1.0f);
 
 				// UV X coord

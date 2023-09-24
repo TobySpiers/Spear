@@ -87,11 +87,11 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 
 	if (input.InputHold(INPUT_SHOOT))
 	{
-		player.m_rayParams.rayResolution++;
+		player.m_rayParams.xResolution++;
 	}
 	else if (input.InputHold(INPUT_ALTSHOOT))
 	{
-		player.m_rayParams.rayResolution--;
+		player.m_rayParams.xResolution--;
 	}
 
 	player.Update(deltaTime);

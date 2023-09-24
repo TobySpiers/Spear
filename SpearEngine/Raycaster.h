@@ -32,7 +32,8 @@ namespace Spear
 
 		float nearClip{5};
 		float farClip{50};
-		int rayResolution{400};
+		int xResolution{480};
+		int yResolution{320}; // y resolution is "faked" for retro feel, does not affect performance
 		int texResolution{8};
 
 		// 2D is rendered 1 pixel per tile... this zooms 2D rendering
