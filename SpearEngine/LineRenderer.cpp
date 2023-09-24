@@ -47,7 +47,7 @@ namespace Spear
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(
 			1,
-			4, // 4 values per instance
+			4, // 4 values (rgba)
 			GL_FLOAT,
 			GL_FALSE,
 			0,
@@ -93,8 +93,8 @@ namespace Spear
 		ASSERT(poly.segments > 1);
 
 		// decompose into individual lines
-		// not the most efficient approach mem-wise as vertices get duplicated
-		// but main use-case for lines will be discrete vertical lines for raycasting, so this will do for now
+		// not the most efficient approach memory-wise as vertices get duplicated
+		// but line-polys are not the main use case and there will never be very many at once
 		float increment {(PI * 2) / poly.segments};
 		for (int i = 0; i < poly.segments; i++)
 		{
@@ -119,7 +119,7 @@ namespace Spear
 		glUseProgram(m_shaderProgram);
 		glBindVertexArray(m_vertexArrayObj);
 
-		// REFRESH POS DATA
+		// UPLOAD POS DATA
 		glBindBuffer(GL_ARRAY_BUFFER, m_instancePosBuffer);
 		glBufferSubData(
 			GL_ARRAY_BUFFER,
@@ -137,10 +137,12 @@ namespace Spear
 			m_instanceColorData
 		);
 
-		glEnable(GL_LINE_SMOOTH);
- 		glLineWidth(m_lineWidth);
-
-		GLCheck(glDrawArraysInstanced(GL_LINES, 0, 2, m_lineCount)); // 2 vertices per instance, m_lineCount instances
+		// UPLOAD CONSTANT DATA
+		GLint widthLoc = glGetUniformLocation(m_shaderProgram, "lineWidth");
+		glUniform2f(widthLoc, m_lineWidth / Core::GetWindowSize().x, m_lineWidth / Core::GetWindowSize().y);
+	
+		// RENDER
+		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, m_lineCount)); // 4 vertices per instance, m_lineCount instances
 		m_lineCount = 0;
 	}
 }
