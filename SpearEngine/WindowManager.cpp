@@ -6,7 +6,7 @@ namespace Spear
 	WindowManager::WindowManager(const WindowParams& params)
 	{
 		// Create window with OpenGL surface
-		m_window = SDL_CreateWindow(params.title, params.xpos, params.ypos, params.width, params.height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | (params.fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
+		m_window = SDL_CreateWindow(params.title, params.xpos, params.ypos, params.width * params.scale, params.height * params.scale, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | (params.fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
 		ASSERT(m_window);
 
 		// Context for working with OpenGL
@@ -18,7 +18,7 @@ namespace Spear
 			LOG("ERROR: glad load failed");
 		}
 
-		glViewport(0, 0, params.width / params.scale, params.height / params.scale);
+		glViewport(0, 0, params.width, params.height);
 
 		std::cout << "\nOpenGL Initialised..."
 					<< "\n\t Vendor: " << glGetString(GL_VENDOR)

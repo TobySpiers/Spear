@@ -26,7 +26,7 @@ namespace Spear
 		// Draw each wall
 		for (int i = 0; i < wallCount; i++)
 		{
-			LineData line;
+			LineRenderer::LineData line;
 			line.start = pWalls[i].origin;
 			line.end = pWalls[i].origin + pWalls[i].vec;
 			line.colour = pWalls[i].colour;
@@ -63,7 +63,7 @@ namespace Spear
 				}
 			}
 
-			LineData line;
+			LineRenderer::LineData line;
 			line.start = param.pos;
 			line.end = foundIntersect? intersect : rayEndPoint;
 			line.colour = Colour::White();
@@ -136,7 +136,7 @@ namespace Spear
 				float height{ (Core::GetWindowSize().y / 2.0f) / depth };
 				float mid{ Core::GetWindowSize().y / 2.0f };
 
-				LineData line;
+				LineRenderer::LineData line;
 				line.start = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid - height);
 				line.end = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid + height);
 				line.colour = rayColour;
@@ -155,7 +155,7 @@ namespace Spear
 		{
 			for (int y = 0; y < pGrid->height; y++)
 			{
-				LinePolyData square;
+				LineRenderer::LinePolyData square;
 				square.segments = 4;
 				square.colour = pGrid->pValues[x + (y * pGrid->width)] ? Colour::Blue() : Colour::White();
 				square.pos = Vector2f(x, y) + Vector2f(0.5, 0.5f);
@@ -175,7 +175,7 @@ namespace Spear
 		}
 
 		// Draw player
-		Spear::LinePolyData poly;
+		LineRenderer::LinePolyData poly;
 		poly.colour = Colour::Red();
 		poly.radius = 0.2f * param.scale2D;
 		poly.segments = 3;
@@ -275,7 +275,7 @@ namespace Spear
 			// ====================================
 			// RENDER
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-			LineData line;
+			LineRenderer::LineData line;
 			if (tileFound)
 			{
 				rayEnd = rayStart + rayDir * distance;
@@ -398,7 +398,7 @@ namespace Spear
 				float height{ (Core::GetWindowSize().y / 2.0f) / depth };
 				float mid{ Core::GetWindowSize().y / 2.0f };
 
-				LineData line;
+				LineRenderer::LineData line;
 				line.start = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid - height);
 				line.end = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid + height);
 				line.colour = rayHit == RAY_HIT_FRONT ? Colour::White() : Colour(0.9f, 0.9f, 0.9f, 1.0f);

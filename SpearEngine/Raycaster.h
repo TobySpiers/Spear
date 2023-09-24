@@ -31,8 +31,8 @@ namespace Spear
 		float depthCorrection{0.5f};
 
 		float nearClip{5};
-		float farClip{ 10 };
-		int resolution{ 200 };
+		float farClip{ 50 };
+		int resolution{ 100 };
 
 		// 2D is rendered 1 pixel per tile... this zooms 2D rendering
 		float scale2D{ 75.f };
