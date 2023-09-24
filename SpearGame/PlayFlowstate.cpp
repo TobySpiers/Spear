@@ -1,7 +1,7 @@
 #include "SpearEngine/Core.h"
 #include "SpearEngine/ServiceLocator.h"
 #include "SpearEngine/InputManager.h"
-#include "SpearEngine/LineRenderer.h"
+#include "SpearEngine/ScreenRenderer.h"
 #include "SpearEngine/Raycaster.h"
 
 #include "eFlowstate.h"
@@ -40,13 +40,13 @@ void PlayFlowstate::StateEnter()
 	pWalls = new Spear::RaycastWall[wallSize];
 	pWalls[0].origin = Vector2f(screen.x / 3, 200);
 	pWalls[0].vec = Vector2f(0, 400);
-	pWalls[0].colour = Colour::Red();
+	pWalls[0].colour = Colour4f::Red();
 	pWalls[1].origin = Vector2f(screen.x - (screen.x / 3), 200);
 	pWalls[1].vec = Vector2f(0, 400);
-	pWalls[1].colour = Colour::Blue();
+	pWalls[1].colour = Colour4f::Blue();
 	pWalls[2].origin = Vector2f(400, 200);
 	pWalls[2].vec = Vector2f(800, 0);
-	pWalls[2].colour = Colour::Green();
+	pWalls[2].colour = Colour4f::Green();
 	player.RegisterWalls(pWalls, wallSize);
 
 	// Create a basic DDA grid

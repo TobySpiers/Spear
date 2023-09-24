@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
 {
 	// Initialise Spear engine
 	Spear::WindowParams params;
-	params.title = "Game Window";
+	params.title = "Spear";
 	params.fullscreen = false;
 	params.xpos = SDL_WINDOWPOS_CENTERED;
 	params.ypos = SDL_WINDOWPOS_CENTERED;

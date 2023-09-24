@@ -5,7 +5,7 @@ namespace Spear
 	class WindowManager;
 	class InputManager;
 	class Renderer;
-	class LineRenderer;
+	class ScreenRenderer;
 
 	class ServiceLocator
 	{
@@ -20,6 +20,6 @@ namespace Spear
 		static WindowManager& GetWindowManager();
 		static InputManager& GetInputManager();
 		static Renderer& GetRenderer();
-		static LineRenderer& GetLineRenderer();
+		static ScreenRenderer& GetLineRenderer();
 	};
 }
