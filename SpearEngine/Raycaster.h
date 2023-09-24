@@ -32,7 +32,7 @@ namespace Spear
 
 		float nearClip{5};
 		float farClip{50};
-		int rayResolution{200};
+		int rayResolution{400};
 		int texResolution{8};
 
 		// 2D is rendered 1 pixel per tile... this zooms 2D rendering

@@ -24,9 +24,9 @@ void main()
 	
 	vec2 linePoints[4];	
 	linePoints[0] = inPos.xy + (perpendicular * adjustedWidth);
-	linePoints[1] = inPos.xy - (perpendicular * adjustedWidth);
+	linePoints[1] = inPos.xy;
 	linePoints[2] = inPos.zw + (perpendicular * adjustedWidth);
-	linePoints[3] = inPos.zw - (perpendicular * adjustedWidth);
+	linePoints[3] = inPos.zw;
 	
 	gl_Position = vec4(linePoints[gl_VertexID].xy, 0.0, 1.0);	
 	v_color = inColor;
