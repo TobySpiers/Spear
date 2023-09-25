@@ -3,7 +3,7 @@
 
 namespace Spear
 {
-	constexpr int LINE_MAX{ 1000 };
+	constexpr int LINE_MAX{ 2000 };
 	constexpr int FLOATS_PER_POS{4};
 	constexpr int FLOATS_PER_COLOR{4};
 	constexpr int INSTANCE_POS_MAX{FLOATS_PER_POS * LINE_MAX};
@@ -35,7 +35,7 @@ namespace Spear
 		};
 
 		ScreenRenderer();
-		void SetBackground(const Texture& tex);
+		void SetBackgroundData(GLfloat* pDataRGB, int width, int height);
 		void AddLine(const LineData& line);
 		void AddLinePoly(const LinePolyData& circle);
 		void SetLineWidth(float width){m_lineWidth = width;};
@@ -61,11 +61,12 @@ namespace Spear
 		GLuint m_shaderLine{ 0 };
 
 		// background texture ID
-		GLuint m_backgroundTex{0};
+		GLuint m_backgroundTexId{0};
 		GLuint m_shaderBackground{0};
 
 		// temp: texture data
 		Texture m_texture;
+		Texture m_backgroundTexture;
 	};
 
 }

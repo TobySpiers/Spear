@@ -130,7 +130,6 @@ namespace Spear
 				{
 					continue;
 				}
-				depth *= param.depthCorrection;
 				rayColour.a = (1.f / (depth / 4));
 
 				float height{ (Core::GetWindowSize().y / 2.0f) / depth };
@@ -184,20 +183,21 @@ namespace Spear
 		rend.AddLinePoly(poly);
 
 		// Draw rays
-		const float halfFov{ param.fieldOfView / 2 };
 		const Vector2f forward{ Normalize(Vector2f(cos(param.rotation), sin(param.rotation))) };
-		const Vector2f screenPlaneL{ param.pos + (Vector2f(cos(param.rotation - halfFov), sin(param.rotation - halfFov)) * param.farClip) };
-		const Vector2f screenPlaneR{ param.pos + (Vector2f(cos(param.rotation + halfFov), sin(param.rotation + halfFov)) * param.farClip) };
-		const Vector2f screenVector{ screenPlaneR - screenPlaneL };
 
+		const float halfFov{ param.fieldOfView / 2 };
+		Vector2f fovLeftExtent{ param.pos + (Vector2f(cos(param.rotation - halfFov), sin(param.rotation - halfFov)) * param.farClip) };
+		Vector2f fovRightExtent{ param.pos + (Vector2f(cos(param.rotation + halfFov), sin(param.rotation + halfFov)) * param.farClip) };
+		const Vector2f fovExtentWidth{ fovRightExtent - fovLeftExtent };
+
+		const float raySpacing{ fovExtentWidth.Length() / param.xResolution };
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
-		const float raySpacingLength{ screenVector.Length() / param.xResolution };
 
 		// Using DDA (digital differential analysis) to quickly calculate intersections
 		for(int x = 0; x < param.xResolution; x++)
 		{
 			Vector2f rayStart = param.pos;
-			Vector2f rayEnd{ screenPlaneL - (raySpacingDir * raySpacingLength * x) };
+			Vector2f rayEnd{ fovLeftExtent - (raySpacingDir * raySpacing * x) };
 			Vector2f rayDir = Normalize(rayEnd - rayStart);
 
 			Vector2f rayUnitStepSize{ sqrt(1 + (rayDir.y / rayDir.x) * (rayDir.y / rayDir.x)),		// length required to travel 1 X unit in Ray Direction
@@ -285,15 +285,61 @@ namespace Spear
 			line.end = rayEnd * param.scale2D;
 			rend.AddLine(line);
 		}
+
+		//=====================================================================================
+		//FLOOR CASTING
+		for (int y = param.yResolution / 2 + 1; y < param.yResolution; y++)
+		{
+			// Current y position compared to the center of the screen (the horizon)
+			// Starts at 1, increases to HalfHeight
+			int p = y - param.yResolution / 2;
+
+			// Vertical position of the camera.
+			float posZ = 0.61f * param.yResolution;
+
+			// Horizontal distance from the camera to the floor for the current row.
+			// 0.5 is the z position exactly in the middle between floor and ceiling.
+			float rowDistance = posZ / p;
+
+			// unit vectors representing directions to form left/right edge of FoV
+			Vector2f planeDirLeft = Vector2f(cos(param.rotation - halfFov), sin(param.rotation - halfFov));
+			Vector2f planeDirRight = Vector2f(cos(param.rotation + halfFov), sin(param.rotation + halfFov));
+
+			// starting position of first pixel in row (left)
+			// essentially the 'left-most ray' along a length (depth) of rowDistance
+			Vector2f floorXY = param.pos + rowDistance * planeDirLeft;
+
+			// vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' over by 1 ray)
+			Vector2f floorStep = rowDistance * (planeDirRight - planeDirLeft) / param.xResolution;
+
+			for (int x = 0; x < param.xResolution; ++x)
+			{
+				int cellX = (int)(floorXY.x);
+				int cellY = (int)(floorXY.y);
+
+				// If we render floorX and floorY to the screen, we can view the positions on the 2D grid each floor texture gets sampled from!
+				//ScreenRenderer::LinePolyData marker;
+				//marker.colour = Colour4f::Red();
+				//marker.radius = 5.f;
+				//marker.pos = Vector2f(floorX, floorY) * param.scale2D;
+				//marker.segments = 6;
+				//rend.AddLinePoly(marker);
+
+				floorXY += floorStep;
+			}
+		}
+		//=====================================================================================
+
 	}
 	
+	// CPU bound for now. Potential to eventualy convert into a shader...
 	void Raycaster::Draw3DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid)
 	{
 		ScreenRenderer& rend = ServiceLocator::GetLineRenderer();
 
 		// Calculate our resolution
 		float pixelWidth{ static_cast<float>(Core::GetWindowSize().x) / param.xResolution };
-		float pixelHeight {static_cast<float>(Core::GetWindowSize().y) / param.yResolution };
+		float pixelHeight{ static_cast<float>(Core::GetWindowSize().y) / param.yResolution };
 		rend.SetLineWidth(pixelWidth * 2);
 
 		// Screen Plane ray-distribution to avoid squash/stretch warping
@@ -303,8 +349,72 @@ namespace Spear
 		const Vector2f screenPlaneR{ param.pos + (Vector2f(cos(param.rotation + halfFov), sin(param.rotation + halfFov)) * param.farClip) };
 		const Vector2f screenVector{ screenPlaneR - screenPlaneL };
 
+		// Ray angle/spacing data
 		const Vector2f raySpacingDir{ forward.Normal() * -1 };
 		const float raySpacingLength{ screenVector.Length() / param.xResolution };
+
+		//=====================================================================================
+		// TEMPORARY, TO REFACTOR: Create a 'background' texture (this will be target for floor/ceiling rendering)
+		// #ToDo: make sure this is a persistent array (not allocating/destroying every frame)
+		const int bgTexWidth{param.xResolution};
+		const int bgTexHeight{param.yResolution};
+		const int bgTexBytes{3}; // rgb
+		GLfloat* bgPixelArray = new GLfloat[bgTexWidth * bgTexHeight * bgTexBytes]; // Floor * Width * RGB
+
+		// Set RGB for corner pixel
+		bgPixelArray[(bgTexBytes*0) + 0] = 1.f;
+		bgPixelArray[(bgTexBytes*0) + 1] = 1.f;
+		bgPixelArray[(bgTexBytes*0) + 2] = 1.f;
+
+		// TEMP: Create a simple 'floor' texture (2x2 RGB)
+		const int floorTexWidth{2};
+		const int floorTexHeight{2};
+		GLfloat floorTex[floorTexWidth * floorTexHeight * 3] = {
+			1.f, 1.f, 1.f,	1.f, 1.f, 1.f,
+			0.f, 0.f, 0.f,	0.f, 0.f, 0.f
+		};
+
+		//FLOOR CASTING
+		for (int y = param.yResolution / 2 + 1; y < param.yResolution; y++)
+		{
+			// Current y position compared to the center of the screen (the horizon)
+			// Starts at 1, increases to HalfHeight
+			int p = y - param.yResolution / 2;
+
+			// Vertical position of the camera.
+			float posZ = 0.605f * param.yResolution;
+
+			// Horizontal distance from the camera to the floor for the current row.
+			// 0.5 is the z position exactly in the middle between floor and ceiling.
+			float rowDistance = posZ / p;
+
+			// unit vectors representing directions to form left/right edge of FoV
+			Vector2f planeDirLeft = Vector2f(cos(param.rotation - halfFov), sin(param.rotation - halfFov));
+			Vector2f planeDirRight = Vector2f(cos(param.rotation + halfFov), sin(param.rotation + halfFov));
+
+			// starting position of first pixel in row (left)
+			// essentially the 'left-most ray' along a length (depth) of rowDistance
+			Vector2f floorXY = param.pos + rowDistance * planeDirLeft;
+
+			// vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' over by 1 ray)
+			Vector2f floorStep = rowDistance * (planeDirRight - planeDirLeft) / param.xResolution;
+
+			for (int x = 0; x < param.xResolution; ++x)
+			{
+				int cellX = (int)(floorXY.x);
+				int cellY = (int)(floorXY.y);
+
+				// for now, just proving coordinate lookup by rendering WHITE for tiles with a value of 2
+				if(cellX >= 0 && cellY >= 0 && cellX < pGrid->width && cellY < pGrid->height && pGrid->pValues[cellX + (cellY * pGrid->width)] == 2)
+				{
+					bgPixelArray[(bgTexBytes * x) + (bgTexBytes * y * bgTexWidth) + 0] = 1.f;
+					bgPixelArray[(bgTexBytes * x) + (bgTexBytes * y * bgTexWidth) + 1] = 1.f;
+					bgPixelArray[(bgTexBytes * x) + (bgTexBytes * y * bgTexWidth) + 2] = 1.f;
+				}
+
+				floorXY += floorStep;
+			}
+		}
 
 		// Using DDA (digital differential analysis) to quickly calculate intersections
 		const float texStep{1.0f / param.texResolution};
@@ -381,8 +491,8 @@ namespace Spear
 				// Check position is within range of array
 				if (mapCheck.x >= 0 && mapCheck.x < pGrid->width && mapCheck.y >= 0 && mapCheck.y < pGrid->height)
 				{
-					// if tile has assigned value above 0, it EXISTS
-					if (pGrid->pValues[mapCheck.x + (mapCheck.y * pGrid->width)] > 0)
+					// if tile has assigned value 1, it EXISTS
+					if (pGrid->pValues[mapCheck.x + (mapCheck.y * pGrid->width)] == 1)
 					{
 						rayHit = side ? RAY_HIT_SIDE : RAY_HIT_FRONT;
 					}
@@ -397,7 +507,6 @@ namespace Spear
 				// Project THIS RAY onto the FORWARD VECTOR of the camera to get distance from camera with no fisheye distortion
 				Vector2f intersection{rayStart + rayDir * distance};
 				float depth{ Projection(intersection - param.pos, forward * param.farClip).Length() };
-				depth *= param.depthCorrection;
 
 				float height{ (Core::GetWindowSize().y / 2.0f) / depth };
 				float mid{ Core::GetWindowSize().y / 2.0f };
@@ -425,5 +534,12 @@ namespace Spear
 				rend.AddLine(line);
 			}
 		}
+
+
+		// Update background texture (VERY SLOW)
+		rend.SetBackgroundData(bgPixelArray, bgTexWidth, bgTexHeight);
+
+		// #ToDo: turn into a member variable so we do not need to allocate/delete every frame
+		delete[] bgPixelArray;
 	}
 }

@@ -82,22 +82,22 @@ namespace Spear
 		m_shaderBackground = ShaderCompiler::CreateShaderProgram("../Shaders/BackgroundVS.glsl", "../Shaders/BackgroundFS.glsl");
 
 		// TEMP: LOAD TEXTURE
-//		m_texture.SetDataFromFile("../Assets/wall8.png");
+		m_texture.SetDataFromFile("../Assets/wall8.png");
 
 		// testing custom data (2x2 RGB)
 		GLfloat rawTex[2 * 2 * 3] = {
-			1, 1, 1,	0, 0, 0,
-			1, 0, 1,	0, 1, 0
+			0.8f, 0.8f, 0.8f,	0.8f, 0.8f, 0.8f,
+			0.3f, 0.3f, 0.3f,	0.3f, 0.3f, 0.3f
 		};
-		m_texture.SetDataFromArrayRGB(rawTex, 2, 2);
-		m_backgroundTex = m_texture.GetTextureId();
+		m_backgroundTexture.SetDataFromArrayRGB(rawTex, 2, 2);
+		m_backgroundTexId = m_backgroundTexture.GetTextureId();
 
 		LOG("LOG: Line renderer reserved " << sizeof(GLfloat) * (INSTANCE_COL_MAX + INSTANCE_POS_MAX + INSTANCE_UV_MAX) << " bytes in CPU/GPU memory");
 	}
 
-	void ScreenRenderer::SetBackground(const Texture& tex)
+	void ScreenRenderer::SetBackgroundData(GLfloat* pDataRGB, int width, int height)
 	{
-		m_backgroundTex = tex.GetTextureId();
+		m_backgroundTexture.SetDataFromArrayRGB(pDataRGB, width, height);
 	}
 
 	void ScreenRenderer::AddLine(const LineData& line)
@@ -159,7 +159,7 @@ namespace Spear
 
 		// DRAW BACKGROUND
 		glUseProgram(m_shaderBackground);
-		glBindTexture(GL_TEXTURE_2D, m_backgroundTex);
+		glBindTexture(GL_TEXTURE_2D, m_backgroundTexId);
 		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
 
 		// SETUP VAO
