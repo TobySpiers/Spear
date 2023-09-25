@@ -28,12 +28,11 @@ namespace Spear
 		Vector2f pos{ 0.f, 0.f };
 		float fieldOfView{ TO_RADIANS(75.f) };
 		float rotation{ 0.f };
-		float depthCorrection{0.75f};
 
 		float nearClip{5};
 		float farClip{50};
-		int xResolution{480};
-		int yResolution{320}; // y resolution is "faked" for retro feel, does not affect performance
+		int xResolution{480};  // 480. affects performance for walls/floors/ceilings.
+		int yResolution{270}; // 270. affects performance for floors/ceilings. wall y-resolution is faked for retro aesthetic.
 		int texResolution{8};
 
 		// 2D is rendered 1 pixel per tile... this zooms 2D rendering
