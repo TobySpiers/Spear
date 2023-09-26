@@ -8,11 +8,6 @@
 #include "Player.h"
 #include "PlayFlowstate.h"
 
-Spear::RaycastDDAGrid rayGrid;
-
-Spear::RaycastWall* pWalls{nullptr};
-const int wallSize{3};
-
 void PlayFlowstate::StateEnter()
 {
 	// Configure Inputs
@@ -35,43 +30,41 @@ void PlayFlowstate::StateEnter()
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
 
-	// Create some walls and register them with player
-	Vector2f screen{Spear::Core::GetWindowSize().ToFloat()};
-	pWalls = new Spear::RaycastWall[wallSize];
-	pWalls[0].origin = Vector2f(screen.x / 3, 200);
-	pWalls[0].vec = Vector2f(0, 400);
-	pWalls[0].colour = Colour4f::Red();
-	pWalls[1].origin = Vector2f(screen.x - (screen.x / 3), 200);
-	pWalls[1].vec = Vector2f(0, 400);
-	pWalls[1].colour = Colour4f::Blue();
-	pWalls[2].origin = Vector2f(400, 200);
-	pWalls[2].vec = Vector2f(800, 0);
-	pWalls[2].colour = Colour4f::Green();
-	player.RegisterWalls(pWalls, wallSize);
-
-	// Create a basic DDA grid
-	rayGrid.width = 10;
-	rayGrid.height = 10;
-	rayGrid.pValues = new u8[rayGrid.width * rayGrid.height] {
-		
+	// Create world layout
+	const int gridWidth{10};
+	const int gridHeight{10};
+	const s8 worldIds[gridWidth * gridHeight] = {
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 2, 0, 2, 0, 2, 0, 1, 1, 0,
-		1, 0, 2, 1, 2, 0, 1, 2, 2, 2,
-		1, 2, 0, 2, 1, 2, 1, 2, 1, 2,
-		1, 0, 0, 0, 0, 1, 0, 2, 2, 2,
+		1, 0, 0, 0, 0, 0, 0, 1, 1, 0,
+		1, 0, 0, 1, 0, 0, 1, 0, 0, 0,
+		1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
+		1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+		1, 0, 0, 0, 0, 0, 0, -1, 0, 0,
+		1, 1, 1, 1, 0, 0, -1, 0, -1, 0,
+		1, 0, 0, 1, 0, 0, 0, -1, 0, 0,
+		1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+		1, 1, 4, 4, 2, 2, 3, 3, 4, 4
+	};
+	const u8 roofIds[gridWidth * gridHeight] = {
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 0, 0, 0, 0, 0, 0, 1, 1, 0,
+		1, 0, 0, 1, 0, 0, 1, 0, 0, 0,
+		1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
+		1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
 		1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-		1, 2, 2, 1, 0, 0, 0, 0, 0, 0,
-		1, 2, 2, 2, 2, 0, 0, 0, 1, 0,
+		1, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+		1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 	};
-	player.RegisterGrid(&rayGrid);
+	Spear::Raycaster::SubmitNewGrid(gridWidth, gridHeight, worldIds, roofIds);
 
-	// Position player in middle of screen
-	player.SetPos(Vector2f((static_cast<float>(rayGrid.width / 2)), (static_cast<float>(rayGrid.height) / 2)));
+	// Position player in middle of grid
+	player.SetPos(Vector2f(gridWidth / 2, gridHeight / 2));
 }
 
 bool viewPerspective{false};
+Spear::RaycastParams rayParams;
 int PlayFlowstate::StateUpdate(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
@@ -87,11 +80,15 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 
 	if (input.InputHold(INPUT_SHOOT))
 	{
-		player.m_rayParams.xResolution++;
+		rayParams.xResolution++;
+		rayParams.yResolution++;
+		Spear::Raycaster::ApplyConfig(rayParams);
 	}
 	else if (input.InputHold(INPUT_ALTSHOOT))
 	{
-		player.m_rayParams.xResolution--;
+		rayParams.xResolution--;
+		rayParams.yResolution--;
+		Spear::Raycaster::ApplyConfig(rayParams);
 	}
 
 	player.Update(deltaTime);
@@ -109,6 +106,5 @@ void PlayFlowstate::StateRender()
 
 void PlayFlowstate::StateExit()
 {
-	delete[] pWalls;
-	delete[] rayGrid.pValues;
+	
 }

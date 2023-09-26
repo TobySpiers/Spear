@@ -39,30 +39,18 @@ void Player::Update(float deltaTime)
 	{
 		m_rotation += m_turnSpeed;
 	}
-
-	m_rayParams.pos = m_pos;
-	m_rayParams.rotation = m_rotation;
 }
 
 void Player::Draw(bool perspective) const
 {
 	if (perspective)
 	{
-		// raycasting render
 		//Spear::Raycaster::Draw3DWalls(m_rayParams, m_pWalls, m_wallCount);
-
-		Spear::Raycaster::Draw3DGrid(m_rayParams, m_pRayGrid);
+		Spear::Raycaster::Draw3DGrid(m_pos, m_rotation);
 	}
 	else
 	{
-		// draw 2D
 		//Spear::Raycaster::Draw2DWalls(m_rayParams, m_pWalls, m_wallCount);
-		Spear::Raycaster::Draw2DGrid(m_rayParams, m_pRayGrid);
+		Spear::Raycaster::Draw2DGrid(m_pos, m_rotation);
 	}	
-}
-
-void Player::RegisterWalls(Spear::RaycastWall* walls, int size)
-{
-	m_pWalls = walls;
-	m_wallCount = size;
 }
