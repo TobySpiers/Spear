@@ -1,8 +1,9 @@
 #pragma once
+#include "TextureBase.h"
 
 namespace Spear
 {
-	class Texture
+	class Texture : public TextureBase
 	{
 	public:
 		Texture();
@@ -10,11 +11,13 @@ namespace Spear
 
 		bool SetDataFromFile(const char* filename);
 		bool SetDataFromArrayRGB(float* pPixels, int width, int height);
-		void FreeTexture();
 
-		GLuint GetTextureId() const{return m_textureId;};
-		GLuint GetWidth() const{return m_textureWidth;};
-		GLuint GetHeight() const{return m_textureHeight;};
+		// TextureBase Overrides
+		void FreeTexture() override;
+		GLuint GetTextureId() const override{return m_textureId;};
+		GLuint GetWidth() const override {return m_textureWidth;};
+		GLuint GetHeight() const override {return m_textureHeight;};
+		GLuint GetDepth() const override {return 0;};
 
 	private:
 		GLuint m_textureId{0};

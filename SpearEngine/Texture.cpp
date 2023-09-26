@@ -1,4 +1,3 @@
-#include "Core.h"
 #include "Texture.h"
 #include "SDL_Image.h"
 #include "Colour.h"
@@ -95,6 +94,9 @@ namespace Spear
 
 		// unbind texture
 		glBindTexture(GL_TEXTURE_2D, NULL);
+
+		m_textureWidth = width;
+		m_textureHeight = height;
 		return true;
 	}
 

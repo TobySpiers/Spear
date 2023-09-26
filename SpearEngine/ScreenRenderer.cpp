@@ -60,7 +60,7 @@ namespace Spear
 		glBindBuffer(GL_ARRAY_BUFFER, m_instanceUVBuffer);
 		glBufferData(
 			GL_ARRAY_BUFFER,
-			LINE_MAX * sizeof(GLfloat),
+			INSTANCE_UV_MAX * sizeof(GLfloat),
 			nullptr,
 			GL_STATIC_DRAW
 		);
@@ -69,7 +69,7 @@ namespace Spear
 		glEnableVertexAttribArray(2);
 		glVertexAttribPointer(
 			2,
-			1, // 1 value per instance (uv X pos)
+			2, // 2 value per instance (uv X pos)
 			GL_FLOAT,
 			GL_FALSE,
 			0,
@@ -82,15 +82,13 @@ namespace Spear
 		m_shaderBackground = ShaderCompiler::CreateShaderProgram("../Shaders/BackgroundVS.glsl", "../Shaders/BackgroundFS.glsl");
 
 		// TEMP: LOAD TEXTURE
-		m_texture.SetDataFromFile("../Assets/wall8.png");
+		//m_texture.SetDataFromFile("../Assets/wall8.png");
 
-		// testing custom data (2x2 RGB)
-		GLfloat rawTex[2 * 2 * 3] = {
-			0.8f, 0.8f, 0.8f,	0.8f, 0.8f, 0.8f,
-			0.3f, 0.3f, 0.3f,	0.3f, 0.3f, 0.3f
-		};
-		m_backgroundTexture.SetDataFromArrayRGB(rawTex, 2, 2);
-		m_backgroundTexId = m_backgroundTexture.GetTextureId();
+		m_textureArray.Allocate(8, 8, 4); // 8x8 image (4 slots)
+		m_textureArray.SetDataFromFile(0, "../Assets/wallA8.png");
+		m_textureArray.SetDataFromFile(1, "../Assets/wallB8.png");
+		m_textureArray.SetDataFromFile(2, "../Assets/wallC8.png");
+		m_textureArray.SetDataFromFile(3, "../Assets/wallD8.png");
 
 		LOG("LOG: Line renderer reserved " << sizeof(GLfloat) * (INSTANCE_COL_MAX + INSTANCE_POS_MAX + INSTANCE_UV_MAX) << " bytes in CPU/GPU memory");
 	}
@@ -123,8 +121,9 @@ namespace Spear
 		m_instanceColorData[colIndex + 2] = line.colour.b;
 		m_instanceColorData[colIndex + 3] = line.colour.a;
 
-		int uvIndex{m_lineCount};
-		m_instanceUVData[uvIndex] = line.texPosX;
+		int uvIndex{FLOATS_PER_UV * m_lineCount};
+		m_instanceUVData[uvIndex + 0] = line.texPosX;
+		m_instanceUVData[uvIndex + 1] = line.texLayer;
 
 		m_lineCount++;
 	}
@@ -159,7 +158,7 @@ namespace Spear
 
 		// DRAW BACKGROUND
 		glUseProgram(m_shaderBackground);
-		glBindTexture(GL_TEXTURE_2D, m_backgroundTexId);
+		glBindTexture(GL_TEXTURE_2D, m_backgroundTexture.GetTextureId());
 		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
 
 		// SETUP VAO
@@ -194,10 +193,12 @@ namespace Spear
 		);
 
 		// BIND TEXTURE
-		glBindTexture(GL_TEXTURE_2D, m_texture.GetTextureId());
+		//glBindTexture(GL_TEXTURE_2D, m_texture.GetTextureId());
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureArray.GetTextureId());
 
 		// UPLOAD CONSTANT DATA
-		GLint texLoc = glGetUniformLocation(m_shaderLine, "texture");
+		GLint texLoc = glGetUniformLocation(m_shaderLine, "textureSampler");
 		glUniform1i(texLoc, 0);
 		GLint widthLoc = glGetUniformLocation(m_shaderLine, "lineWidth");
 		glUniform2f(widthLoc, m_lineWidth / Core::GetWindowSize().x, m_lineWidth / Core::GetWindowSize().y);

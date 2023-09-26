@@ -45,6 +45,9 @@
     <ClCompile Include="Raycaster.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="TextureArray.cpp">
+      <Filter>SpearGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -82,6 +85,12 @@
     </ClInclude>
     <ClInclude Include="Colour.h">
       <Filter>Maths</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureBase.h">
+      <Filter>SpearGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureArray.h">
+      <Filter>SpearGraphics</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

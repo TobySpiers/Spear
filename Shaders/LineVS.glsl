@@ -4,10 +4,10 @@ uniform vec2 lineWidth;
 
 layout(location = 0) in vec4 inPos;
 layout(location = 1) in vec4 inColor;
-layout(location = 2) in float inTexPosX;
+layout(location = 2) in vec2 inUv;
 
 out vec4 v_color;
-out vec2 v_texCoord;
+out vec3 v_UV;
 
 void main() 
 {
@@ -33,10 +33,10 @@ void main()
 	
 	
 	
-	vec2 uvCoords[4];
-	uvCoords[0] = vec2(inTexPosX, 0);
-	uvCoords[1] = vec2(inTexPosX, 0);
-	uvCoords[2] = vec2(inTexPosX, 1);
-	uvCoords[3] = vec2(inTexPosX, 1);
-	v_texCoord = uvCoords[gl_VertexID];
+	vec3 uvCoords[4];
+	uvCoords[0] = vec3(inUv.x, 0, inUv.y);
+	uvCoords[1] = vec3(inUv.x, 0, inUv.y);
+	uvCoords[2] = vec3(inUv.x, 1, inUv.y);
+	uvCoords[3] = vec3(inUv.x, 1, inUv.y);
+	v_UV = uvCoords[gl_VertexID];
 }

@@ -4,16 +4,17 @@ namespace Spear
 {
 	// a 2D map grid
 	// Pros: very fast, efficient intersect calculations
-	// Cons: only supports 'square tile' grid formations
+	// Cons: only supports static tile grid formations
 	struct RaycastDDAGrid
 	{
-		u8* pValues{nullptr};
+		u8* pRoofIds{nullptr};
+		s8* pWorldIds{nullptr};	// positive = wall+floor, negative = floor, 0 = empty
 		u8 width{0};
 		u8 height{0};
 	};
 
 	// a loose 2D wall
-	// Pros: freely positionable, any angle
+	// Pros: freely positionable, any angle, supports dynamic movement/rotation
 	// Cons: much slower
 	// Note: potential for ray-reflections/mirrors...?
 	struct RaycastWall
@@ -25,17 +26,12 @@ namespace Spear
 
 	struct RaycastParams
 	{
-		Vector2f pos{ 0.f, 0.f };
 		float fieldOfView{ TO_RADIANS(75.f) };
-		float rotation{ 0.f };
-
-		float nearClip{5};
 		float farClip{50};
-		int xResolution{480};  // 480. affects performance for walls/floors/ceilings.
-		int yResolution{270}; // 270. affects performance for floors/ceilings. wall y-resolution is faked for retro aesthetic.
-		int texResolution{8};
+		int xResolution{480}; // 480. affects performance for walls + floors + ceilings.
+		int yResolution{270}; // 270. affects performance for floors + ceilings. wall y-resolution is faked for aesthetic only.
 
-		// 2D is rendered 1 pixel per tile... this zooms 2D rendering
+		// Used only in 2D rendering. Scale 1 = 1 tile : 1 pixel.
 		float scale2D{ 75.f };
 	};
 
@@ -52,10 +48,25 @@ namespace Spear
 		};
 
 	public:
-		static void Draw2DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount);
-		static void Draw3DWalls(const RaycastParams& param, RaycastWall* pWalls, int wallCount);
+		static void SubmitNewGrid(u8 width, u8 height, const s8* pWorldIds, const u8* pRoofIds);
+		static void ApplyConfig(const RaycastParams& config);
 
-		static void Draw2DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid);
-		static void Draw3DGrid(const RaycastParams& param, RaycastDDAGrid* pGrid);
+		static void Draw2DWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
+		static void Draw3DWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
+
+		static void Draw2DGrid(const Vector2f& pos, const float angle);
+		static void Draw3DGrid(const Vector2f& pos, const float angle);
+
+	private:
+		static void CreateBackgroundArray(int width, int height);
+		static void ClearBackgroundArray();
+
+		// Raycast Data
+		static RaycastDDAGrid m_ddaGrid;
+		static RaycastParams m_rayConfig;
+
+		// Background Floor/Ceiling Render
+		static GLfloat* m_bgTexPixels;
+		static const int m_bgTexPixelSize{3}; // 3 values: R,G,B
 	};
 }

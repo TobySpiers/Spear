@@ -90,7 +90,7 @@ namespace Spear
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 			// spinlock to keep thread active while waiting
-			LOG("Frametime: " << SDL_GetPerformanceCounter() - frameStart << "ms\nLeftover: " << targetFrequency - (SDL_GetPerformanceCounter() - frameStart));
+			//LOG("Frametime: " << SDL_GetPerformanceCounter() - frameStart << "ms\nLeftover: " << targetFrequency - (SDL_GetPerformanceCounter() - frameStart));
 			while(SDL_GetPerformanceCounter() - frameStart < targetFrequency)
 			{}
 			deltaTime = static_cast<float>(SDL_GetPerformanceCounter() - frameStart) / SDL_GetPerformanceFrequency();
