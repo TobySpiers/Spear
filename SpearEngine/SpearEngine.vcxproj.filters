@@ -10,6 +10,9 @@
     <Filter Include="Maths">
       <UniqueIdentifier>{29d067d9-dc1c-4ac4-b56f-0064a2066d4f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{b9df323f-d827-4ad1-b305-f606b2ff12fa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ServiceLocator.cpp">
@@ -47,6 +50,9 @@
     </ClCompile>
     <ClCompile Include="TextureArray.cpp">
       <Filter>SpearGraphics</Filter>
+    </ClCompile>
+    <ClCompile Include="UiButton.cpp">
+      <Filter>Misc</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +97,9 @@
     </ClInclude>
     <ClInclude Include="TextureArray.h">
       <Filter>SpearGraphics</Filter>
+    </ClInclude>
+    <ClInclude Include="UiButton.h">
+      <Filter>Misc</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

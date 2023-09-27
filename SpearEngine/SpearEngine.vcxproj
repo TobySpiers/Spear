@@ -28,6 +28,7 @@
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureArray.h" />
     <ClInclude Include="TextureBase.h" />
+    <ClInclude Include="UiButton.h" />
     <ClInclude Include="WindowManager.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ServiceLocator.h" />
@@ -43,6 +44,7 @@
     <ClCompile Include="Raycaster.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureArray.cpp" />
+    <ClCompile Include="UiButton.cpp" />
     <ClCompile Include="WindowManager.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />

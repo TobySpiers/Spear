@@ -19,6 +19,11 @@ namespace Spear
 		const u32 rawMouseState = SDL_GetMouseState(&m_mousePos.x, &m_mousePos.y);
 		const u8* rawKeyState = SDL_GetKeyboardState(NULL);
 
+		// Store mouseclick
+		UpdateInputState(rawMouseState & SDL_BUTTON(SDL_BUTTON_LEFT), &m_clickLeft);
+		UpdateInputState(rawMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT), &m_clickRight);
+		
+
 		// Update InputStates
 		for (int i = 0; i < m_bindingsSize; i++)
 		{

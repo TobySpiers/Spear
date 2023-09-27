@@ -12,11 +12,11 @@ namespace Spear
 	RaycastDDAGrid Raycaster::m_ddaGrid;
 	RaycastParams Raycaster::m_rayConfig;
 
-	void Raycaster::CreateBackgroundArray(int width, int height)
+	void Raycaster::RecreateBackgroundArray(int width, int height)
 	{
 		delete[] m_bgTexPixels;
 		m_bgTexPixels = new GLfloat[width * height * m_bgTexPixelSize]; // Floor * Width * RGB
-		std::fill(m_bgTexPixels, m_bgTexPixels + (m_rayConfig.xResolution * m_rayConfig.yResolution * m_bgTexPixelSize), GLfloat(0)); // init to 0
+		std::fill(m_bgTexPixels, m_bgTexPixels + (width * height * m_bgTexPixelSize), GLfloat(0)); // init to 0
 	}
 
 	void Raycaster::ClearBackgroundArray()
@@ -44,18 +44,24 @@ namespace Spear
 		// create background texture if one does not exist
 		if (m_bgTexPixels == nullptr)
 		{
-			CreateBackgroundArray(m_rayConfig.xResolution, m_rayConfig.yResolution);
+			RecreateBackgroundArray(m_rayConfig.xResolution, m_rayConfig.yResolution);
 		}
 	}
 
 	void Raycaster::ApplyConfig(const RaycastParams& config)
 	{ 
+		
+		if (config.xResolution != m_rayConfig.xResolution || config.yResolution != m_rayConfig.yResolution)
+		{
+			RecreateBackgroundArray(config.xResolution, config.yResolution);
+		}
+
 		m_rayConfig = config; 
 	};
 
 	void Raycaster::Draw2DWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
 	{
-		ScreenRenderer& rend = ServiceLocator::GetLineRenderer();
+		ScreenRenderer& rend = ServiceLocator::GetScreenRenderer();
 		rend.SetLineWidth(1.0f);
 
 		// Define the 'screen'
@@ -118,7 +124,7 @@ namespace Spear
 
 	void Raycaster::Draw3DWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
 	{
-		ScreenRenderer& rend = ServiceLocator::GetLineRenderer();
+		ScreenRenderer& rend = ServiceLocator::GetScreenRenderer();
 		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / m_rayConfig.xResolution };
 		rend.SetLineWidth(lineWidth);
 
@@ -187,7 +193,7 @@ namespace Spear
 
 	void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	{
-		ScreenRenderer& rend = ServiceLocator::GetLineRenderer();
+		ScreenRenderer& rend = ServiceLocator::GetScreenRenderer();
 		rend.SetLineWidth(2.0f);
 
 		// Draw tiles
@@ -376,7 +382,7 @@ namespace Spear
 	// CPU bound for now. Potential to eventualy convert into a shader...
 	void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 	{
-		ScreenRenderer& rend = ServiceLocator::GetLineRenderer();
+		ScreenRenderer& rend = ServiceLocator::GetScreenRenderer();
 
 		// Calculate our resolution
 		float pixelWidth{ static_cast<float>(Core::GetWindowSize().x) / m_rayConfig.xResolution };
@@ -544,6 +550,7 @@ namespace Spear
 				line.start.y = line.start.y - fmod(line.start.y, pixelHeight);
 				line.end.y = line.end.y - fmod(line.end.y, pixelHeight);
 				line.colour = rayHit == RAY_HIT_FRONT ? Colour4f::White() : Colour4f(0.9f, 0.9f, 0.9f, 1.0f);
+				line.texLayer = m_ddaGrid.pWorldIds[mapCheck.x + (mapCheck.y * m_ddaGrid.width)] - 1;
 
 				// UV X coord
 				if (rayHit == RAY_HIT_FRONT)
@@ -556,13 +563,12 @@ namespace Spear
 					int tileStart = static_cast<int>(intersection.y); // truncate to find start of tile
 					line.texPosX = intersection.y - tileStart;
 				}
-				line.texLayer = m_ddaGrid.pWorldIds[mapCheck.x + (mapCheck.y * m_ddaGrid.width)] - 1;
 				rend.AddLine(line);
 			}
 		}
 
 		// Upload background texture (VERY SLOW)
-		rend.SetBackgroundData(m_bgTexPixels, m_rayConfig.xResolution, m_rayConfig.yResolution);
+		rend.SetBackgroundTextureData(m_bgTexPixels, m_rayConfig.xResolution, m_rayConfig.yResolution);
 		ClearBackgroundArray();
 	}
 }

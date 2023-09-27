@@ -19,14 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FlowstateMenu.h" />
     <ClInclude Include="Player.h" />
-    <ClInclude Include="PlayFlowstate.h" />
+    <ClInclude Include="FlowstateGame.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eFlowstate.h" />
+    <ClCompile Include="FlowstateMenu.cpp" />
     <ClCompile Include="GameMain.cpp" />
     <ClCompile Include="Player.cpp" />
-    <ClCompile Include="PlayFlowstate.cpp" />
+    <ClCompile Include="FlowstateGame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SpearEngine\SpearEngine.vcxproj">

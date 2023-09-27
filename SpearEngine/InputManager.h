@@ -16,16 +16,19 @@ namespace Spear
 		bool InputStart(int key);
 		bool InputHold(int key);
 		bool InputRelease(int key);
+
+		bool ClickStart() {return (m_clickLeft == INPUT_START); };
+		bool ClickHold() {return (m_clickLeft == INPUT_START || m_clickLeft == INPUT_ACTIVE); };
+		bool ClickRelease() {return (m_clickLeft == INPUT_RELEASED); };
+
+		bool RightClickStart() { return (m_clickRight == INPUT_START); };
+		bool RightClickHold() { return (m_clickRight == INPUT_START || m_clickRight == INPUT_ACTIVE); };
+		bool RightClickRelease() { return (m_clickRight == INPUT_RELEASED); };
+
 		Vector2i GetMousePos();
 
 	private:
 		void UpdateInputState(bool active, int* state);
-
-		static const int KEYBINDINGS_LIMIT{ 20 };
-		Vector2i m_mousePos{0, 0};
-		int m_inputBindings[KEYBINDINGS_LIMIT] = {}; // bind ENUM INTs to SDL_SCANCODEs
-		int m_inputStates[KEYBINDINGS_LIMIT] = {}; // bind ENUM INTS to InputState vals
-		u8 m_bindingsSize{ 0 };
 
 		enum InputState
 		{
@@ -34,5 +37,15 @@ namespace Spear
 			INPUT_ACTIVE,
 			INPUT_RELEASED
 		};
+
+		static const int KEYBINDINGS_LIMIT{ 20 };
+		Vector2i m_mousePos{0, 0};
+		int m_clickLeft{INPUT_INACTIVE};
+		int m_clickRight{INPUT_INACTIVE};
+
+		int m_inputBindings[KEYBINDINGS_LIMIT] = {}; // bind ENUM INTs to SDL_SCANCODEs
+		int m_inputStates[KEYBINDINGS_LIMIT] = {}; // bind ENUM INTS to InputState vals
+		u8 m_bindingsSize{ 0 };
+
 	};
 };
