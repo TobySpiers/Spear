@@ -2,7 +2,8 @@
 #include "SpearEngine/ServiceLocator.h"
 #include "SpearEngine/FlowstateManager.h"
 
-#include "PlayFlowstate.h"
+#include "FlowstateMenu.h"
+#include "FlowstateGame.h"
 #include "eFlowstate.h"
 
 int main(int argc, char* argv[])
@@ -19,11 +20,15 @@ int main(int argc, char* argv[])
 
 	// Setup states
 	Spear::FlowstateManager& stateManager = Spear::ServiceLocator::GetFlowstateManager();
-	PlayFlowstate statePlay;
-	stateManager.RegisterState(&statePlay, (u32)eFlowstate::STATE_PLAY);
+
+	FlowstateMenu stateMenu;
+	stateManager.RegisterState(&stateMenu, (u32)eFlowstate::STATE_MENU);
+
+	FlowstateGame stateGame;
+	stateManager.RegisterState(&stateGame, (u32)eFlowstate::STATE_PLAY);
 
 	// Entry state
-	stateManager.SetInitialState((u32)eFlowstate::STATE_PLAY);
+	stateManager.SetInitialState((u32)eFlowstate::STATE_MENU);
 
 	// Run game
 	Spear::Core::RunGameloop(60);

@@ -1,12 +1,13 @@
 #pragma once
 #include "SpearEngine/FlowstateManager.h"
 #include "Player.h"
+#include "SpearEngine/TextureArray.h"
 
-class PlayFlowstate : public Spear::Flowstate
+class FlowstateGame : public Spear::Flowstate
 {
 public:
-	PlayFlowstate(){};
-	virtual ~PlayFlowstate(){};
+	FlowstateGame(){};
+	virtual ~FlowstateGame(){};
 
 	// Called once when state begins
 	void StateEnter() override;
@@ -20,7 +21,8 @@ public:
 	// Called once when state ends
 	void StateExit() override;
 
-	Player player;
+	Player m_player;
+	Spear::TextureArray m_worldTextures;
 };
 
 enum InputActions

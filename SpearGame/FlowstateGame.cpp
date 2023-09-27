@@ -6,9 +6,9 @@
 
 #include "eFlowstate.h"
 #include "Player.h"
-#include "PlayFlowstate.h"
+#include "FlowstateGame.h"
 
-void PlayFlowstate::StateEnter()
+void FlowstateGame::StateEnter()
 {
 	// Configure Inputs
 	int config[INPUT_COUNT];
@@ -29,6 +29,14 @@ void PlayFlowstate::StateEnter()
 
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
+
+	// Load world textures
+	m_worldTextures.Allocate(64, 64, 4); // 64x64 textures (4 slots)
+	m_worldTextures.SetDataFromFile(0, "../Assets/wallA64.png");
+	m_worldTextures.SetDataFromFile(1, "../Assets/wallA64.png");
+	m_worldTextures.SetDataFromFile(2, "../Assets/wallA64.png");
+	m_worldTextures.SetDataFromFile(3, "../Assets/wallA64.png");
+	Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_worldTextures);
 
 	// Create world layout
 	const int gridWidth{10};
@@ -60,17 +68,17 @@ void PlayFlowstate::StateEnter()
 	Spear::Raycaster::SubmitNewGrid(gridWidth, gridHeight, worldIds, roofIds);
 
 	// Position player in middle of grid
-	player.SetPos(Vector2f(gridWidth / 2, gridHeight / 2));
+	m_player.SetPos(Vector2f(gridWidth / 2, gridHeight / 2));
 }
 
 bool viewPerspective{false};
 Spear::RaycastParams rayParams;
-int PlayFlowstate::StateUpdate(float deltaTime)
+int FlowstateGame::StateUpdate(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
-	if (input.InputStart(INPUT_QUIT))
+	if (input.InputRelease(INPUT_QUIT))
 	{
-		Spear::Core::SignalShutdown();
+		return static_cast<int>(eFlowstate::STATE_MENU);
 	}
 
 	if (input.InputStart(INPUT_TOGGLE))
@@ -91,20 +99,20 @@ int PlayFlowstate::StateUpdate(float deltaTime)
 		Spear::Raycaster::ApplyConfig(rayParams);
 	}
 
-	player.Update(deltaTime);
+	m_player.Update(deltaTime);
 
 	return static_cast<int>(eFlowstate::STATE_THIS);
 }
 
-void PlayFlowstate::StateRender()
+void FlowstateGame::StateRender()
 {
 
-	player.Draw(viewPerspective);
+	m_player.Draw(viewPerspective);
 
-	Spear::ServiceLocator::GetLineRenderer().Render();
+	Spear::ServiceLocator::GetScreenRenderer().Render();
 }
 
-void PlayFlowstate::StateExit()
+void FlowstateGame::StateExit()
 {
 	
 }

@@ -58,7 +58,7 @@ namespace Spear
 		static void Draw3DGrid(const Vector2f& pos, const float angle);
 
 	private:
-		static void CreateBackgroundArray(int width, int height);
+		static void RecreateBackgroundArray(int width, int height);
 		static void ClearBackgroundArray();
 
 		// Raycast Data

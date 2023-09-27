@@ -3,7 +3,7 @@
 #include "SpearEngine/InputManager.h"
 #include "SpearEngine/ScreenRenderer.h"
 
-#include "PlayFlowstate.h"
+#include "FlowstateGame.h"
 #include "Player.h"
 
 Player::Player()

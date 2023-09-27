@@ -20,6 +20,6 @@ namespace Spear
 		static WindowManager& GetWindowManager();
 		static InputManager& GetInputManager();
 		static Renderer& GetRenderer();
-		static ScreenRenderer& GetLineRenderer();
+		static ScreenRenderer& GetScreenRenderer();
 	};
 }

@@ -85,7 +85,7 @@ namespace Spear
 		return *s_pRenderer;
 	}
 
-	ScreenRenderer& ServiceLocator::GetLineRenderer()
+	ScreenRenderer& ServiceLocator::GetScreenRenderer()
 	{
 		ASSERT(s_pScreenRenderer);
 		return *s_pScreenRenderer;

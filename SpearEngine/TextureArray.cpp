@@ -40,7 +40,6 @@ namespace Spear
 		m_textureDepth = slots;
 	}
 
-
 	bool TextureArray::SetDataFromFile(GLuint slot, const char* filename)
 	{
 		SDL_Surface* pSurface = IMG_Load(filename);
