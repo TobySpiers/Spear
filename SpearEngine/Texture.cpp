@@ -6,8 +6,6 @@ namespace Spear
 {
 	Texture::Texture()
 	{
-		// Create new texture slot and get ID
-		glGenTextures(1, &m_textureId);
 	}
 
 	Texture::~Texture()
@@ -15,8 +13,19 @@ namespace Spear
 		FreeTexture();
 	}
 
+	void Texture::Allocate()
+	{
+		// Create new texture slot and get ID
+		glGenTextures(1, &m_textureId);
+	}
+
 	bool Texture::SetDataFromFile(const char* filename)
 	{
+		if (m_textureId == 0)
+		{
+			Allocate();
+		}
+
 		SDL_Surface* pSurface = IMG_Load(filename);
 		if (!pSurface)
 		{
@@ -69,6 +78,11 @@ namespace Spear
 
 	bool Texture::SetDataFromArrayRGB(float* pPixels, int width, int height)
 	{
+		if (m_textureId == 0)
+		{
+			Allocate();
+		}
+
 		// bind THIS texture
 		glBindTexture(GL_TEXTURE_2D, m_textureId);
 

@@ -4,6 +4,7 @@
 
 #include "FlowstateMenu.h"
 #include "FlowstateGame.h"
+#include "FlowstateEditor.h"
 #include "eFlowstate.h"
 
 int main(int argc, char* argv[])
@@ -26,6 +27,9 @@ int main(int argc, char* argv[])
 
 	FlowstateGame stateGame;
 	stateManager.RegisterState(&stateGame, (u32)eFlowstate::STATE_PLAY);
+
+	FlowstateEditor stateEditor;
+	stateManager.RegisterState(&stateEditor, (u32)eFlowstate::STATE_EDIT);
 
 	// Entry state
 	stateManager.SetInitialState((u32)eFlowstate::STATE_MENU);

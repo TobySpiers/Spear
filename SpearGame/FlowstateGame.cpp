@@ -32,10 +32,10 @@ void FlowstateGame::StateEnter()
 
 	// Load world textures
 	m_worldTextures.Allocate(64, 64, 4); // 64x64 textures (4 slots)
-	m_worldTextures.SetDataFromFile(0, "../Assets/wallA64.png");
-	m_worldTextures.SetDataFromFile(1, "../Assets/wallA64.png");
-	m_worldTextures.SetDataFromFile(2, "../Assets/wallA64.png");
-	m_worldTextures.SetDataFromFile(3, "../Assets/wallA64.png");
+	m_worldTextures.SetDataFromFile(0, "../Assets/wall64_wolf.png");
+	m_worldTextures.SetDataFromFile(1, "../Assets/wall64_rough.png");
+	m_worldTextures.SetDataFromFile(2, "../Assets/wall64_rough.png");
+	m_worldTextures.SetDataFromFile(3, "../Assets/wall64_wolf.png");
 	Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_worldTextures);
 
 	// Create world layout
@@ -114,5 +114,5 @@ void FlowstateGame::StateRender()
 
 void FlowstateGame::StateExit()
 {
-	
+	Spear::ServiceLocator::GetScreenRenderer().EraseBackgroundTextureData();
 }

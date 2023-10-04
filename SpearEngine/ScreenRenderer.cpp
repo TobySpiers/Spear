@@ -147,6 +147,11 @@ namespace Spear
 		m_backgroundTexture.SetDataFromArrayRGB(pDataRGB, width, height);
 	}
 
+	void ScreenRenderer::EraseBackgroundTextureData()
+	{
+		m_backgroundTexture.FreeTexture();
+	}
+
 	void ScreenRenderer::SetTextureArrayData(const TextureArray& textureArray)
 	{
 		m_pTextureArray = &textureArray;
@@ -233,14 +238,25 @@ namespace Spear
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		// DRAW BACKGROUND
-		glUseProgram(m_backgroundShader);
-		glBindTexture(GL_TEXTURE_2D, m_backgroundTexture.GetTextureId());
-		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
+		if (m_backgroundTexture.Exists())
+		{
+			RenderBackground();
+		}
+		else
+		{
+			glClear(GL_COLOR_BUFFER_BIT);
+		}
 
 		RenderLines();
 
 		RenderSprites();
+	}
+
+	void ScreenRenderer::RenderBackground()
+	{
+		glUseProgram(m_backgroundShader);
+		glBindTexture(GL_TEXTURE_2D, m_backgroundTexture.GetTextureId());
+		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
 	}
 
 	void ScreenRenderer::RenderLines()
