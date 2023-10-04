@@ -54,21 +54,23 @@ namespace Spear
 		};
 
 		ScreenRenderer();
-		void SetTextureArrayData(const TextureArray& textureArray);
 
+		void SetLineWidth(float width){m_lineWidth = width;};
 		void AddLine(const LineData& line);
 		void AddLinePoly(const LinePolyData& circle);
-		void SetLineWidth(float width){m_lineWidth = width;};
-
 		void AddSprite(const SpriteData& sprite);
 
+		void SetTextureArrayData(const TextureArray& textureArray);
 		void SetBackgroundTextureData(GLfloat* pDataRGB, int width, int height);
+		void EraseBackgroundTextureData();
+
 		void Render();
 
 	private:
 		void InitialiseLineBuffers();
 		void InitialiseSpriteBuffers();
 
+		void RenderBackground();
 		void RenderLines();
 		void RenderSprites();
 
