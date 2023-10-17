@@ -13,6 +13,7 @@ namespace Spear
 		virtual GLuint GetHeight() const = 0;
 		virtual GLuint GetDepth() const = 0;
 		virtual bool Exists() const = 0;
+		virtual bool IsArray() const = 0;
 	};
 
 }

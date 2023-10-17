@@ -7,18 +7,71 @@ namespace Spear
 
 	ScreenRenderer::ScreenRenderer()
 	{
-		InitialiseLineBuffers();
+		InitialiseRawLineBuffers();
+		InitialiseTexturedLineBuffers();
 		InitialiseSpriteBuffers();
 
 		// COMPILE SHADERS
-		m_lineShader = ShaderCompiler::CreateShaderProgram("../Shaders/LineVS.glsl", "../Shaders/LineFS.glsl");
+		m_lineShaderTextured = ShaderCompiler::CreateShaderProgram("../Shaders/TexturedLineVS.glsl", "../Shaders/TexturedLineFS.glsl");
+		m_lineShaderColour = ShaderCompiler::CreateShaderProgram("../Shaders/LineVS.glsl", "../Shaders/LineFS.glsl");
 		m_spriteShader = ShaderCompiler::CreateShaderProgram("../Shaders/SpriteVS.glsl", "../Shaders/SpriteFS.glsl");
 		m_backgroundShader = ShaderCompiler::CreateShaderProgram("../Shaders/BackgroundVS.glsl", "../Shaders/BackgroundFS.glsl");
 
-		LOG("LOG: Line renderer reserved " << sizeof(GLfloat) * (LINE_COL_MAXBYTES + LINE_POS_MAXBYTES + LINE_UV_MAXBYTES) << " bytes in CPU + GPU memory");
+		LOG("LOG: Line Rendering reserved " << sizeof(GLfloat) * (LINE_POS_MAXBYTES + LINE_UV_MAXBYTES) << " bytes in CPU + GPU memory");
 	}
 
-	void ScreenRenderer::InitialiseLineBuffers()
+	void ScreenRenderer::InitialiseRawLineBuffers()
+	{
+		// CREATE VAO
+		glGenVertexArrays(1, &m_rawlineVAO);
+		glBindVertexArray(m_rawlineVAO);
+
+		// SETUP POS BUFFER
+		glGenBuffers(1, &m_rawlinePosBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, m_rawlinePosBuffer);
+		glBufferData(
+			GL_ARRAY_BUFFER,
+			RAWLINE_POS_MAXBYTES * sizeof(GLfloat),
+			nullptr,
+			GL_STATIC_DRAW
+		);
+
+		// + POS ATTRIB
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(
+			0,
+			RAWLINE_FLOATS_PER_POS,
+			GL_FLOAT,
+			GL_FALSE,
+			0,
+			(GLvoid*)0
+		);
+		glVertexAttribDivisor(0, 1);
+
+		// SETUP COL BUFFER
+		glGenBuffers(1, &m_rawlineColorBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, m_rawlineColorBuffer);
+		glBufferData(
+			GL_ARRAY_BUFFER,
+			RAWLINE_COL_MAXBYTES * sizeof(GLfloat),
+			nullptr,
+			GL_STATIC_DRAW
+		);
+
+		// + COL ATTRIB
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(
+			1,
+			RAWLINE_FLOATS_PER_COLOR, 
+			GL_FLOAT,
+			GL_FALSE,
+			0,
+			(GLvoid*)0
+		);
+		glVertexAttribDivisor(1, 1);
+	}
+
+	void ScreenRenderer::InitialiseTexturedLineBuffers()
 	{
 		// CREATE VAO
 		glGenVertexArrays(1, &m_lineVAO);
@@ -38,7 +91,7 @@ namespace Spear
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(
 			0,
-			4, // 4 values (2 for start, 2 for end)
+			LINE_FLOATS_PER_POS, // 4 values (2 for start, 2 for end)
 			GL_FLOAT,
 			GL_FALSE,
 			0,
@@ -46,29 +99,7 @@ namespace Spear
 		);
 		glVertexAttribDivisor(0, 1);
 
-		// SETUP COL BUFFER
-		glGenBuffers(1, &m_lineColorBuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, m_lineColorBuffer);
-		glBufferData(
-			GL_ARRAY_BUFFER,
-			LINE_COL_MAXBYTES * sizeof(GLfloat),
-			nullptr,
-			GL_STATIC_DRAW
-		);
-
-		// + COL ATTRIB
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(
-			1,
-			4, // 4 values (rgba)
-			GL_FLOAT,
-			GL_FALSE,
-			0,
-			(GLvoid*)0
-		);
-		glVertexAttribDivisor(1, 1);
-
-		// SETUP UV BUFFER
+		// SETUP UV BUFFER - DONT FORGET: UPDATE THESE TO USE SLOT 1 INSTEAD OF 2 (BECAUSE WE REMOVED COLOUR BUFFER)
 		glGenBuffers(2, &m_lineUVBuffer);
 		glBindBuffer(GL_ARRAY_BUFFER, m_lineUVBuffer);
 		glBufferData(
@@ -79,16 +110,16 @@ namespace Spear
 		);
 
 		// + UV ATTRIB
-		glEnableVertexAttribArray(2);
+		glEnableVertexAttribArray(1); // shares a shader with RawLines... 2 = texture data, 1 = raw colour data
 		glVertexAttribPointer(
-			2,
-			2, // 2 value per instance (uv X pos)
+			1,
+			LINE_FLOATS_PER_UV, // 2 value per instance (uv X pos)
 			GL_FLOAT,
 			GL_FALSE,
 			0,
 			(GLvoid*)0
 		);
-		glVertexAttribDivisor(2, 1);
+		glVertexAttribDivisor(1, 1);
 	}
 
 	void ScreenRenderer::InitialiseSpriteBuffers()
@@ -111,7 +142,7 @@ namespace Spear
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(
 			0,
-			4, // 4 values (2 for xy, 2 for width/height)
+			SPRITE_FLOATS_PER_POS,
 			GL_FLOAT,
 			GL_FALSE,
 			0,
@@ -133,13 +164,72 @@ namespace Spear
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(
 			1,
-			2, // 2 values (x: texture depth, y: opacity)
+			SPRITE_FLOATS_PER_COLOR, 
 			GL_FLOAT,
 			GL_FALSE,
 			0,
 			(GLvoid*)0
 		);
 		glVertexAttribDivisor(1, 1);
+	}
+
+	int ScreenRenderer::CreateSpriteBatch(const TextureBase& batchTexture, int capacity)
+	{
+		ASSERT(m_spriteBatchCount < SPRITE_BATCH_MAX);
+
+		// configure new batch
+		TextureBatch& newBatch = m_spriteBatches[m_spriteBatchCount];
+		newBatch.pTexture = &batchTexture;
+		newBatch.capacity = capacity;
+		newBatch.count = 0;
+
+		// start offset
+		if(m_spriteBatchCount > 0)
+		{
+			TextureBatch& prevBatch{ m_spriteBatches[m_spriteBatchCount - 1] };
+			newBatch.indexOffset = prevBatch.indexOffset + prevBatch.capacity;
+		}
+		else
+		{
+			newBatch.indexOffset = 0;
+		}
+
+		ASSERT(newBatch.indexOffset + capacity < SPRITE_MAX);
+		return m_spriteBatchCount++;
+	}
+	void ScreenRenderer::ClearSpriteBatches()
+	{
+		m_spriteBatchCount = 0;
+	}
+
+	int ScreenRenderer::CreateLineBatch(const TextureBase& batchTexture, int capacity, float lineWidth)
+	{
+		ASSERT(m_lineBatchCount < LINE_BATCH_MAX);
+
+		// configure new batch
+		LineBatch& newBatch = m_lineBatches[m_lineBatchCount];
+		newBatch.pTexture = &batchTexture;
+		newBatch.capacity = capacity;
+		newBatch.count = 0;
+		newBatch.lineWidth = lineWidth;
+
+		// start offset
+		if (m_lineBatchCount > 0)
+		{
+			LineBatch& prevBatch{m_lineBatches[m_lineBatchCount - 1]};
+			newBatch.indexOffset = prevBatch.indexOffset + prevBatch.capacity;
+		}
+		else
+		{
+			newBatch.indexOffset = 0;
+		}
+
+		ASSERT(newBatch.indexOffset + capacity < LINE_MAX);
+		return m_lineBatchCount++;
+	}
+	void ScreenRenderer::ClearLineBatches()
+	{
+		m_lineBatchCount = 0;
 	}
 
 	void ScreenRenderer::SetBackgroundTextureData(GLfloat* pDataRGB, int width, int height)
@@ -152,39 +242,50 @@ namespace Spear
 		m_backgroundTexture.FreeTexture();
 	}
 
-	void ScreenRenderer::SetTextureArrayData(const TextureArray& textureArray)
+	void ScreenRenderer::AddTexturedLine(const LineData& line, int batchId)
 	{
-		m_pTextureArray = &textureArray;
-	}
-
-	void ScreenRenderer::AddLine(const LineData& line)
-	{
-		if (m_lineCount >= LINE_MAX)
-		{
-			LOG("WARNING: ScreenRenderer line count exceeded! Skipping lines");
-			return;
-		}
+		ASSERT(batchId >= 0 && batchId < m_lineBatchCount);
+		LineBatch& batch = m_lineBatches[batchId];
+		ASSERT(batch.count < batch.capacity);
 
 		const Vector2f startPos{Core::GetNormalizedDeviceCoordinate(line.start)};
 		const Vector2f endPos{Core::GetNormalizedDeviceCoordinate(line.end)};
 
-		int posIndex{LINE_FLOATS_PER_POS * m_lineCount};
-		m_linePosData[posIndex + 0] = startPos.x;
-		m_linePosData[posIndex + 1] = startPos.y;
-		m_linePosData[posIndex + 2] = endPos.x;
-		m_linePosData[posIndex + 3] = endPos.y;
+		int batchPosIndex{ LINE_FLOATS_PER_POS * batch.indexOffset };
+		int linePosIndex{ batchPosIndex + (LINE_FLOATS_PER_POS * batch.count) };
+		m_linePosData[linePosIndex + 0] = startPos.x;
+		m_linePosData[linePosIndex + 1] = startPos.y;
+		m_linePosData[linePosIndex + 2] = endPos.x;
+		m_linePosData[linePosIndex + 3] = endPos.y;
 
-		int colIndex{LINE_FLOATS_PER_COLOR * m_lineCount};
-		m_lineColorData[colIndex + 0] = line.colour.r;
-		m_lineColorData[colIndex + 1] = line.colour.g;
-		m_lineColorData[colIndex + 2] = line.colour.b;
-		m_lineColorData[colIndex + 3] = line.colour.a;
+		int batchUvIndex{ LINE_FLOATS_PER_UV * batch.indexOffset };
+		int lineUvIndex{ batchUvIndex + (LINE_FLOATS_PER_UV * batch.count) };
+		m_lineUVData[lineUvIndex + 0] = line.texPosX;
+		m_lineUVData[lineUvIndex + 1] = line.texLayer;
 
-		int uvIndex{LINE_FLOATS_PER_UV * m_lineCount};
-		m_lineUVData[uvIndex + 0] = line.texPosX;
-		m_lineUVData[uvIndex + 1] = line.texLayer;
+		batch.count++;
+	}
 
-		m_lineCount++;
+	void ScreenRenderer::AddRawLine(const LineData& line, Colour4f colour)
+	{
+		ASSERT(m_rawlineCount < RAWLINE_MAX);
+
+		const Vector2f startPos{ Core::GetNormalizedDeviceCoordinate(line.start) };
+		const Vector2f endPos{ Core::GetNormalizedDeviceCoordinate(line.end) };
+
+		int linePosIndex{ RAWLINE_FLOATS_PER_POS * m_rawlineCount };
+		m_rawlinePosData[linePosIndex + 0] = startPos.x;
+		m_rawlinePosData[linePosIndex + 1] = startPos.y;
+		m_rawlinePosData[linePosIndex + 2] = endPos.x;
+		m_rawlinePosData[linePosIndex + 3] = endPos.y;
+
+		int lineColIndex{RAWLINE_FLOATS_PER_COLOR * m_rawlineCount};
+		m_rawLineColData[lineColIndex + 0] = colour.r;
+		m_rawLineColData[lineColIndex + 1] = colour.g;
+		m_rawLineColData[lineColIndex + 2] = colour.b;
+		m_rawLineColData[lineColIndex + 3] = colour.a;
+
+		m_rawlineCount++;;
 	}
 
 	void ScreenRenderer::AddLinePoly(const LinePolyData& poly)
@@ -194,7 +295,7 @@ namespace Spear
 
 		// decompose into individual lines
 		// not the most efficient approach memory-wise as vertices get duplicated
-		// but line-polys are not the main use case and there will never be very many at once
+		// but line-polys will not be common during gameplay
 		float increment {(PI * 2) / poly.segments};
 		for (int i = 0; i < poly.segments; i++)
 		{
@@ -203,33 +304,32 @@ namespace Spear
 			LineData line;
 			line.start = poly.pos + Vector2f(cos(poly.rotation + (increment * i)), sin(poly.rotation + (increment * i))) * poly.radius;
 			line.end = poly.pos + Vector2f(cos(poly.rotation + (increment * nextIndex)), sin(poly.rotation + (increment * nextIndex))) * poly.radius;
-			line.colour = poly.colour;
 
-			AddLine(line);
+			AddRawLine(line, poly.colour);
 		}
 	}
 
-	void ScreenRenderer::AddSprite(const SpriteData& sprite)
+	void ScreenRenderer::AddSprite(const SpriteData& sprite, int batchId)
 	{
-		if (m_spriteCount >= SPRITE_MAX)
-		{
-			LOG("WARNING: ScreenRenderer sprite count exceeded! Skipping sprites");
-			return;
-		}
+		ASSERT(batchId >= 0 && batchId < m_spriteBatchCount);
+		TextureBatch& batch = m_spriteBatches[batchId];
+		ASSERT(batch.count < batch.capacity);
 
 		const Vector2f screenPos{ Core::GetNormalizedDeviceCoordinate(sprite.pos) };
 
-		int posIndex{ SPRITE_FLOATS_PER_POS * m_spriteCount };
-		m_spritePosData[posIndex + 0] = screenPos.x;
-		m_spritePosData[posIndex + 1] = screenPos.y;
-		m_spritePosData[posIndex + 2] = sprite.scale.x;
-		m_spritePosData[posIndex + 3] = sprite.scale.y;
+		int batchPosIndex{SPRITE_FLOATS_PER_POS * batch.indexOffset};
+		int spritePosIndex{batchPosIndex + (SPRITE_FLOATS_PER_POS * batch.count)};
+		m_spritePosData[spritePosIndex + 0] = screenPos.x;
+		m_spritePosData[spritePosIndex + 1] = screenPos.y;
+		m_spritePosData[spritePosIndex + 2] = sprite.scale.x;
+		m_spritePosData[spritePosIndex + 3] = sprite.scale.y;
 
-		int colIndex{ SPRITE_FLOATS_PER_COLOR * m_spriteCount };
-		m_spriteColData[colIndex + 0] = sprite.opacity;
-		m_spriteColData[colIndex + 1] = sprite.textureSlot;
+		int batchColIndex{SPRITE_FLOATS_PER_COLOR * batch.indexOffset};
+		int spriteColIndex{batchColIndex + (SPRITE_FLOATS_PER_COLOR * batch.count)};
+		m_spriteColData[spriteColIndex + 0] = sprite.opacity;
+		m_spriteColData[spriteColIndex + 1] = sprite.texLayer;
 
-		m_spriteCount++;
+		batch.count++;
 	}
 
 	void ScreenRenderer::Render()
@@ -247,8 +347,8 @@ namespace Spear
 			glClear(GL_COLOR_BUFFER_BIT);
 		}
 
-		RenderLines();
-
+		RenderRawLines();
+		RenderTexturedLines();
 		RenderSprites();
 	}
 
@@ -259,51 +359,82 @@ namespace Spear
 		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
 	}
 
-	void ScreenRenderer::RenderLines()
+	void ScreenRenderer::RenderRawLines()
+	{
+		glUseProgram(m_lineShaderColour);
+		glBindVertexArray(m_rawlineVAO);
+
+		// position
+		glBindBuffer(GL_ARRAY_BUFFER, m_rawlinePosBuffer);
+		glBufferSubData(
+			GL_ARRAY_BUFFER,
+			0,
+			sizeof(GLfloat) * m_rawlineCount * RAWLINE_FLOATS_PER_POS,
+			m_rawlinePosData
+		);
+
+		// colour
+		glBindBuffer(GL_ARRAY_BUFFER, m_rawlineColorBuffer);
+		glBufferSubData(
+			GL_ARRAY_BUFFER,
+			0,
+			sizeof(GLfloat) * m_rawlineCount * RAWLINE_FLOATS_PER_COLOR,
+			m_rawLineColData
+		);
+
+		// line width
+		GLint widthLoc = glGetUniformLocation(m_lineShaderTextured, "lineWidth");
+		glUniform2f(widthLoc, 2.f / Core::GetWindowSize().x, 2.f / Core::GetWindowSize().y);
+
+		// render
+		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, m_rawlineCount)); // 4 vertices per instance, m_lineCount instances
+		m_rawlineCount = 0;
+	}
+
+	void ScreenRenderer::RenderTexturedLines()
 	{
 		// SETUP VAO
-		glUseProgram(m_lineShader);
+		glUseProgram(m_lineShaderTextured);
 		glBindVertexArray(m_lineVAO);
 
-		// UPLOAD POS DATA
-		glBindBuffer(GL_ARRAY_BUFFER, m_linePosBuffer);
-		glBufferSubData(
-			GL_ARRAY_BUFFER,
-			0,
-			LinePosSize(),
-			m_linePosData
-		);
+		// UPLOAD + RENDER EACH BATCH
+		for (int i = 0; i < m_lineBatchCount; i++)
+		{
+			LineBatch& batch = m_lineBatches[i];
+			if (!batch.count)
+				continue;
 
-		// UPLOAD COL DATA
-		glBindBuffer(GL_ARRAY_BUFFER, m_lineColorBuffer);
-		glBufferSubData(
-			GL_ARRAY_BUFFER,
-			0,
-			LineColSize(),
-			m_lineColorData
-		);
+			// position
+			glBindBuffer(GL_ARRAY_BUFFER, m_linePosBuffer);
+			glBufferSubData(
+				GL_ARRAY_BUFFER,
+				0,
+				sizeof(GLfloat) * batch.count * LINE_FLOATS_PER_POS,
+				&m_linePosData[batch.indexOffset]
+			);
 
-		// UPLOAD UV DATA
-		glBindBuffer(GL_ARRAY_BUFFER, m_lineUVBuffer);
-		glBufferSubData(
-			GL_ARRAY_BUFFER,
-			0,
-			LineUVSize(),
-			m_lineUVData
-		);
+			// uv
+			glBindBuffer(GL_ARRAY_BUFFER, m_lineUVBuffer);
+			glBufferSubData(
+				GL_ARRAY_BUFFER,
+				0,
+				sizeof(GLfloat) * batch.count * LINE_FLOATS_PER_UV,
+				&m_lineUVData[batch.indexOffset]
+			);
 
-		// BIND TEXTURE
-		glBindTexture(GL_TEXTURE_2D_ARRAY, m_pTextureArray->GetTextureId());
+			// texture
+			glBindTexture(GL_TEXTURE_2D_ARRAY, batch.pTexture->GetTextureId());
+			
+			// const uniform data
+			GLint texLoc = glGetUniformLocation(m_lineShaderTextured, "textureSampler");
+			glUniform1i(texLoc, 0);
+			GLint widthLoc = glGetUniformLocation(m_lineShaderTextured, "lineWidth");
+			glUniform2f(widthLoc, batch.lineWidth / Core::GetWindowSize().x, batch.lineWidth / Core::GetWindowSize().y);
 
-		// UPLOAD CONSTANT DATA
-		GLint texLoc = glGetUniformLocation(m_lineShader, "textureSampler");
-		glUniform1i(texLoc, 0);
-		GLint widthLoc = glGetUniformLocation(m_lineShader, "lineWidth");
-		glUniform2f(widthLoc, m_lineWidth / Core::GetWindowSize().x, m_lineWidth / Core::GetWindowSize().y);
-
-		// RENDER
-		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, m_lineCount)); // 4 vertices per instance, m_lineCount instances
-		m_lineCount = 0;
+			// render
+			GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, batch.count)); // 4 vertices per instance, m_lineCount instances
+			batch.count = 0;
+		}
 	}
 
 	void ScreenRenderer::RenderSprites()
@@ -312,37 +443,45 @@ namespace Spear
 		glUseProgram(m_spriteShader);
 		glBindVertexArray(m_spriteVAO);
 
-		// UPLOAD POS
-		glBindBuffer(GL_ARRAY_BUFFER, m_spritePosBuffer);
-		glBufferSubData(
-			GL_ARRAY_BUFFER,
-			0,
-			SpritePosSize(),
-			m_spritePosData
-		);
+		// UPLOAD + RENDER EACH BATCH
+		for (int i = 0; i < m_spriteBatchCount; i++)
+		{
+			TextureBatch& batch = m_spriteBatches[i];
+			if(!batch.count)
+				continue;
 
-		// UPLOAD COL
-		glBindBuffer(GL_ARRAY_BUFFER, m_spriteColBuffer);
-		glBufferSubData(
-			GL_ARRAY_BUFFER,
-			0,
-			SpriteColSize(),
-			m_spriteColData
-		);
+			// position
+			glBindBuffer(GL_ARRAY_BUFFER, m_spritePosBuffer);
+			glBufferSubData(
+				GL_ARRAY_BUFFER,
+				0,
+				sizeof(GLfloat) * batch.count * SPRITE_FLOATS_PER_POS,
+				&m_spritePosData[batch.indexOffset]
+			);
 
-		// BIND TEXTURE
-		glBindTexture(GL_TEXTURE_2D_ARRAY, m_pTextureArray->GetTextureId());
+			// color
+			glBindBuffer(GL_ARRAY_BUFFER, m_spriteColBuffer);
+			glBufferSubData(
+				GL_ARRAY_BUFFER,
+				0,
+				sizeof(GLfloat) * batch.count * SPRITE_FLOATS_PER_COLOR,
+				&m_spriteColData[batch.indexOffset]
+			);
 
-		// UPLOAD CONSTANT DATA
-		GLint sizeLoc = glGetUniformLocation(m_spriteShader, "spriteSize");
-		glUniform2f(
-			sizeLoc, 
-			(static_cast<float>(m_pTextureArray->GetWidth()) / Core::GetWindowSize().x),
-			(static_cast<float>(m_pTextureArray->GetHeight()) / Core::GetWindowSize().y) 
-		);
+			// texture
+			glBindTexture(batch.pTexture->IsArray() ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D, batch.pTexture->GetTextureId());
 
-		// RENDER
-		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, m_spriteCount)); // 4 vertices per instance, m_spriteCount instances
-		m_spriteCount = 0;
+			// const uniform data
+			GLint sizeLoc = glGetUniformLocation(m_spriteShader, "spriteSize");
+			glUniform2f(
+				sizeLoc,
+				(static_cast<float>(batch.pTexture->GetWidth()) / Core::GetWindowSize().x),
+				(static_cast<float>(batch.pTexture->GetHeight()) / Core::GetWindowSize().y)
+			);
+
+			// render
+			GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, batch.count)); // 4 vertices per instance, batch.count instances
+			batch.count = 0;
+		}
 	}
 }

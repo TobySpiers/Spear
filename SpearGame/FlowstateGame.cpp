@@ -32,11 +32,13 @@ void FlowstateGame::StateEnter()
 
 	// Load world textures
 	m_worldTextures.Allocate(64, 64, 4); // 64x64 textures (4 slots)
-	m_worldTextures.SetDataFromFile(0, "../Assets/wall64_wolf.png");
-	m_worldTextures.SetDataFromFile(1, "../Assets/wall64_rough.png");
-	m_worldTextures.SetDataFromFile(2, "../Assets/wall64_rough.png");
-	m_worldTextures.SetDataFromFile(3, "../Assets/wall64_wolf.png");
-	Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_worldTextures);
+	m_worldTextures.SetDataFromFile(0, "../Assets/SPRITES/wall64_wolf.png");
+	m_worldTextures.SetDataFromFile(1, "../Assets/SPRITES/wall64_rough.png");
+	m_worldTextures.SetDataFromFile(2, "../Assets/SPRITES/wall64_rough.png");
+	m_worldTextures.SetDataFromFile(3, "../Assets/SPRITES/wall64_wolf.png");
+//	Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_worldTextures);
+	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_worldTextures, 500);
+	Spear::ServiceLocator::GetScreenRenderer().CreateLineBatch(m_worldTextures, 1800);
 
 	// Create world layout
 	const int gridWidth{10};
@@ -115,4 +117,6 @@ void FlowstateGame::StateRender()
 void FlowstateGame::StateExit()
 {
 	Spear::ServiceLocator::GetScreenRenderer().EraseBackgroundTextureData();
+	Spear::ServiceLocator::GetScreenRenderer().ClearSpriteBatches();
+	Spear::ServiceLocator::GetScreenRenderer().ClearLineBatches();
 }

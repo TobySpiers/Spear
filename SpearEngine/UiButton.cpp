@@ -65,8 +65,8 @@ namespace Spear
 		}
 	}
 
-	void UiButton::Draw()
+	void UiButton::Draw(int batchId)
 	{
-		Spear::ServiceLocator::GetScreenRenderer().AddSprite(m_sprite);
+		Spear::ServiceLocator::GetScreenRenderer().AddSprite(m_sprite, batchId);
 	}
 }

@@ -144,7 +144,7 @@ namespace Spear
 		// TEXTURE LOADING:
 		// ============================================
 
-		m_texture.SetDataFromFile("../Assets/wallA8.png");
+		m_texture.SetDataFromFile("../Assets/mode_Editor.png");
 
 		glUseProgram(m_shaderProgram);
 		GLint textureLocation = glGetUniformLocation(m_shaderProgram, "textureSampler");
