@@ -20,20 +20,23 @@ void FlowstateMenu::StateEnter()
 
 	// Load menu textures
 	m_menuTextures.Allocate(64, 64, 2); // 64x64 textures (2 slots)
-	m_menuTextures.SetDataFromFile(0, "../Assets/mode_Editor.png");
-	m_menuTextures.SetDataFromFile(1, "../Assets/mode_Play.png");
-	Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_menuTextures);
+	m_menuTextures.SetDataFromFile(0, "../Assets/SPRITES/mode_Editor.png");
+	m_menuTextures.SetDataFromFile(1, "../Assets/SPRITES/mode_Play.png");
+	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_menuTextures, 100);
+
+
+	//Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_menuTextures);
 
 	// Editor Button
 	m_buttons[0].Initialise(m_menuTextures);
-	m_buttons[0].m_sprite.textureSlot = 0;
+	m_buttons[0].m_sprite.texLayer = 0;
 	m_buttons[0].m_sprite.pos = Vector2f((Spear::Core::GetWindowSize().x / 2) - 250, Spear::Core::GetWindowSize().y / 2);
 	m_buttons[0].m_sprite.scale = Vector2f(2.5f, 2.5f);
 	m_buttons[0].m_sprite.opacity = 0.75;
 
 	// Play Button
 	m_buttons[1].Initialise(m_menuTextures);
-	m_buttons[1].m_sprite.textureSlot = 1;
+	m_buttons[1].m_sprite.texLayer = 1;
 	m_buttons[1].m_sprite.pos = Vector2f((Spear::Core::GetWindowSize().x / 2) + 250, Spear::Core::GetWindowSize().y / 2);
 	m_buttons[1].m_sprite.scale = Vector2f(2.5f, 2.5f);
 	m_buttons[1].m_sprite.opacity = 0.75;
@@ -70,7 +73,7 @@ void FlowstateMenu::StateRender()
 {
 	for (int i = 0; i < MENU_BUTTON_TOTAL; i++)
 	{
-		m_buttons[i].Draw();
+		m_buttons[i].Draw(0);
 	}
 
 	Spear::ServiceLocator::GetScreenRenderer().Render();
@@ -78,5 +81,6 @@ void FlowstateMenu::StateRender()
 
 void FlowstateMenu::StateExit()
 {
-
+	Spear::ServiceLocator::GetScreenRenderer().ClearSpriteBatches();
+	Spear::ServiceLocator::GetScreenRenderer().ClearLineBatches();
 }

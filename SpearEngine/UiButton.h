@@ -18,7 +18,7 @@ namespace Spear
 		bool RightClicked();
 
 		void Update();
-		void Draw();
+		void Draw(int batchId);
 		
 		ScreenRenderer::SpriteData m_sprite;
 

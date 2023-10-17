@@ -46,9 +46,9 @@ void EditorMapData::Draw()
 			square.radius = 0.65f;
 			square.rotation = TO_RADIANS(45.f);
 
-			const int scale{75};
-			square.pos *= scale;
-			square.radius *= scale;
+			const int visualScale{75};
+			square.pos *= visualScale;
+			square.radius *= visualScale;
 
 			rend.AddLinePoly(square);
 		}
@@ -57,6 +57,8 @@ void EditorMapData::Draw()
 
 void FlowstateEditor::StateEnter()
 {
+	m_map.ClearData();
+	
 	// Configure Inputs
 	int config[INPUT_COUNT];
 	config[INPUT_SELECT] = SDL_BUTTON_LEFT;
@@ -69,9 +71,10 @@ void FlowstateEditor::StateEnter()
 
 	// Load menu textures
 	m_menuTextures.Allocate(64, 64, 2); // 64x64 textures (2 slots)
-	m_menuTextures.SetDataFromFile(0, "../Assets/mode_Editor.png");
-	m_menuTextures.SetDataFromFile(1, "../Assets/mode_Play.png");
-	Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_menuTextures);
+	m_menuTextures.SetDataFromFile(0, "../Assets/SPRITES/mode_Editor.png");
+	m_menuTextures.SetDataFromFile(1, "../Assets/SPRITES/mode_Play.png");
+	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_menuTextures, 100);
+	//Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_menuTextures);
 }
 
 int FlowstateEditor::StateUpdate(float deltaTime)
@@ -94,5 +97,6 @@ void FlowstateEditor::StateRender()
 
 void FlowstateEditor::StateExit()
 {
-
+	Spear::ServiceLocator::GetScreenRenderer().ClearSpriteBatches();
+	Spear::ServiceLocator::GetScreenRenderer().ClearLineBatches();
 }

@@ -25,6 +25,7 @@
     <ClInclude Include="InputManager.h" />
     <ClInclude Include="ScreenRenderer.h" />
     <ClInclude Include="Raycaster.h" />
+    <ClInclude Include="TextRenderer.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureArray.h" />
     <ClInclude Include="TextureBase.h" />
@@ -42,6 +43,7 @@
     <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
     <ClCompile Include="Raycaster.cpp" />
+    <ClCompile Include="TextRenderer.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureArray.cpp" />
     <ClCompile Include="UiButton.cpp" />

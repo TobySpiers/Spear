@@ -62,7 +62,7 @@ namespace Spear
 	void Raycaster::Draw2DWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
 	{
 		ScreenRenderer& rend = ServiceLocator::GetScreenRenderer();
-		rend.SetLineWidth(1.0f);
+		//rend.SetBatchLineWidth(1.0f);
 
 		// Define the 'screen'
 		const float halfFov{ m_rayConfig.fieldOfView / 2 };
@@ -80,9 +80,7 @@ namespace Spear
 			ScreenRenderer::LineData line;
 			line.start = pWalls[i].origin;
 			line.end = pWalls[i].origin + pWalls[i].vec;
-			line.colour = pWalls[i].colour;
-
-			rend.AddLine(line);
+			rend.AddRawLine(line, pWalls[i].colour);
 		}
 
 		// Draw each ray
@@ -117,8 +115,7 @@ namespace Spear
 			ScreenRenderer::LineData line;
 			line.start = pos;
 			line.end = foundIntersect? intersect : rayEndPoint;
-			line.colour = Colour4f::White();
-			rend.AddLine(line);
+			rend.AddRawLine(line, Colour4f::White());
 		}
 	}
 
@@ -126,7 +123,7 @@ namespace Spear
 	{
 		ScreenRenderer& rend = ServiceLocator::GetScreenRenderer();
 		int lineWidth{ static_cast<int>(Core::GetWindowSize().x) / m_rayConfig.xResolution };
-		rend.SetLineWidth(lineWidth);
+		//rend.SetBatchLineWidth(lineWidth);
 
 		// Define a flat 'screen plane' to evenly distribute rays onto
 		// This distribution ensures objects do not squash/stretch as they traverse the screen
@@ -185,8 +182,7 @@ namespace Spear
 				ScreenRenderer::LineData line;
 				line.start = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid - height);
 				line.end = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid + height);
-				line.colour = rayColour;
-				rend.AddLine(line);
+				rend.AddRawLine(line, rayColour);
 			}
 		}
 	}
@@ -194,7 +190,7 @@ namespace Spear
 	void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	{
 		ScreenRenderer& rend = ServiceLocator::GetScreenRenderer();
-		rend.SetLineWidth(2.0f);
+		rend.SetBatchLineWidth(0, 2.0f);
 
 		// Draw tiles
 		for (int x = 0; x < m_ddaGrid.width; x++)
@@ -323,17 +319,17 @@ namespace Spear
 			// RENDER
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 			ScreenRenderer::LineData line;
+			Colour4f lineColour = Colour4f::White();
 			if (tileFound)
 			{
 				rayEnd = rayStart + rayDir * distance;
-				line.colour = Colour4f::Red();
+				lineColour = Colour4f::Red();
 			}
 			line.start = pos * m_rayConfig.scale2D;
 			line.end = rayEnd * m_rayConfig.scale2D;
-			rend.AddLine(line);
+			rend.AddRawLine(line, lineColour);
 		}
 
-		//=====================================================================================
 		//FLOOR CASTING
 		for (int y = m_rayConfig.yResolution / 2 + 1; y < m_rayConfig.yResolution; y++)
 		{
@@ -375,8 +371,6 @@ namespace Spear
 				floorRayEnd += floorRayStep;
 			}
 		}
-		//=====================================================================================
-
 	}
 	
 	// CPU bound for now. Potential to eventualy convert into a shader...
@@ -387,7 +381,7 @@ namespace Spear
 		// Calculate our resolution
 		float pixelWidth{ static_cast<float>(Core::GetWindowSize().x) / m_rayConfig.xResolution };
 		float pixelHeight{ static_cast<float>(Core::GetWindowSize().y) / m_rayConfig.yResolution };
-		rend.SetLineWidth(pixelWidth * 2);
+		rend.SetBatchLineWidth(0, pixelWidth * 2);
 
 		// Screen Plane ray-distribution to avoid squash/stretch warping
 		const float halfFov{ m_rayConfig.fieldOfView / 2 };
@@ -408,7 +402,7 @@ namespace Spear
 			0.f, 0.f, 0.f,	0.f, 0.f, 0.f
 		};
 
-		//FLOOR CASTING
+		// FLOOR/CEILING CASTING (SLOW)
 		for (int y = m_rayConfig.yResolution / 2 + 1; y < m_rayConfig.yResolution; y++)
 		{
 			// Current y position compared to the center of the screen (the horizon)
@@ -449,6 +443,9 @@ namespace Spear
 				floorXY += floorStep;
 			}
 		}
+		// Upload Floors+Ceilings background texture (SLOW)
+		rend.SetBackgroundTextureData(m_bgTexPixels, m_rayConfig.xResolution, m_rayConfig.yResolution);
+		ClearBackgroundArray();
 
 		// Using DDA (digital differential analysis) to quickly calculate intersections
 		for (int screenX = 0; screenX < m_rayConfig.xResolution; screenX++)
@@ -549,7 +546,6 @@ namespace Spear
 				line.end = Vector2f((screenX * pixelWidth), mid + height);
 				line.start.y = line.start.y - fmod(line.start.y, pixelHeight);
 				line.end.y = line.end.y - fmod(line.end.y, pixelHeight);
-				line.colour = rayHit == RAY_HIT_FRONT ? Colour4f::White() : Colour4f(0.9f, 0.9f, 0.9f, 1.0f);
 				line.texLayer = m_ddaGrid.pWorldIds[mapCheck.x + (mapCheck.y * m_ddaGrid.width)] - 1;
 
 				// UV X coord
@@ -563,12 +559,8 @@ namespace Spear
 					int tileStart = static_cast<int>(intersection.y); // truncate to find start of tile
 					line.texPosX = intersection.y - tileStart;
 				}
-				rend.AddLine(line);
+				rend.AddTexturedLine(line, 0);
 			}
 		}
-
-		// Upload background texture (VERY SLOW)
-		rend.SetBackgroundTextureData(m_bgTexPixels, m_rayConfig.xResolution, m_rayConfig.yResolution);
-		ClearBackgroundArray();
 	}
 }

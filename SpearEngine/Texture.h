@@ -19,6 +19,7 @@ namespace Spear
 		GLuint GetHeight() const override {return m_textureHeight;};
 		GLuint GetDepth() const override {return 0;};
 		bool Exists() const override {return (m_textureId != 0); }
+		bool IsArray() const override {return false;};
 
 	private:
 		void Allocate();
