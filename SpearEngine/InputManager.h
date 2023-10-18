@@ -25,7 +25,8 @@ namespace Spear
 		bool RightClickHold() { return (m_clickRight == INPUT_START || m_clickRight == INPUT_ACTIVE); };
 		bool RightClickRelease() { return (m_clickRight == INPUT_RELEASED); };
 
-		Vector2i GetMousePos();
+		Vector2i GetMousePos();		// exact position
+		Vector2i GetMouseAxis();	// movement since last frame
 
 	private:
 		void UpdateInputState(bool active, int* state);
@@ -40,6 +41,7 @@ namespace Spear
 
 		static const int KEYBINDINGS_LIMIT{ 20 };
 		Vector2i m_mousePos{0, 0};
+		Vector2i m_mouseAxis{0, 0};
 		int m_clickLeft{INPUT_INACTIVE};
 		int m_clickRight{INPUT_INACTIVE};
 

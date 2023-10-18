@@ -36,7 +36,6 @@ void FlowstateGame::StateEnter()
 	m_worldTextures.SetDataFromFile(1, "../Assets/SPRITES/wall64_rough.png");
 	m_worldTextures.SetDataFromFile(2, "../Assets/SPRITES/wall64_rough.png");
 	m_worldTextures.SetDataFromFile(3, "../Assets/SPRITES/wall64_wolf.png");
-//	Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_worldTextures);
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_worldTextures, 500);
 	Spear::ServiceLocator::GetScreenRenderer().CreateLineBatch(m_worldTextures, 1800);
 
@@ -71,6 +70,7 @@ void FlowstateGame::StateEnter()
 
 	// Position player in middle of grid
 	m_player.SetPos(Vector2f(gridWidth / 2, gridHeight / 2));
+	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
 bool viewPerspective{false};
@@ -116,7 +116,6 @@ void FlowstateGame::StateRender()
 
 void FlowstateGame::StateExit()
 {
-	Spear::ServiceLocator::GetScreenRenderer().EraseBackgroundTextureData();
-	Spear::ServiceLocator::GetScreenRenderer().ClearSpriteBatches();
-	Spear::ServiceLocator::GetScreenRenderer().ClearLineBatches();
+	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
+	SDL_SetRelativeMouseMode(SDL_FALSE);
 }

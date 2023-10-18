@@ -25,10 +25,10 @@
     <ClInclude Include="InputManager.h" />
     <ClInclude Include="ScreenRenderer.h" />
     <ClInclude Include="Raycaster.h" />
-    <ClInclude Include="TextRenderer.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureArray.h" />
     <ClInclude Include="TextureBase.h" />
+    <ClInclude Include="TextureFont.h" />
     <ClInclude Include="UiButton.h" />
     <ClInclude Include="WindowManager.h" />
     <ClInclude Include="Renderer.h" />
@@ -43,9 +43,9 @@
     <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
     <ClCompile Include="Raycaster.cpp" />
-    <ClCompile Include="TextRenderer.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureArray.cpp" />
+    <ClCompile Include="TextureFont.cpp" />
     <ClCompile Include="UiButton.cpp" />
     <ClCompile Include="WindowManager.cpp" />
     <ClCompile Include="Renderer.cpp" />

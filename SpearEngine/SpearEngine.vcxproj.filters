@@ -54,7 +54,9 @@
     <ClCompile Include="UiButton.cpp">
       <Filter>Misc</Filter>
     </ClCompile>
-    <ClCompile Include="TextRenderer.cpp" />
+    <ClCompile Include="TextureFont.cpp">
+      <Filter>SpearGraphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -102,6 +104,8 @@
     <ClInclude Include="UiButton.h">
       <Filter>Misc</Filter>
     </ClInclude>
-    <ClInclude Include="TextRenderer.h" />
+    <ClInclude Include="TextureFont.h">
+      <Filter>SpearGraphics</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

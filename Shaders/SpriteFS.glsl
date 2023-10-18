@@ -9,5 +9,5 @@ out vec4 color;
 void main() 
 {
 	color = texture(textureSampler, v_data.xyz);
-	color.a = v_data.w;
+	color.a *= v_data.w;
 }

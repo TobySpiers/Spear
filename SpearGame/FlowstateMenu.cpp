@@ -31,14 +31,14 @@ void FlowstateMenu::StateEnter()
 	m_buttons[0].Initialise(m_menuTextures);
 	m_buttons[0].m_sprite.texLayer = 0;
 	m_buttons[0].m_sprite.pos = Vector2f((Spear::Core::GetWindowSize().x / 2) - 250, Spear::Core::GetWindowSize().y / 2);
-	m_buttons[0].m_sprite.scale = Vector2f(2.5f, 2.5f);
+	m_buttons[0].m_sprite.size = Vector2f(2.5f, 2.5f);
 	m_buttons[0].m_sprite.opacity = 0.75;
 
 	// Play Button
 	m_buttons[1].Initialise(m_menuTextures);
 	m_buttons[1].m_sprite.texLayer = 1;
 	m_buttons[1].m_sprite.pos = Vector2f((Spear::Core::GetWindowSize().x / 2) + 250, Spear::Core::GetWindowSize().y / 2);
-	m_buttons[1].m_sprite.scale = Vector2f(2.5f, 2.5f);
+	m_buttons[1].m_sprite.size = Vector2f(2.5f, 2.5f);
 	m_buttons[1].m_sprite.opacity = 0.75;
 }
 
@@ -81,6 +81,5 @@ void FlowstateMenu::StateRender()
 
 void FlowstateMenu::StateExit()
 {
-	Spear::ServiceLocator::GetScreenRenderer().ClearSpriteBatches();
-	Spear::ServiceLocator::GetScreenRenderer().ClearLineBatches();
+	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
 }

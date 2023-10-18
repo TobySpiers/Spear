@@ -1,6 +1,7 @@
 #include "Core.h"
 #include "ScreenRenderer.h"
 #include "ShaderCompiler.h"
+#include "TextureFont.h"
 
 namespace Spear
 {
@@ -321,8 +322,8 @@ namespace Spear
 		int spritePosIndex{batchPosIndex + (SPRITE_FLOATS_PER_POS * batch.count)};
 		m_spritePosData[spritePosIndex + 0] = screenPos.x;
 		m_spritePosData[spritePosIndex + 1] = screenPos.y;
-		m_spritePosData[spritePosIndex + 2] = sprite.scale.x;
-		m_spritePosData[spritePosIndex + 3] = sprite.scale.y;
+		m_spritePosData[spritePosIndex + 2] = sprite.size.x;
+		m_spritePosData[spritePosIndex + 3] = sprite.size.y;
 
 		int batchColIndex{SPRITE_FLOATS_PER_COLOR * batch.indexOffset};
 		int spriteColIndex{batchColIndex + (SPRITE_FLOATS_PER_COLOR * batch.count)};
@@ -330,6 +331,41 @@ namespace Spear
 		m_spriteColData[spriteColIndex + 1] = sprite.texLayer;
 
 		batch.count++;
+	}
+
+	void ScreenRenderer::AddText(const TextData& textObj, int batchId)
+	{
+		ASSERT(batchId < m_spriteBatchCount);
+
+		const std::string& gylphs = TextureFont::GetSupportedGlyphs();
+		GLuint glyphWidth{m_spriteBatches[batchId].pTexture->GetWidth()};
+		GLuint glyphHeight{m_spriteBatches[batchId].pTexture->GetHeight() / 2};
+
+		Vector2f charPos{ textObj.pos };
+		switch (textObj.alignment)
+		{
+			case TEXT_ALIGN_MIDDLE:
+				charPos.x -= (textObj.text.length() / 2) * glyphWidth;
+				break;
+			case TEXT_ALIGN_RIGHT:
+				charPos.x -= (textObj.text.length()) * glyphWidth;
+				break;
+		}
+
+		for (int i = 0; i < textObj.text.length(); i++)
+		{
+			if(textObj.text.at(i) != ' ')
+			{
+				SpriteData glyph;
+				glyph.pos = charPos;
+				glyph.texLayer = gylphs.find(textObj.text.at(i));;
+				glyph.opacity = textObj.opacity;
+				glyph.size = textObj.scale;
+				AddSprite(glyph, batchId);
+			}
+
+			charPos.x += (glyphWidth * textObj.scale.x);
+		}
 	}
 
 	void ScreenRenderer::Render()
@@ -410,7 +446,7 @@ namespace Spear
 				GL_ARRAY_BUFFER,
 				0,
 				sizeof(GLfloat) * batch.count * LINE_FLOATS_PER_POS,
-				&m_linePosData[batch.indexOffset]
+				&m_linePosData[batch.indexOffset * LINE_FLOATS_PER_POS]
 			);
 
 			// uv
@@ -419,7 +455,7 @@ namespace Spear
 				GL_ARRAY_BUFFER,
 				0,
 				sizeof(GLfloat) * batch.count * LINE_FLOATS_PER_UV,
-				&m_lineUVData[batch.indexOffset]
+				&m_lineUVData[batch.indexOffset * LINE_FLOATS_PER_UV]
 			);
 
 			// texture
@@ -456,7 +492,7 @@ namespace Spear
 				GL_ARRAY_BUFFER,
 				0,
 				sizeof(GLfloat) * batch.count * SPRITE_FLOATS_PER_POS,
-				&m_spritePosData[batch.indexOffset]
+				&m_spritePosData[batch.indexOffset * SPRITE_FLOATS_PER_POS]
 			);
 
 			// color
@@ -465,7 +501,7 @@ namespace Spear
 				GL_ARRAY_BUFFER,
 				0,
 				sizeof(GLfloat) * batch.count * SPRITE_FLOATS_PER_COLOR,
-				&m_spriteColData[batch.indexOffset]
+				&m_spriteColData[batch.indexOffset * SPRITE_FLOATS_PER_COLOR]
 			);
 
 			// texture
@@ -483,5 +519,12 @@ namespace Spear
 			GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, batch.count)); // 4 vertices per instance, batch.count instances
 			batch.count = 0;
 		}
+	}
+
+	void ScreenRenderer::ReleaseAll()
+	{
+		ClearSpriteBatches();
+		ClearLineBatches();
+		EraseBackgroundTextureData();
 	}
 }
