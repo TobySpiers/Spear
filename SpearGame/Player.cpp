@@ -14,6 +14,7 @@ void Player::Update(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 
+	// movement
 	if (input.InputHold(INPUT_UP))
 	{
 		m_pos = m_pos + Vector2f(cos(m_rotation), sin(m_rotation)) * m_moveSpeed * deltaTime;
@@ -31,6 +32,10 @@ void Player::Update(float deltaTime)
 		m_pos = m_pos + Vector2f(-sin(m_rotation), cos(m_rotation)) * m_moveSpeed * deltaTime;
 	}
 
+	// mouse look
+	m_rotation += (input.GetMouseAxis().x * 0.005f);
+
+	// retro look
 	if (input.InputHold(INPUT_ROTATE_LEFT))
 	{
 		m_rotation -= m_turnSpeed;

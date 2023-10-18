@@ -71,12 +71,14 @@ namespace Spear
 
 			// Handle SDL events
 			SDL_Event event;
-			SDL_PollEvent(&event); // get any pending event
-			switch (event.type)
+			while(SDL_PollEvent(&event)) // get any pending event
 			{
-			case SDL_QUIT:
-				SignalShutdown();
-				break;
+				switch (event.type)
+				{
+				case SDL_QUIT:
+					SignalShutdown();
+					break;
+				}
 			}
 
 			// Refresh input data
@@ -90,7 +92,6 @@ namespace Spear
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 			// spinlock to keep thread active while waiting
-			//LOG("Frametime: " << SDL_GetPerformanceCounter() - frameStart << "ms\nLeftover: " << targetFrequency - (SDL_GetPerformanceCounter() - frameStart));
 			while(SDL_GetPerformanceCounter() - frameStart < targetFrequency)
 			{}
 			deltaTime = static_cast<float>(SDL_GetPerformanceCounter() - frameStart) / SDL_GetPerformanceFrequency();

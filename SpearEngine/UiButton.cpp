@@ -18,8 +18,8 @@ namespace Spear
 
 	bool UiButton::MouseOver()
 	{
-		const float spriteSizeX{ (m_widthHeight.x * m_sprite.scale.x) / 2};
-		const float spriteSizeY{ (m_widthHeight.y * m_sprite.scale.y) / 2};
+		const float spriteSizeX{ (m_widthHeight.x * m_sprite.size.x) / 2};
+		const float spriteSizeY{ (m_widthHeight.y * m_sprite.size.y) / 2};
 		
 		Vector2i mouse{ServiceLocator::GetInputManager().GetMousePos()};
 		return (mouse.x < m_sprite.pos.x + spriteSizeX

@@ -16,15 +16,13 @@ namespace Spear
 	void InputManager::RefreshInput()
 	{
 		// Get latest input data
+		SDL_GetRelativeMouseState(&m_mouseAxis.x, &m_mouseAxis.y);
 		const u32 rawMouseState = SDL_GetMouseState(&m_mousePos.x, &m_mousePos.y);
 		const u8* rawKeyState = SDL_GetKeyboardState(NULL);
 
-		// Store mouseclick
+		// Update InputStates
 		UpdateInputState(rawMouseState & SDL_BUTTON(SDL_BUTTON_LEFT), &m_clickLeft);
 		UpdateInputState(rawMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT), &m_clickRight);
-		
-
-		// Update InputStates
 		for (int i = 0; i < m_bindingsSize; i++)
 		{
 			if (m_inputBindings[i] <= SDL_BUTTON_RIGHT)
@@ -93,5 +91,10 @@ namespace Spear
 	Vector2i InputManager::GetMousePos()
 	{
 		return m_mousePos;
+	}
+
+	Vector2i InputManager::GetMouseAxis()
+	{
+		return m_mouseAxis;
 	}
 }

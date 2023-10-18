@@ -1,6 +1,5 @@
 #pragma once
 #include "Texture.h"
-#include "TextureArray.h"
 
 namespace Spear
 {
@@ -20,7 +19,7 @@ namespace Spear
 	constexpr int LINE_POS_MAXBYTES{LINE_FLOATS_PER_POS * LINE_MAX};
 	constexpr int LINE_UV_MAXBYTES{LINE_FLOATS_PER_UV * LINE_MAX};
 
-	// UNTEXTURED LINES (NO BATCHES NECESSARY)
+	// UNTEXTURED LINES (NO BATCHES)
 	constexpr int RAWLINE_MAX{ 1000 };
 	constexpr int RAWLINE_FLOATS_PER_POS{ 4 }; 
 	constexpr int RAWLINE_FLOATS_PER_COLOR{ 4 }; // 4 values (rgba)
@@ -33,10 +32,26 @@ namespace Spear
 		NO_COPY(ScreenRenderer);
 	public:
 		
+		enum TextAlign
+		{
+			TEXT_ALIGN_LEFT,
+			TEXT_ALIGN_MIDDLE,
+			TEXT_ALIGN_RIGHT,
+		};
+
+		struct TextData
+		{
+			std::string text;
+			Vector2f pos{0.f, 0.f};
+			Vector2f scale{1.f, 1.f};
+			float opacity{1.f};
+			TextAlign alignment{TEXT_ALIGN_LEFT};
+		};
+
 		struct SpriteData
 		{
 			Vector2f pos{0.f, 0.f};
-			Vector2f scale{1.f, 1.f};
+			Vector2f size{1.f, 1.f};
 			float opacity{1.f};
 			int texLayer{0}; // for TextureArray batches
 		};
@@ -63,6 +78,7 @@ namespace Spear
 		// Sprite Batch System
 		int CreateSpriteBatch(const TextureBase& batchTexture, int capacity);
 		void AddSprite(const SpriteData& sprite, int batchId);
+		void AddText(const TextData& text, int batchId);
 		void ClearSpriteBatches();
 
 		// Line Batch System
@@ -80,6 +96,7 @@ namespace Spear
 		void EraseBackgroundTextureData();
 
 		void Render();
+		void ReleaseAll();
 
 	private:
 		void InitialiseRawLineBuffers();
@@ -103,7 +120,7 @@ namespace Spear
 			float lineWidth{1.f};
 		};
 
-		// background data
+		// screen background
 		Texture m_backgroundTexture;
 
 		// shaders
