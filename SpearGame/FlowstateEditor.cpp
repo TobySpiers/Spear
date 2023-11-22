@@ -7,31 +7,8 @@
 
 #include "eFlowstate.h"
 #include "FlowstateEditor.h"
+#include "LevelManager.h"
 
-enum eTextures
-{
-	TEX_NONE,
-	TEX_STONE,
-	TEX_WOOD,
-};
-
-void GridNode::Reset()
-{
-	texIdRoof = 0;
-	texIdWall = 0;
-	texIdFloor = 0;
-	extendUp = 0;
-	extendDown = 0;
-	collisionMask = 0;
-}
-
-void EditorMapData::ClearData()
-{
-	for (int i = 0; i < MAP_WIDTH_MAX_SUPPORTED * MAP_HEIGHT_MAX_SUPPORTED; i++)
-	{
-		gridNodes[i].Reset();
-	}
-}
 
 void FlowstateEditor::StateEnter()
 {
@@ -48,6 +25,8 @@ void FlowstateEditor::StateEnter()
 	config[INPUT_SCROLL_DOWN] = SDL_SCANCODE_S;
 	config[INPUT_ZOOM_IN] = SDL_SCANCODE_E;
 	config[INPUT_ZOOM_OUT] = SDL_SCANCODE_Q;
+	config[INPUT_SAVE] = SDL_SCANCODE_S;
+	config[INPUT_LOAD] = SDL_SCANCODE_L;
 
 	Spear::ServiceLocator::GetInputManager().ConfigureInputs(config, INPUT_COUNT);
 
@@ -61,20 +40,55 @@ void FlowstateEditor::StateEnter()
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_menuTextures, 20);
 
 	// Load map textures
-	m_mapTextures.Allocate(64, 64, 2); // 64x64 textures (2 slots)
-	m_mapTextures.SetDataFromFile(0, "../Assets/SPRITES/wall64_wolf.png");
-	m_mapTextures.SetDataFromFile(1, "../Assets/SPRITES/wall64_rough.png");
+	m_mapTextures.Allocate(64, 64, eLevelTextures::TEX_TOTAL); // 64x64 textures (tex-total slots)
+	m_mapTextures.SetDataFromFile(eLevelTextures::TEX_STONE, "../Assets/SPRITES/wall64_wolf.png");
+	m_mapTextures.SetDataFromFile(eLevelTextures::TEX_WOOD, "../Assets/SPRITES/wall64_rough.png");
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_mapTextures, 800);
 
 	// Load editor font
 	m_editorFont.LoadFont("../Assets/FONTS/PublicPixelRegular24/PublicPixel");
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_editorFont, 100);
+
+
+	// Assign map textures to Editor Buttons
+	for (int i = 0; i < eLevelTextures::TEX_TOTAL; i++)
+	{
+		m_textureButtons[i].Initialise(m_menuTextures);
+		m_textureButtons[i].m_sprite.texLayer = i;
+		m_textureButtons[i].m_sprite.pos = Vector2f(50.f, 100.f + (i * 75.f));
+	}
 }
 
 int FlowstateEditor::StateUpdate(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 	
+	// Editor HUD Controls
+	for (int i = 0; i < eLevelTextures::TEX_TOTAL; i++)
+	{
+		m_textureButtons[i].Update();
+		if (m_textureButtons[i].Clicked())
+		{
+			m_curTex = i;
+		}
+	}
+
+	// Editing Controls
+	Vector2i gridIndex{MousePosToGridIndex()};
+	if (ValidGridIndex(gridIndex))
+	{
+		GridNode& node = m_map.GetNode(gridIndex.x, gridIndex.y);
+
+		if (input.InputHold(INPUT_APPLY))
+		{
+			node.texIdWall = m_curTex;
+		}
+		else if (input.InputHold(INPUT_CLEAR))
+		{
+			node.texIdWall = eLevelTextures::TEX_NONE;
+		}
+	}
+
 	// Camera Controls
 	const float scrollSpeed{1000.f};
 	const float zoomSpeed{10.f};
@@ -105,20 +119,14 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	m_camZoom = std::min(m_camZoom, 3.f);
 	m_camZoom = std::max(m_camZoom, 0.75f);
 
-	// Editing Controls
-	Vector2i gridIndex{MousePosToGridIndex()};
-	if (ValidGridIndex(gridIndex))
+	// Save / Load
+	if (input.InputHold(INPUT_SAVE))
 	{
-		GridNode& node = m_map.GetNode(gridIndex.x, gridIndex.y);
-
-		if (input.InputHold(INPUT_APPLY))
-		{
-			node.texIdWall = TEX_STONE;
-		}
-		else if (input.InputHold(INPUT_CLEAR))
-		{
-			node.texIdWall = TEX_NONE;
-		}
+		SaveLevel();
+	}
+	else if (input.InputHold(INPUT_LOAD))
+	{
+		LoadLevel();
 	}
 
 	// Quit
@@ -176,6 +184,7 @@ void FlowstateEditor::StateRender()
 				sprite.pos = Vector2f(x, y) * MapSpacing();
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
+				sprite.texLayer = node.texIdWall;
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 		}
@@ -200,9 +209,11 @@ void FlowstateEditor::StateRender()
 	textTemp.alignment = Spear::ScreenRenderer::TEXT_ALIGN_RIGHT;
 	Spear::ServiceLocator::GetScreenRenderer().AddText(textTemp, BATCH_TEXT);
 
-	Spear::ScreenRenderer::SpriteData sprite;
-	sprite.pos = Vector2f(200, 200);
-	Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_GUI);
+	// Draw Editor Buttons
+	for (int i = 0; i < eLevelTextures::TEX_TOTAL; i++)
+	{
+		m_textureButtons[i].Draw(BATCH_MAP);
+	}
 
 	Spear::ServiceLocator::GetScreenRenderer().Render();
 }
@@ -210,4 +221,14 @@ void FlowstateEditor::StateRender()
 void FlowstateEditor::StateExit()
 {
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
+}
+
+void FlowstateEditor::SaveLevel()
+{
+	LevelManager::EditorSaveLevel("test", m_map);
+}
+
+void FlowstateEditor::LoadLevel()
+{
+	LevelManager::EditorLoadLevel("test", m_map);
 }

@@ -21,6 +21,8 @@
   <ItemGroup>
     <ClInclude Include="FlowstateEditor.h" />
     <ClInclude Include="FlowstateMenu.h" />
+    <ClInclude Include="LevelData.h" />
+    <ClInclude Include="LevelManager.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="FlowstateGame.h" />
   </ItemGroup>
@@ -29,6 +31,8 @@
     <ClCompile Include="FlowstateEditor.cpp" />
     <ClCompile Include="FlowstateMenu.cpp" />
     <ClCompile Include="GameMain.cpp" />
+    <ClCompile Include="LevelData.cpp" />
+    <ClCompile Include="LevelManager.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="FlowstateGame.cpp" />
   </ItemGroup>

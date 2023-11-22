@@ -2,34 +2,7 @@
 #include "SpearEngine/FlowstateManager.h"
 #include "SpearEngine/TextureArray.h"
 #include "SpearEngine/TextureFont.h"
-
-constexpr int MAP_WIDTH_MAX_SUPPORTED{100};
-constexpr int MAP_HEIGHT_MAX_SUPPORTED{100};
-
-struct GridNode
-{
-	int texIdRoof{0};
-	int texIdWall{0};
-	int texIdFloor{0};
-
-	int extendUp{ 0 };	// additional units for walls above
-	int extendDown{ 0 };// additional units for walls below
-
-	int collisionMask{0}; // 0 - no collision, 1 - player collision
-
-	void Reset();
-};
-
-struct EditorMapData
-{
-	int gridWidth{10};
-	int gridHeight{10};
-	GridNode gridNodes[MAP_WIDTH_MAX_SUPPORTED * MAP_HEIGHT_MAX_SUPPORTED];
-
-	void SetSize(int width, int height) {gridWidth = width; gridHeight = height;}
-	GridNode& GetNode(int x, int y) {ASSERT(x < gridWidth && y < gridHeight && x >= 0 && y >= 0); return gridNodes[x + (y * MAP_WIDTH_MAX_SUPPORTED)]; }
-	void ClearData();
-};
+#include "LevelData.h"
 
 class FlowstateEditor : public Spear::Flowstate
 {
@@ -51,6 +24,9 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_MODE_WALL,
 		INPUT_MODE_ROOF,
 
+		INPUT_SAVE,
+		INPUT_LOAD,
+
 		INPUT_COUNT
 	};
 
@@ -65,6 +41,8 @@ class FlowstateEditor : public Spear::Flowstate
 	bool ValidGridIndex(const Vector2i& index);
 	float MapSpacing(){return m_camZoom * (m_mapTextures.GetWidth() + 10.f);};
 	float TileRadius(){return m_camZoom * (m_mapTextures.GetWidth() * 0.707f);};
+	void SaveLevel();
+	void LoadLevel();
 
 public:
 	FlowstateEditor() {};
@@ -85,7 +63,12 @@ public:
 	Spear::TextureArray m_menuTextures;
 	Spear::TextureArray m_mapTextures;
 	Spear::TextureFont m_editorFont;
-	EditorMapData m_map;
+
+	Spear::UiButton m_textureButtons[eLevelTextures::TEX_TOTAL];
+
 	Vector2f m_camOffset{0.f, 0.f};
 	float m_camZoom{1.f};
+	int m_curTex;
+
+	EditorMapData m_map;
 };
