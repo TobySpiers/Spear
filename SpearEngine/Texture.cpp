@@ -26,24 +26,24 @@ namespace Spear
 			Allocate();
 		}
 
-		SDL_Surface* pSurface = IMG_Load(filename);
-		if (!pSurface)
+		m_pSDLSurface = IMG_Load(filename);
+		if (!m_pSDLSurface)
 		{
 			LOG(std::string("Texture failed to load: ") + filename);
 			return false;
 		}
 
-		if (pSurface->format->format != SDL_PIXELFORMAT_RGBA32 && pSurface->format->format != SDL_PIXELFORMAT_BGRA32)
+		if (m_pSDLSurface->format->format != SDL_PIXELFORMAT_RGBA32 && m_pSDLSurface->format->format != SDL_PIXELFORMAT_BGRA32)
 		{
 			LOG(std::string("\nWARNING: Converted image from non-suitable texture format: ") + filename);
-			SDL_Surface* pConvertedSurface = SDL_ConvertSurfaceFormat(pSurface, SDL_PIXELFORMAT_RGBA32, 0);
+			SDL_Surface* pConvertedSurface = SDL_ConvertSurfaceFormat(m_pSDLSurface, SDL_PIXELFORMAT_RGBA32, 0);
 			if (!pConvertedSurface)
 			{
 				LOG("\tABORT: Image conversion failed!");
 				return false;
 			}
-			SDL_FreeSurface(pSurface);		// free up the old image
-			pSurface = pConvertedSurface;	// update pointer to converted image
+			SDL_FreeSurface(m_pSDLSurface);		// free up the old image
+			m_pSDLSurface = pConvertedSurface;		// update pointer to converted image
 		}
 
 		// bind THIS texture
@@ -54,12 +54,12 @@ namespace Spear
 			GL_TEXTURE_2D,						// type of texture we are assigning to
 			0,									// mip map level
 			GL_RGBA,							// pixel format of how texture should be stored 
-			pSurface->w,
-			pSurface->h,
+			m_pSDLSurface->w,
+			m_pSDLSurface->h,
 			0,									// texture border width
 			GL_RGBA,							// format of the data BEING assigned
 			GL_UNSIGNED_BYTE,					// data type of the pixel data being assigned
-			pSurface->pixels
+			m_pSDLSurface->pixels
 		));
 
 		// nearest pixel filtering
@@ -72,7 +72,6 @@ namespace Spear
 		// unbind texture
 		glBindTexture(GL_TEXTURE_2D, NULL);
 
-		SDL_FreeSurface(pSurface);
 		return true;
 	}
 
@@ -121,8 +120,9 @@ namespace Spear
 			glDeleteTextures(1, &m_textureId);
 			m_textureId = 0;
 		}
-
 		m_textureWidth = 0;
 		m_textureHeight = 0;
+
+		SDL_FreeSurface(m_pSDLSurface);
 	}
 }

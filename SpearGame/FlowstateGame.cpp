@@ -2,8 +2,8 @@
 #include "SpearEngine/ServiceLocator.h"
 #include "SpearEngine/InputManager.h"
 #include "SpearEngine/ScreenRenderer.h"
-#include "SpearEngine/Raycaster.h"
 
+#include "Raycaster.h"
 #include "eFlowstate.h"
 #include "Player.h"
 #include "FlowstateGame.h"
@@ -40,41 +40,42 @@ void FlowstateGame::StateEnter()
 	Spear::ServiceLocator::GetScreenRenderer().CreateLineBatch(m_worldTextures, 1800);
 
 	// Create world layout
-	const int gridWidth{10};
-	const int gridHeight{10};
-	const s8 worldIds[gridWidth * gridHeight] = {
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 0, 0, 0, 0, 0, 0, 1, 1, 0,
-		1, 0, 0, 1, 0, 0, 1, 0, 0, 0,
-		1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
-		1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-		1, 0, 0, 0, 0, 0, 0, -1, 0, 0,
-		1, 1, 1, 1, 0, 0, -1, 0, -1, 0,
-		1, 0, 0, 1, 0, 0, 0, -1, 0, 0,
-		1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-		1, 1, 4, 4, 2, 2, 3, 3, 4, 4
-	};
-	const u8 roofIds[gridWidth * gridHeight] = {
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 0, 0, 0, 0, 0, 0, 1, 1, 0,
-		1, 0, 0, 1, 0, 0, 1, 0, 0, 0,
-		1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
-		1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-		1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-		1, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-		1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-	};
-	Spear::Raycaster::SubmitNewGrid(gridWidth, gridHeight, worldIds, roofIds);
+	//const int gridWidth{10};
+	//const int gridHeight{10};
+	//const s8 worldIds[gridWidth * gridHeight] = {
+	//	1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	//	1, 0, 0, 0, 0, 0, 0, 1, 1, 0,
+	//	1, 0, 0, 1, 0, 0, 1, 0, 0, 0,
+	//	1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
+	//	1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+	//	1, 0, 0, 0, 0, 0, 0, -1, 0, 0,
+	//	1, 1, 1, 1, 0, 0, -1, 0, -1, 0,
+	//	1, 0, 0, 1, 0, 0, 0, -1, 0, 0,
+	//	1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+	//	1, 1, 4, 4, 2, 2, 3, 3, 4, 4
+	//};
+	//const u8 roofIds[gridWidth * gridHeight] = {
+	//	1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	//	1, 0, 0, 0, 0, 0, 0, 1, 1, 0,
+	//	1, 0, 0, 1, 0, 0, 1, 0, 0, 0,
+	//	1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
+	//	1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+	//	1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	//	1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+	//	1, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+	//	1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+	//	1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+	//};
+	//Spear::Raycaster::SubmitNewGrid(gridWidth, gridHeight, worldIds, roofIds);
+	Raycaster::LoadLevel("level");
 
 	// Position player in middle of grid
-	m_player.SetPos(Vector2f(gridWidth / 2, gridHeight / 2));
+	m_player.SetPos(Vector2f(5, 5));
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
 bool viewPerspective{false};
-Spear::RaycastParams rayParams;
+RaycastParams rayParams;
 int FlowstateGame::StateUpdate(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
@@ -92,13 +93,13 @@ int FlowstateGame::StateUpdate(float deltaTime)
 	{
 		rayParams.xResolution++;
 		rayParams.yResolution++;
-		Spear::Raycaster::ApplyConfig(rayParams);
+		Raycaster::ApplyConfig(rayParams);
 	}
 	else if (input.InputHold(INPUT_ALTSHOOT))
 	{
 		rayParams.xResolution--;
 		rayParams.yResolution--;
-		Spear::Raycaster::ApplyConfig(rayParams);
+		Raycaster::ApplyConfig(rayParams);
 	}
 
 	m_player.Update(deltaTime);

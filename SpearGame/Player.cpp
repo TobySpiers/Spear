@@ -51,11 +51,11 @@ void Player::Draw(bool perspective) const
 	if (perspective)
 	{
 		//Spear::Raycaster::Draw3DWalls(m_rayParams, m_pWalls, m_wallCount);
-		Spear::Raycaster::Draw3DGrid(m_pos, m_rotation);
+		Raycaster::Draw3DGrid(m_pos, m_rotation);
 	}
 	else
 	{
 		//Spear::Raycaster::Draw2DWalls(m_rayParams, m_pWalls, m_wallCount);
-		Spear::Raycaster::Draw2DGrid(m_pos, m_rotation);
+		Raycaster::Draw2DGrid(m_pos, m_rotation);
 	}	
 }

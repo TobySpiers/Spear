@@ -203,6 +203,15 @@ namespace Spear
 		m_spriteBatchCount = 0;
 	}
 
+	const TextureBase* ScreenRenderer::GetBatchTextures(int batchId)
+	{
+		ASSERT(batchId >= 0 && batchId < m_spriteBatchCount);
+		TextureBatch& batch = m_spriteBatches[batchId];
+
+		ASSERT(batch.pTexture);
+		return batch.pTexture;
+	}
+
 	int ScreenRenderer::CreateLineBatch(const TextureBase& batchTexture, int capacity, float lineWidth)
 	{
 		ASSERT(m_lineBatchCount < LINE_BATCH_MAX);
@@ -296,7 +305,7 @@ namespace Spear
 
 		// decompose into individual lines
 		// not the most efficient approach memory-wise as vertices get duplicated
-		// but line-polys will not be common during gameplay
+		// but line-polys will not be a common occurrence in maps
 		float increment {(PI * 2) / poly.segments};
 		for (int i = 0; i < poly.segments; i++)
 		{

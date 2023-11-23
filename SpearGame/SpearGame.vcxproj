@@ -25,6 +25,7 @@
     <ClInclude Include="LevelManager.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="FlowstateGame.h" />
+    <ClInclude Include="Raycaster.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="eFlowstate.h" />
@@ -35,6 +36,7 @@
     <ClCompile Include="LevelManager.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="FlowstateGame.cpp" />
+    <ClCompile Include="Raycaster.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SpearEngine\SpearEngine.vcxproj">

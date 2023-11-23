@@ -1,15 +1,17 @@
 #include "LevelManager.h"
-#include "LevelData.h"
-#include <fstream>
+
 
 std::string GetFilePath(const char* levelName) {return std::string("../Assets/MAPS/") + std::string(levelName) + ".dat"; };
 
+char LevelManager::m_reservedMapMemory[MAP_RESERVED_BYTES];
+
 void LevelManager::EditorSaveLevel(const char* levelName, const EditorMapData& rMapData)
 {
-	std::ofstream fileStream(GetFilePath(levelName));
+	std::ofstream file(GetFilePath(levelName));
 
-	fileStream	<< rMapData.gridWidth << std::endl
-				<< rMapData.gridHeight << std::endl;
+	// Write width/height header
+	file	<< rMapData.gridWidth << std::endl
+			<< rMapData.gridHeight << std::endl;
 
 	// Write grid to file
 	for (int x = 0; x < rMapData.gridWidth; x++)
@@ -17,12 +19,7 @@ void LevelManager::EditorSaveLevel(const char* levelName, const EditorMapData& r
 		for (int y = 0; y < rMapData.gridHeight; y++)
 		{
 			const GridNode& node = rMapData.gridNodes[(y * MAP_WIDTH_MAX_SUPPORTED) + x];
-			fileStream	<< node.texIdFloor << std::endl
-						<< node.texIdWall << std::endl
-						<< node.texIdRoof << std::endl
-						<< node.extendUp << std::endl
-						<< node.extendDown << std::endl
-						<< node.collisionMask << std::endl;
+			Serialize(node, file);
 		}
 	}
 }
@@ -31,69 +28,51 @@ void LevelManager::EditorLoadLevel(const char* levelName, EditorMapData& rMapDat
 {
 	rMapData.ClearData();
 
+	// Read width/height header
 	std::ifstream file(GetFilePath(levelName));
 	std::string width, height;
 	std::getline(file, width);
 	std::getline(file, height);
-
 	rMapData.gridWidth = std::stoi(width);
 	rMapData.gridHeight = std::stoi(height);
 
+	// Read grid
 	std::string texFloor, texWall, texRoof, extendUp, extendDown, collMask;
 	for (int x = 0; x < rMapData.gridWidth; x++)
 	{
 		for (int y = 0; y < rMapData.gridHeight; y++)
 		{
-			std::getline(file, texFloor);
-			std::getline(file, texWall);
-			std::getline(file, texRoof);
-			std::getline(file, extendUp);
-			std::getline(file, extendDown);
-			std::getline(file, collMask);
-
 			GridNode& node = rMapData.gridNodes[(y * MAP_WIDTH_MAX_SUPPORTED) + x];
-			node.texIdFloor = std::stoi(texFloor);
-			node.texIdWall = std::stoi(texWall);
-			node.texIdRoof = std::stoi(texRoof);
-			node.extendUp = std::stoi(extendUp);
-			node.extendDown = std::stoi(extendDown);
-			node.collisionMask = std::stoi(collMask);
+			Deserialize(node, file);
 		}
 	}
 }
 
 void LevelManager::LoadLevel(const char* levelName, MapData& rMapData)
 {
+	// Wipe any and all reserved memory to 0
+	std::fill(std::begin(m_reservedMapMemory), std::end(m_reservedMapMemory), '\0');
+
+	// Read width/height header
 	std::ifstream file(GetFilePath(levelName));
 	std::string fWidth, fHeight;
 	std::getline(file, fWidth);
 	std::getline(file, fHeight);
-
-
 	rMapData.gridWidth = std::stoi(fWidth);
 	rMapData.gridHeight = std::stoi(fHeight);
-	ASSERT(rMapData.gridWidth > 0 && rMapData.gridWidth < MAP_WIDTH_MAX_SUPPORTED && rMapData.gridHeight > 0 && rMapData.gridHeight < MAP_HEIGHT_MAX_SUPPORTED);
-	rMapData.pNodes = new GridNode[rMapData.gridWidth * rMapData.gridHeight];
+	ASSERT(rMapData.gridWidth > 0 && rMapData.gridWidth <= MAP_WIDTH_MAX_SUPPORTED && rMapData.gridHeight > 0 && rMapData.gridHeight <= MAP_HEIGHT_MAX_SUPPORTED);
 
+	// Allocate rMapData.pNodes to use appropriate size in reserved memory
+	rMapData.pNodes = new (m_reservedMapMemory) GridNode[rMapData.gridWidth * rMapData.gridHeight];
+
+	// Read grid
 	std::string texFloor, texWall, texRoof, extendUp, extendDown, collMask;
 	for (int x = 0; x < rMapData.gridWidth; x++)
 	{
 		for (int y = 0; y < rMapData.gridHeight; y++)
 		{
-			std::getline(file, texFloor);
-			std::getline(file, texWall);
-			std::getline(file, texRoof);
-			std::getline(file, extendUp);
-			std::getline(file, extendDown);
-			std::getline(file, collMask);
-
-			//GridNode& node = rMapData.pNodes[(y * rMapData.gridWidth) + x];
-			//node.texIdFloor = std::stoi(texFloor);
-			//node.texIdWall = std::stoi(texWall);
-			//node.texIdRoof = std::stoi(texRoof);
-			//node.extendUp = std::stoi(extendUp);
-			//node.extendDown = std::stoi(extendDown);
-			//node.collisionMask = std::stoi(collMask);
+			GridNode& node = rMapData.pNodes[(y * rMapData.gridWidth) + x];
+			Deserialize(node, file);
 		}
 	}
 }

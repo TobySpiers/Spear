@@ -1,4 +1,6 @@
 #pragma once
+#include "LevelData.h"
+#include <fstream>
 
 struct EditorMapData;
 struct MapData;
@@ -11,5 +13,21 @@ public:
 
 	static void LoadLevel(const char* levelName, MapData& rMapData);
 
-	// reserve 100x100 gridnodes of memory, allocate using this when loading levels
+private:
+	// editor map data includes large gaps in array to allow for easy map-resizing
+	// at game time, contiguously allocate maps into this reserved memory instead
+	static const int MAP_RESERVED_BYTES{ (MAP_WIDTH_MAX_SUPPORTED * MAP_HEIGHT_MAX_SUPPORTED) * sizeof(GridNode) };
+	static char m_reservedMapMemory[MAP_RESERVED_BYTES];
+
+	template <typename T>
+	static void Serialize(const T& data, std::ofstream& os)
+	{
+		os.write(reinterpret_cast<const char*>(&data), sizeof(T));
+	}
+
+	template <typename T>
+	static void Deserialize(T& data, std::ifstream& is)
+	{
+		is.read(reinterpret_cast<char*>(&data), sizeof(T));
+	}
 };

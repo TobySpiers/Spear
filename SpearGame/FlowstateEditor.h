@@ -11,6 +11,10 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_APPLY,
 		INPUT_CLEAR,
 		INPUT_QUIT,
+		INPUT_MODIFIER,
+
+		INPUT_INCREASE_MAPSIZE,
+		INPUT_DECREASE_MAPSIZE,
 
 		INPUT_SCROLL_LEFT,
 		INPUT_SCROLL_RIGHT,
@@ -20,14 +24,24 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_ZOOM_IN,
 		INPUT_ZOOM_OUT,
 
-		INPUT_MODE_FLOOR,
-		INPUT_MODE_WALL,
-		INPUT_MODE_ROOF,
+		INPUT_CYCLE_MODE,
 
 		INPUT_SAVE,
 		INPUT_LOAD,
 
 		INPUT_COUNT
+	};
+
+	enum EditorMode
+	{
+		MODE_FLOOR,
+		MODE_WALL,
+		MODE_ROOF,
+		MODE_RISE,
+		MODE_FALL,
+		MODE_COLLISION,
+
+		MODE_TOTAL
 	};
 
 	enum EditorBatches
@@ -37,12 +51,14 @@ class FlowstateEditor : public Spear::Flowstate
 		BATCH_TEXT
 	};
 
+	const char* GetModeText();
 	Vector2i MousePosToGridIndex();
 	bool ValidGridIndex(const Vector2i& index);
 	float MapSpacing(){return m_camZoom * (m_mapTextures.GetWidth() + 10.f);};
 	float TileRadius(){return m_camZoom * (m_mapTextures.GetWidth() * 0.707f);};
 	void SaveLevel();
 	void LoadLevel();
+	
 
 public:
 	FlowstateEditor() {};
@@ -66,9 +82,14 @@ public:
 
 	Spear::UiButton m_textureButtons[eLevelTextures::TEX_TOTAL];
 
-	Vector2f m_camOffset{0.f, 0.f};
+	Vector2f m_camOffset{400.f, 200.f};
 	float m_camZoom{1.f};
-	int m_curTex;
+	bool m_cursorInMenu{false};
+	int m_curMode{EditorMode::MODE_WALL};
+	int m_curTex{eLevelTextures::TEX_STONE};
+	int m_clickCache{0};
+
+	float m_saveCooldown{0.f};
 
 	EditorMapData m_map;
 };

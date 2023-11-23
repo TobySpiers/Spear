@@ -20,7 +20,7 @@ namespace Spear
 	constexpr int LINE_UV_MAXBYTES{LINE_FLOATS_PER_UV * LINE_MAX};
 
 	// UNTEXTURED LINES (NO BATCHES)
-	constexpr int RAWLINE_MAX{ 1000 };
+	constexpr int RAWLINE_MAX{ 10000 };
 	constexpr int RAWLINE_FLOATS_PER_POS{ 4 }; 
 	constexpr int RAWLINE_FLOATS_PER_COLOR{ 4 }; // 4 values (rgba)
 	constexpr int RAWLINE_POS_MAXBYTES{ RAWLINE_FLOATS_PER_POS * RAWLINE_MAX };
@@ -77,6 +77,7 @@ namespace Spear
 
 		// Sprite Batch System
 		int CreateSpriteBatch(const TextureBase& batchTexture, int capacity);
+		const TextureBase* GetBatchTextures(int batchId);
 		void AddSprite(const SpriteData& sprite, int batchId);
 		void AddText(const TextData& text, int batchId);
 		void ClearSpriteBatches();

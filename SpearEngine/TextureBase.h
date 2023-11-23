@@ -14,6 +14,7 @@ namespace Spear
 		virtual GLuint GetDepth() const = 0;
 		virtual bool Exists() const = 0;
 		virtual bool IsArray() const = 0;
+		virtual const SDL_Surface* GetSDLSurface(int slot = 0) const = 0;
 	};
 
 }

@@ -38,29 +38,31 @@ namespace Spear
 		m_textureWidth = width;
 		m_textureHeight = height;
 		m_textureDepth = slots;
+		FreeSDLSurfaces();
+		m_pSDLSurfaces.resize(slots);
 	}
 
 	bool TextureArray::SetDataFromFile(GLuint slot, const char* filename)
 	{
-		SDL_Surface* pSurface = IMG_Load(filename);
-		if (!pSurface)
+		m_pSDLSurfaces.at(slot) = IMG_Load(filename);
+		if (!m_pSDLSurfaces.at(slot))
 		{
 			LOG(std::string("Texture failed to load: ") + filename);
 			return false;
 		}
-		ASSERT(pSurface->w == m_textureWidth && pSurface->h == m_textureHeight);
+		ASSERT(m_pSDLSurfaces.at(slot)->w == m_textureWidth && m_pSDLSurfaces.at(slot)->h == m_textureHeight);
 
-		if (pSurface->format->format != SDL_PIXELFORMAT_RGBA32 && pSurface->format->format != SDL_PIXELFORMAT_BGRA32)
+		if (m_pSDLSurfaces.at(slot)->format->format != SDL_PIXELFORMAT_RGBA32 && m_pSDLSurfaces.at(slot)->format->format != SDL_PIXELFORMAT_BGRA32)
 		{
 			LOG(std::string("\nWARNING: Converted image from non-suitable texture format: ") + filename);
-			SDL_Surface* pConvertedSurface = SDL_ConvertSurfaceFormat(pSurface, SDL_PIXELFORMAT_RGBA32, 0);
+			SDL_Surface* pConvertedSurface = SDL_ConvertSurfaceFormat(m_pSDLSurfaces.at(slot), SDL_PIXELFORMAT_RGBA32, 0);
 			if (!pConvertedSurface)
 			{
 				LOG("\tABORT: Image conversion failed!");
 				return false;
 			}
-			SDL_FreeSurface(pSurface);		// free up the old image
-			pSurface = pConvertedSurface;	// update pointer to converted image
+			SDL_FreeSurface(m_pSDLSurfaces.at(slot));		// free up the old image
+			m_pSDLSurfaces.at(slot) = pConvertedSurface;	// update pointer to converted image
 		}
 
 		// bind THIS texture array
@@ -77,13 +79,12 @@ namespace Spear
 			1,						// 'depth' of texture (always 1 for a single slice)
 			GL_RGBA,
 			GL_UNSIGNED_BYTE,
-			pSurface->pixels
+			m_pSDLSurfaces.at(slot)->pixels
 		));		
 
 		// unbind texture
 		glBindTexture(GL_TEXTURE_2D_ARRAY, NULL);
 
-		SDL_FreeSurface(pSurface);
 		return true;
 	}
 
@@ -121,9 +122,20 @@ namespace Spear
 			glDeleteTextures(1, &m_textureId);
 			m_textureId = 0;
 		}
-
 		m_textureWidth = 0;
 		m_textureHeight = 0;
 		m_textureDepth = 0;
+
+		FreeSDLSurfaces();
+	}
+
+	void TextureArray::FreeSDLSurfaces()
+	{
+		for (SDL_Surface*& pSurf : m_pSDLSurfaces)
+		{
+			SDL_FreeSurface(pSurf);
+			pSurf = nullptr;
+		}
+		m_pSDLSurfaces.clear();
 	}
 }
