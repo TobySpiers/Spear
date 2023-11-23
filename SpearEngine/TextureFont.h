@@ -24,6 +24,7 @@ namespace Spear
 		GLuint GetDepth() const override { return m_textureDepth; };
 		bool Exists() const override { return (m_textureId != 0); }
 		bool IsArray() const override { return true; };
+		const SDL_Surface* GetSDLSurface(int slot = 0) const override { return nullptr; };
 
 	private:
 		GLuint m_textureId{ 0 };

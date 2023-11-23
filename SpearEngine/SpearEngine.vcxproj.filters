@@ -45,9 +45,6 @@
     <ClCompile Include="ScreenRenderer.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="Raycaster.cpp">
-      <Filter>SpearGraphics</Filter>
-    </ClCompile>
     <ClCompile Include="TextureArray.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
@@ -84,9 +81,6 @@
       <Filter>SpearGraphics</Filter>
     </ClInclude>
     <ClInclude Include="ScreenRenderer.h">
-      <Filter>SpearGraphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Raycaster.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
     <ClInclude Include="MathVector.h">
