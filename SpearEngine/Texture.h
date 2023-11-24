@@ -12,7 +12,6 @@ namespace Spear
 		bool SetDataFromFile(const char* filename);
 		bool SetDataFromArrayRGB(float* pPixels, int width, int height);
 
-
 		// TextureBase Overrides
 		void FreeTexture() override;
 		GLuint GetTextureId() const override{return m_textureId;};

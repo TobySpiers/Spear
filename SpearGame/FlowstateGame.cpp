@@ -28,7 +28,7 @@ void FlowstateGame::StateEnter()
 	Spear::ServiceLocator::GetInputManager().ConfigureInputs(config, INPUT_COUNT);
 
 	// Set background colour
-	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
+	glClearColor(0.f, 1.f, 1.f, 1.f);
 
 	// Load world textures
 	m_worldTextures.Allocate(64, 64, 4); // 64x64 textures (4 slots)
@@ -39,34 +39,7 @@ void FlowstateGame::StateEnter()
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_worldTextures, 500);
 	Spear::ServiceLocator::GetScreenRenderer().CreateLineBatch(m_worldTextures, 1800);
 
-	// Create world layout
-	//const int gridWidth{10};
-	//const int gridHeight{10};
-	//const s8 worldIds[gridWidth * gridHeight] = {
-	//	1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	//	1, 0, 0, 0, 0, 0, 0, 1, 1, 0,
-	//	1, 0, 0, 1, 0, 0, 1, 0, 0, 0,
-	//	1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
-	//	1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-	//	1, 0, 0, 0, 0, 0, 0, -1, 0, 0,
-	//	1, 1, 1, 1, 0, 0, -1, 0, -1, 0,
-	//	1, 0, 0, 1, 0, 0, 0, -1, 0, 0,
-	//	1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-	//	1, 1, 4, 4, 2, 2, 3, 3, 4, 4
-	//};
-	//const u8 roofIds[gridWidth * gridHeight] = {
-	//	1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	//	1, 0, 0, 0, 0, 0, 0, 1, 1, 0,
-	//	1, 0, 0, 1, 0, 0, 1, 0, 0, 0,
-	//	1, 0, 0, 0, 1, 0, 1, 0, 1, 0,
-	//	1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-	//	1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	//	1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-	//	1, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-	//	1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-	//	1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-	//};
-	//Spear::Raycaster::SubmitNewGrid(gridWidth, gridHeight, worldIds, roofIds);
+	// Load world
 	Raycaster::LoadLevel("level");
 
 	// Position player in middle of grid

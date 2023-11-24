@@ -87,13 +87,13 @@ namespace Spear
 
 		// load pixelData into texture slot
 		GLCheck(glTexImage2D(
-			GL_TEXTURE_2D,						// type of texture we are assigning to
-			0,									// mip map level
-			GL_RGB,							// pixel format of how texture should be stored 
+			GL_TEXTURE_2D,				// type of texture we are assigning to
+			0,							// mip map level
+			GL_RGB,						// pixel format of how texture should be stored 
 			width,
 			height,
-			0,									// texture border width
-			GL_RGB,							// format of the data BEING assigned
+			0,							// texture border width
+			GL_RGB,						// format of the data BEING assigned
 			GL_FLOAT,					// data type of the pixel data being assigned
 			pPixels
 		));
