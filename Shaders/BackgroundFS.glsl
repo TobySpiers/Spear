@@ -15,4 +15,5 @@ void main()
 	// more performant solution is to create FrameBufferObject same size as texture and assign DepthTexture directly
 	
 	color = texture(textureSampler, v_texCoord);
+	color.rgb *= (1 - gl_FragDepth);
 }
