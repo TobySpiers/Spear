@@ -3,9 +3,10 @@
 uniform vec2 lineWidth;
 
 layout(location = 0) in vec4 inPos;
-layout(location = 1) in vec2 inUv;
+layout(location = 1) in vec3 inUv;
 
 out vec3 v_UV;
+out float depth;
 
 void main() 
 {
@@ -26,7 +27,8 @@ void main()
 	linePoints[2] = inPos.zw + (perpendicular * adjustedWidth);
 	linePoints[3] = inPos.zw;
 	
-	gl_Position = vec4(linePoints[gl_VertexID].xy, 0.0, 1.0);	
+	gl_Position = vec4(linePoints[gl_VertexID].xy, inUv.z, 1.0);
+	depth = inUv.z;
 	
 	vec3 uvCoords[4];
 	uvCoords[0] = vec3(inUv.x, 0, inUv.y);

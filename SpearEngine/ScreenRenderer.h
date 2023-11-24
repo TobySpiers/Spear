@@ -14,8 +14,8 @@ namespace Spear
 	// TEXTURED LINE BATCHES
 	constexpr int LINE_MAX{2000};
 	constexpr int LINE_BATCH_MAX{2};
-	constexpr int LINE_FLOATS_PER_POS{4};
-	constexpr int LINE_FLOATS_PER_UV{2}; // X pos, Z (array slot)
+	constexpr int LINE_FLOATS_PER_POS{4}; // 0,1: startXY, 2,3: endXY
+	constexpr int LINE_FLOATS_PER_UV{3}; // 0: x pos, 1: texture slot, 2: depth
 	constexpr int LINE_POS_MAXBYTES{LINE_FLOATS_PER_POS * LINE_MAX};
 	constexpr int LINE_UV_MAXBYTES{LINE_FLOATS_PER_UV * LINE_MAX};
 
@@ -53,6 +53,7 @@ namespace Spear
 			Vector2f pos{0.f, 0.f};
 			Vector2f size{1.f, 1.f};
 			float opacity{1.f};
+			float depth{0.f};
 			int texLayer{0}; // for TextureArray batches
 		};
 
@@ -61,6 +62,7 @@ namespace Spear
 			Vector2f start{ 0.f, 0.f };
 			Vector2f end{ 0.f, 0.f };
 			float texPosX{0.f};
+			float depth{0.f};
 			int texLayer{0};
 		};
 
@@ -74,6 +76,7 @@ namespace Spear
 		};
 
 		ScreenRenderer();
+		~ScreenRenderer();
 
 		// Sprite Batch System
 		int CreateSpriteBatch(const TextureBase& batchTexture, int capacity);
@@ -93,13 +96,15 @@ namespace Spear
 		void AddLinePoly(const LinePolyData& circle);
 
 		// Background
-		void SetBackgroundTextureData(GLfloat* pDataRGB, int width, int height);
+		void SetBackgroundTextureData(GLfloat* pDataRGB, GLfloat* pDataDepth, int width, int height);
 		void EraseBackgroundTextureData();
 
 		void Render();
 		void ReleaseAll();
 
 	private:
+		void InitialiseFrameBufferObject();
+		void InitialiseBackgroundBuffers();
 		void InitialiseRawLineBuffers();
 		void InitialiseTexturedLineBuffers();
 		void InitialiseSpriteBuffers();
@@ -121,14 +126,14 @@ namespace Spear
 			float lineWidth{1.f};
 		};
 
+		// frame buffer
+		GLuint m_fbo{0};
+		GLuint m_fboRenderTexture{0};
+		GLuint m_fboDepthBuffer{0};
+
 		// screen background
 		Texture m_backgroundTexture;
-
-		// shaders
-		GLuint m_lineShaderTextured{0};
-		GLuint m_lineShaderColour{0};
-		GLuint m_spriteShader{0};
-		GLuint m_backgroundShader{0};
+		GLuint m_backgroundDepthBuffer{0};
 
 		// sprite data
 		GLuint m_spriteVAO{0};
@@ -155,5 +160,11 @@ namespace Spear
 		GLfloat m_rawlinePosData[RAWLINE_POS_MAXBYTES] = {};
 		GLfloat m_rawLineColData[RAWLINE_COL_MAXBYTES] = {};
 		int m_rawlineCount{0};
+
+		// shaders
+		GLuint m_lineShaderTextures{0};
+		GLuint m_lineShaderColour{0};
+		GLuint m_spriteShader{0};
+		GLuint m_backgroundShader{0};
 	};
 }

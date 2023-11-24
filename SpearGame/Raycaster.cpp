@@ -9,19 +9,26 @@
 #include <algorithm>
 
 GLfloat* Raycaster::m_bgTexPixels{nullptr};
+GLfloat* Raycaster::m_bgTexDepth{nullptr};
 RaycastParams Raycaster::m_rayConfig;
 MapData Raycaster::m_map;
+GLfloat Raycaster::m_mapMaxDepth{FLT_MAX};
 
-void Raycaster::RecreateBackgroundArray(int width, int height)
+void Raycaster::RecreateBackgroundArrays(int width, int height)
 {
 	delete[] m_bgTexPixels;
 	m_bgTexPixels = new GLfloat[width * height * m_bgTexPixelSize]; // Floor * Width * RGB
 	std::fill(m_bgTexPixels, m_bgTexPixels + (width * height * m_bgTexPixelSize), GLfloat(0)); // init to 0
+
+	delete[] m_bgTexDepth;
+	m_bgTexDepth = new GLfloat[width * height];
+	std::fill(m_bgTexDepth, m_bgTexDepth + (width * height), GLfloat(m_mapMaxDepth));
 }
 
-void Raycaster::ClearBackgroundArray()
+void Raycaster::ClearBackgroundArrays()
 {
 	std::fill(m_bgTexPixels, m_bgTexPixels + (m_rayConfig.xResolution * m_rayConfig.yResolution * m_bgTexPixelSize), GLfloat(0));
+	std::fill(m_bgTexDepth, m_bgTexDepth + (m_rayConfig.xResolution * m_rayConfig.yResolution), GLfloat(m_mapMaxDepth));
 }
 
 void Raycaster::LoadLevel(const char* filename)
@@ -29,8 +36,9 @@ void Raycaster::LoadLevel(const char* filename)
 	LevelManager::LoadLevel(filename, m_map);
 	if (m_bgTexPixels == nullptr)
 	{
-		RecreateBackgroundArray(m_rayConfig.xResolution, m_rayConfig.yResolution);
+		RecreateBackgroundArrays(m_rayConfig.xResolution, m_rayConfig.yResolution);
 	}
+	m_mapMaxDepth = sqrt(pow(m_map.gridWidth, 2) + pow(m_map.gridHeight, 2));
 }
 
 void Raycaster::ApplyConfig(const RaycastParams& config)
@@ -38,7 +46,7 @@ void Raycaster::ApplyConfig(const RaycastParams& config)
 		
 	if (config.xResolution != m_rayConfig.xResolution || config.yResolution != m_rayConfig.yResolution)
 	{
-		RecreateBackgroundArray(config.xResolution, config.yResolution);
+		RecreateBackgroundArrays(config.xResolution, config.yResolution);
 	}
 
 	m_rayConfig = config; 
@@ -379,14 +387,6 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 	const Vector2f raySpacingDir{ forward.Normal() * -1 };
 	const float raySpacingLength{ screenVector.Length() / m_rayConfig.xResolution };
 
-	// TEMP: Create a simple 'floor' texture (2x2 RGB)
-	const int floorTexWidth{2};
-	const int floorTexHeight{2};
-	GLfloat floorTex[floorTexWidth * floorTexHeight * 3] = {
-		1.f, 1.f, 1.f,	1.f, 1.f, 1.f,
-		0.f, 0.f, 0.f,	0.f, 0.f, 0.f
-	};
-
 	// FLOOR/CEILING CASTING (SLOW)
 	const Spear::TextureBase* pMapTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(0);
 	for (int y = (m_rayConfig.yResolution / 2) + 1; y < m_rayConfig.yResolution; y++)
@@ -396,7 +396,7 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 		int p = y - m_rayConfig.yResolution / 2;
 
 		// Vertical position of the camera.
-		float posZ = 0.605f * m_rayConfig.yResolution;
+		float posZ = 0.625f * m_rayConfig.yResolution;
 
 		// Horizontal distance from the camera to the floor for the current row.
 		// 0.5 is the z position exactly in the middle between floor and ceiling.
@@ -420,6 +420,10 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 
 			if(cellX >= 0 && cellY >= 0 && cellX < m_map.gridWidth && cellY < m_map.gridHeight)
 			{
+				// Calculate depth 
+				float depth{ Projection(floorXY - pos, forward * m_rayConfig.farClip).Length() };
+				depth /= m_mapMaxDepth;
+
 				// Floor sampling
 				if( m_map.pNodes[cellX + (cellY * m_map.gridWidth)].texIdFloor != eLevelTextures::TEX_NONE)
 				{
@@ -439,9 +443,11 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 					Uint8 r, g, b;
 					SDL_GetRGB(*pixel, pFloorTexture->format, &r, &g, &b);
 
-					m_bgTexPixels[(m_bgTexPixelSize * x) + (m_bgTexPixelSize * y * m_rayConfig.xResolution) + 0] = (float)r / 255;
-					m_bgTexPixels[(m_bgTexPixelSize * x) + (m_bgTexPixelSize * y * m_rayConfig.xResolution) + 1] = (float)g / 255;
-					m_bgTexPixels[(m_bgTexPixelSize * x) + (m_bgTexPixelSize * y * m_rayConfig.xResolution) + 2] = (float)b / 255;
+					m_bgTexPixels[(m_bgTexPixelSize * x) + ((m_bgTexPixelSize * (m_rayConfig.yResolution - y)) * m_rayConfig.xResolution) + 0] = (float)r / 255;
+					m_bgTexPixels[(m_bgTexPixelSize * x) + ((m_bgTexPixelSize * (m_rayConfig.yResolution - y)) * m_rayConfig.xResolution) + 1] = (float)g / 255;
+					m_bgTexPixels[(m_bgTexPixelSize * x) + ((m_bgTexPixelSize * (m_rayConfig.yResolution - y)) * m_rayConfig.xResolution) + 2] = (float)b / 255;
+
+					m_bgTexDepth[x + ((m_rayConfig.yResolution - y) * m_rayConfig.xResolution)] = depth;
 				}
 
 				// Roof sampling
@@ -463,18 +469,19 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 					Uint8 r, g, b;
 					SDL_GetRGB(*pixel, pRoofTexture->format, &r, &g, &b);
 
-					m_bgTexPixels[(m_bgTexPixelSize * x) + ((m_bgTexPixelSize * (m_rayConfig.yResolution - y)) * m_rayConfig.xResolution) + 0] = (float)r / 255;
-					m_bgTexPixels[(m_bgTexPixelSize * x) + ((m_bgTexPixelSize * (m_rayConfig.yResolution - y)) * m_rayConfig.xResolution) + 1] = (float)g / 255;
-					m_bgTexPixels[(m_bgTexPixelSize * x) + ((m_bgTexPixelSize * (m_rayConfig.yResolution - y)) * m_rayConfig.xResolution) + 2] = (float)b / 255;
-				}
+					m_bgTexPixels[(m_bgTexPixelSize * x) + (m_bgTexPixelSize * y * m_rayConfig.xResolution) + 0] = (float)r / 255;
+					m_bgTexPixels[(m_bgTexPixelSize * x) + (m_bgTexPixelSize * y * m_rayConfig.xResolution) + 1] = (float)g / 255;
+					m_bgTexPixels[(m_bgTexPixelSize * x) + (m_bgTexPixelSize * y * m_rayConfig.xResolution) + 2] = (float)b / 255;
 
+					m_bgTexDepth[x + (y * m_rayConfig.xResolution)] = depth;
+				}
 			}
 			floorXY += floorStep;
 		}
 	}
 	// Upload Floors+Ceilings background texture (SLOW)
-	rend.SetBackgroundTextureData(m_bgTexPixels, m_rayConfig.xResolution, m_rayConfig.yResolution);
-	ClearBackgroundArray();
+	rend.SetBackgroundTextureData(m_bgTexPixels, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
+	ClearBackgroundArrays();
 
 	// Using DDA (digital differential analysis) to quickly calculate intersections
 	for (int screenX = 0; screenX < m_rayConfig.xResolution; screenX++)
@@ -576,6 +583,7 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 			line.start.y = line.start.y - fmod(line.start.y, pixelHeight);
 			line.end.y = line.end.y - fmod(line.end.y, pixelHeight);
 			line.texLayer = m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].texIdWall;
+			line.depth = depth / m_mapMaxDepth;
 
 			// UV X coord
 			if (rayHit == RAY_HIT_FRONT)
@@ -592,17 +600,15 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 
 			if (m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].extendUp)
 			{
-				line.start.y -= (height * 2);
-				line.end.y -= (height * 2);
-				rend.AddTexturedLine(line, 0);
+				Spear::ScreenRenderer::LineData upSection = line;
 
-				// return to 'original' height in case extendDown is also applied
-				line.start.y += (height * 2);
-				line.end.y += (height * 2);
+				upSection.end.y = upSection.start.y;
+				upSection.start.y -= (height * 2);
+				rend.AddTexturedLine(upSection, 0);
 			}
 			if (m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].extendDown)
 			{
-				line.start.y += (height * 2);
+				line.start.y = line.end.y;
 				line.end.y += (height * 2);
 				rend.AddTexturedLine(line, 0);
 			}

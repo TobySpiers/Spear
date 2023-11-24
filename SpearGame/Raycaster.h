@@ -47,15 +47,18 @@ public:
 	static void Draw3DGrid(const Vector2f& pos, const float angle);
 
 private:
-	static void RecreateBackgroundArray(int width, int height);
-	static void ClearBackgroundArray();
+	static void RecreateBackgroundArrays(int width, int height);
+	static void ClearBackgroundArrays();
 
 	// Raycast Data
-	//static RaycastDDAGrid m_ddaGrid;
 	static MapData m_map;
 	static RaycastParams m_rayConfig;
 
 	// Background Floor/Ceiling Render
+	static GLfloat* m_bgTexDepth;
 	static GLfloat* m_bgTexPixels;
 	static const int m_bgTexPixelSize{3}; // 3 values: R,G,B
+
+	// Depth
+	static GLfloat m_mapMaxDepth;
 };
