@@ -31,7 +31,6 @@
     <ClInclude Include="TextureFont.h" />
     <ClInclude Include="UiButton.h" />
     <ClInclude Include="WindowManager.h" />
-    <ClInclude Include="Renderer.h" />
     <ClInclude Include="ServiceLocator.h" />
     <ClInclude Include="MathVector.h" />
     <ClInclude Include="ShaderCompiler.h" />
@@ -48,7 +47,6 @@
     <ClCompile Include="TextureFont.cpp" />
     <ClCompile Include="UiButton.cpp" />
     <ClCompile Include="WindowManager.cpp" />
-    <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />
     <ClCompile Include="ShaderCompiler.cpp" />
   </ItemGroup>

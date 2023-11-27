@@ -6,4 +6,5 @@ SpearGame/SpearGame.vcxproj.filters
 SpearGame/SpearGame.vcxproj.user
 SpearGame/x64/
 x64/
+profile.csv
 *.bak

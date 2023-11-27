@@ -4,7 +4,6 @@ namespace Spear
 	class FlowstateManager;
 	class WindowManager;
 	class InputManager;
-	class Renderer;
 	class ScreenRenderer;
 
 	class ServiceLocator
@@ -19,7 +18,6 @@ namespace Spear
 		static FlowstateManager& GetFlowstateManager();
 		static WindowManager& GetWindowManager();
 		static InputManager& GetInputManager();
-		static Renderer& GetRenderer();
 		static ScreenRenderer& GetScreenRenderer();
 	};
 }
