@@ -5,6 +5,10 @@
 #include "WindowManager.h"
 #include "SDL_Image.h"
 
+#if _DEBUG
+#include "FrameProfiler.h"
+#endif
+
 namespace Spear
 {
 	bool Core::m_shutdown{false};
@@ -62,12 +66,19 @@ namespace Spear
 		InputManager& inputManager = ServiceLocator::GetInputManager();
 		FlowstateManager& stateManager = ServiceLocator::GetFlowstateManager();
 
+		#if _DEBUG
+		FrameProfiler::Initialise();
+		#endif
+
 		u64 frameStart;
 		float deltaTime{0.016f};
 		const u64 targetFrequency = SDL_GetPerformanceFrequency()/targetFPS;
 		while (!m_shutdown)
 		{
 			frameStart = SDL_GetPerformanceCounter();
+			#if _DEBUG
+			FrameProfiler::StartFrame(frameStart);
+			#endif
 
 			// Handle SDL events
 			SDL_Event event;
@@ -91,11 +102,19 @@ namespace Spear
 			SDL_GL_SwapWindow(&ServiceLocator::GetWindowManager().GetWindow());
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
+			#if _DEBUG
+			FrameProfiler::EndFrame(SDL_GetPerformanceCounter());
+			#endif
+
 			// spinlock to keep thread active while waiting
 			while(SDL_GetPerformanceCounter() - frameStart < targetFrequency)
 			{}
 			deltaTime = static_cast<float>(SDL_GetPerformanceCounter() - frameStart) / SDL_GetPerformanceFrequency();
 		}
+
+		#if _DEBUG
+		FrameProfiler::SaveProfile("profile.csv");
+		#endif
 	}
 
 	void Core::SignalShutdown()

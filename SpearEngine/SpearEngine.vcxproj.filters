@@ -54,6 +54,7 @@
     <ClCompile Include="TextureFont.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
+    <ClCompile Include="FrameProfiler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -101,5 +102,6 @@
     <ClInclude Include="TextureFont.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
+    <ClInclude Include="FrameProfiler.h" />
   </ItemGroup>
 </Project>

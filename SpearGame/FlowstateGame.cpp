@@ -77,6 +77,12 @@ int FlowstateGame::StateUpdate(float deltaTime)
 
 	m_player.Update(deltaTime);
 
+	Spear::ScreenRenderer::TextData fpsText;
+	fpsText.text = std::to_string(deltaTime);
+	fpsText.pos = Vector2f(Spear::Core::GetWindowSize().x / 2, 20.f);
+	fpsText.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
+	Spear::ServiceLocator::GetScreenRenderer().AddText(fpsText);
+
 	return static_cast<int>(eFlowstate::STATE_THIS);
 }
 

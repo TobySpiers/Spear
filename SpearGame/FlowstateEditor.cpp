@@ -52,10 +52,6 @@ void FlowstateEditor::StateEnter()
 	m_mapTextures.SetDataFromFile(eLevelTextures::TEX_WOOD, "../Assets/SPRITES/wall64_rough.png");
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_mapTextures, 800);
 
-	// Load editor font
-	m_editorFont.LoadFont("../Assets/FONTS/PublicPixelRegular24/PublicPixel");
-	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_editorFont, 100);
-
 	// Assign map textures to Editor Buttons
 	for (int i = 0; i < eLevelTextures::TEX_TOTAL; i++)
 	{
@@ -282,19 +278,19 @@ void FlowstateEditor::StateRender()
 	textMode.text = std::string("MODE: ") + GetModeText();
 	textMode.pos = Vector2f(20.f, 20.f);
 	textMode.alignment = Spear::ScreenRenderer::TEXT_ALIGN_LEFT;
-	Spear::ServiceLocator::GetScreenRenderer().AddText(textMode, BATCH_TEXT);
+	Spear::ServiceLocator::GetScreenRenderer().AddText(textMode);
 
 	Spear::ScreenRenderer::TextData textLevel;
 	textLevel.text = "Level 0";
 	textLevel.pos = Vector2f(Spear::Core::GetWindowSize().x / 2, 20.f);
 	textLevel.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
-	Spear::ServiceLocator::GetScreenRenderer().AddText(textLevel, BATCH_TEXT);
+	Spear::ServiceLocator::GetScreenRenderer().AddText(textLevel);
 
 	Spear::ScreenRenderer::TextData textResolution;
 	textResolution.text = std::to_string(m_map.gridWidth) + " x " + std::to_string(m_map.gridHeight);
 	textResolution.pos = Vector2f(Spear::Core::GetWindowSize().x - 20.f, 20.f);
 	textResolution.alignment = Spear::ScreenRenderer::TEXT_ALIGN_RIGHT;
-	Spear::ServiceLocator::GetScreenRenderer().AddText(textResolution, BATCH_TEXT);
+	Spear::ServiceLocator::GetScreenRenderer().AddText(textResolution);
 
 	// Draw save popup if cooldown active
 	if(m_saveCooldown > 0.f)
@@ -303,7 +299,7 @@ void FlowstateEditor::StateRender()
 		textSavePopup.text = "Level saved...";
 		textSavePopup.pos = Vector2f(Spear::Core::GetWindowSize().x / 2, Spear::Core::GetWindowSize().y - 20.f);
 		textSavePopup.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
-		Spear::ServiceLocator::GetScreenRenderer().AddText(textSavePopup, BATCH_TEXT);
+		Spear::ServiceLocator::GetScreenRenderer().AddText(textSavePopup);
 	}
 
 	// Draw Map Data
@@ -337,7 +333,7 @@ void FlowstateEditor::StateRender()
 				textRise.text = std::to_string(node.extendUp);
 				textRise.pos = square.pos;
 				textRise.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
-				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise, BATCH_TEXT);
+				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise);
 			}
 			else if (m_curMode == MODE_FALL && node.extendDown)
 			{
@@ -345,7 +341,7 @@ void FlowstateEditor::StateRender()
 				textRise.text = std::to_string(node.extendDown);
 				textRise.pos = square.pos;
 				textRise.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
-				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise, BATCH_TEXT);
+				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise);
 			}
 
 			// Floor Textures

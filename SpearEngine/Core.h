@@ -19,6 +19,10 @@
 #define GLCheck(x) GLClearErrors(); x; GLPrintErrors(__FILE__, #x, __LINE__);
 #define GLDumpErrors(x) GLPrintErrors(__FILE__, x, 0);
 #define LOG(mssg) std::cout << mssg << std::endl;
+#else
+#define GLCheck(x) x;
+#define GLDumpErrors(x)
+#define LOG(mssg)
 #endif
 
 // Remove ability for class/struct to be constructed (only static members allowed)
@@ -39,10 +43,12 @@ classname& operator=(const classname&) = delete;
 if (!(x))					\
 {							\
 	__debugbreak();			\
-}							
+}		
+#else
+#define ASSERT(x)
 #endif
 
-#define PI 3.14159265359f
+#define PI 3.1415927f
 #define TO_RADIANS(x) ((x) * (PI / 180))
 
 using u8 = uint8_t;
