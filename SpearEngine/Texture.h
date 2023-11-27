@@ -9,7 +9,6 @@ namespace Spear
 		Texture();
 		~Texture();
 
-		bool SetDataFromFile(const char* filename);
 		bool SetDataFromArrayRGBA(GLuint* pPixels, int width, int height);
 
 		// TextureBase Overrides
@@ -20,11 +19,10 @@ namespace Spear
 		GLuint GetDepth() const override {return 0;};
 		bool Exists() const override {return (m_textureId != 0); };
 		bool IsArray() const override {return false;};
-		const SDL_Surface* GetSDLSurface(int slot = 0) const override {return m_pSDLSurface;};
+		const SDL_Surface* GetSDLSurface(int slot = 0) const override {return nullptr;};
 
 	private:
 		void Allocate(int width, int height);
-		SDL_Surface* m_pSDLSurface{nullptr};
 		GLuint m_textureId{0};
 		GLuint m_textureWidth{0};
 		GLuint m_textureHeight{0};
