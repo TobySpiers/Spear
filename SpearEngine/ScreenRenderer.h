@@ -1,5 +1,6 @@
 #pragma once
 #include "Texture.h"
+#include "TextureFont.h"
 
 namespace Spear
 {
@@ -11,13 +12,22 @@ namespace Spear
 	constexpr int SPRITE_POS_MAXBYTES{SPRITE_FLOATS_PER_POS * SPRITE_MAX};
 	constexpr int SPRITE_COL_MAXBYTES{SPRITE_FLOATS_PER_COLOR * SPRITE_MAX};
 
+	// TEXT BATCHES
+	constexpr const char* TEXT_DEFAULT_FONT = "../Assets/FONTS/PublicPixelRegular24/PublicPixel";
+	constexpr int TEXT_CHAR_MAX{200}; // eats into total allocated for SPRITE_MAX
+	constexpr int TEXT_BATCH_MAX{2};
+	constexpr int TEXT_FLOATS_PER_POS{4}; // 4 values (2 for xy, 2 for scale)
+	constexpr int TEXT_FLOATS_PER_COLOR{4}; // RGBA
+	constexpr int TEXT_POS_MAXBYTES{TEXT_FLOATS_PER_POS * TEXT_CHAR_MAX};
+	constexpr int TEXT_COL_MAXBYTES{TEXT_FLOATS_PER_COLOR * TEXT_CHAR_MAX};
+
 	// TEXTURED LINE BATCHES
 	constexpr int LINE_MAX{2000};
 	constexpr int LINE_BATCH_MAX{2};
 	constexpr int LINE_FLOATS_PER_POS{4}; // 0,1: startXY, 2,3: endXY
-	constexpr int LINE_FLOATS_PER_UV{3}; // 0: x pos, 1: texture slot, 2: depth
+	constexpr int LINE_FLOATS_PER_INFO{3}; // 0: x pos, 1: texture slot, 2: depth
 	constexpr int LINE_POS_MAXBYTES{LINE_FLOATS_PER_POS * LINE_MAX};
-	constexpr int LINE_UV_MAXBYTES{LINE_FLOATS_PER_UV * LINE_MAX};
+	constexpr int LINE_INFO_MAXBYTES{LINE_FLOATS_PER_INFO * LINE_MAX};
 
 	// UNTEXTURED LINES (NO BATCHES)
 	constexpr int RAWLINE_MAX{ 10000 };
@@ -42,9 +52,9 @@ namespace Spear
 		struct TextData
 		{
 			std::string text;
+			Colour3f colour{1.f, 1.f, 1.f};
 			Vector2f pos{0.f, 0.f};
 			Vector2f scale{1.f, 1.f};
-			float opacity{1.f};
 			TextAlign alignment{TEXT_ALIGN_LEFT};
 		};
 
@@ -82,8 +92,12 @@ namespace Spear
 		int CreateSpriteBatch(const TextureBase& batchTexture, int capacity);
 		const TextureBase* GetBatchTextures(int batchId);
 		void AddSprite(const SpriteData& sprite, int batchId);
-		void AddText(const TextData& text, int batchId);
 		void ClearSpriteBatches();
+
+		// Text Batch System
+		int CreateTextBatch(const TextureBase& fontTexture, int capacity);
+		void AddText(const TextData& text, int fontBatchId = 0);
+		void ClearTextBatches();
 
 		// Line Batch System
 		int CreateLineBatch(const TextureBase& batchTexture, int capacity, float lineWidth = 1.f);
@@ -91,7 +105,7 @@ namespace Spear
 		void AddTexturedLine(const LineData& line, int batchId);
 		void ClearLineBatches();
 
-		// Raw Lines
+		// Raw Lines (discrete batches not necessary as no textures used)
 		void AddRawLine(const LineData& line, Colour4f colour);
 		void AddLinePoly(const LinePolyData& circle);
 
@@ -108,11 +122,13 @@ namespace Spear
 		void InitialiseRawLineBuffers();
 		void InitialiseTexturedLineBuffers();
 		void InitialiseSpriteBuffers();
+		void InitialiseTextBuffers();
 
 		void RenderBackground();
 		void RenderRawLines();
 		void RenderTexturedLines();
 		void RenderSprites();
+		void RenderText();
 
 		struct TextureBatch
 		{
@@ -144,12 +160,22 @@ namespace Spear
 		TextureBatch m_spriteBatches[SPRITE_BATCH_MAX] = {};
 		int m_spriteBatchCount{0};
 
+		// text data
+		TextureFont m_defaultFont;
+		GLuint m_textVAO{0};
+		GLuint m_textPosBuffer{0};
+		GLuint m_textColBuffer{0};
+		GLfloat m_textPosData[TEXT_POS_MAXBYTES] = {};
+		GLfloat m_textColData[TEXT_COL_MAXBYTES] = {};
+		TextureBatch m_textBatches[TEXT_BATCH_MAX] = {};
+		int m_textBatchCount{0};
+
 		// textured line data
 		GLuint m_lineVAO{0};
 		GLuint m_linePosBuffer{0};
 		GLuint m_lineUVBuffer{0};
 		GLfloat m_linePosData[LINE_POS_MAXBYTES] = {};
-		GLfloat m_lineUVData[LINE_UV_MAXBYTES] = {};
+		GLfloat m_lineUVData[LINE_INFO_MAXBYTES] = {};
 		LineBatch m_lineBatches[LINE_BATCH_MAX] = {};
 		int m_lineBatchCount{0};
 
@@ -165,6 +191,7 @@ namespace Spear
 		GLuint m_lineShaderTextures{0};
 		GLuint m_lineShaderColour{0};
 		GLuint m_spriteShader{0};
+		GLuint m_textShader{0};
 		GLuint m_backgroundShader{0};
 	};
 }

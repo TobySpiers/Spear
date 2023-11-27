@@ -8,6 +8,10 @@
 
 #include <algorithm>
 
+#if _DEBUG
+#include "SpearEngine/FrameProfiler.h"
+#endif
+
 GLfloat* Raycaster::m_bgTexPixels{nullptr};
 GLfloat* Raycaster::m_bgTexDepth{nullptr};
 RaycastParams Raycaster::m_rayConfig;
@@ -369,6 +373,8 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 // CPU bound for now. Potential to eventualy convert into a shader...
 void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 {
+	START_PROFILE("3D Raycaster");
+
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 
 	// Calculate our resolution
@@ -614,4 +620,6 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 			}
 		}
 	}
+
+	END_PROFILE("3D Raycaster");
 }

@@ -48,7 +48,6 @@ class FlowstateEditor : public Spear::Flowstate
 	{
 		BATCH_GUI,
 		BATCH_MAP,
-		BATCH_TEXT
 	};
 
 	const char* GetModeText();
@@ -78,7 +77,6 @@ public:
 
 	Spear::TextureArray m_menuTextures;
 	Spear::TextureArray m_mapTextures;
-	Spear::TextureFont m_editorFont;
 
 	Spear::UiButton m_textureButtons[eLevelTextures::TEX_TOTAL];
 
