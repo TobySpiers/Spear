@@ -110,7 +110,7 @@ namespace Spear
 		void AddLinePoly(const LinePolyData& circle);
 
 		// Background
-		void SetBackgroundTextureData(GLfloat* pDataRGB, GLfloat* pDataDepth, int width, int height);
+		void SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height);
 		void EraseBackgroundTextureData();
 
 		void Render();

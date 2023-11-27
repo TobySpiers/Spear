@@ -12,7 +12,7 @@
 #include "SpearEngine/FrameProfiler.h"
 #endif
 
-GLfloat* Raycaster::m_bgTexPixels{nullptr};
+GLuint* Raycaster::m_bgTexRGBA{nullptr};
 GLfloat* Raycaster::m_bgTexDepth{nullptr};
 RaycastParams Raycaster::m_rayConfig;
 MapData Raycaster::m_map;
@@ -20,9 +20,9 @@ GLfloat Raycaster::m_mapMaxDepth{FLT_MAX};
 
 void Raycaster::RecreateBackgroundArrays(int width, int height)
 {
-	delete[] m_bgTexPixels;
-	m_bgTexPixels = new GLfloat[width * height * m_bgTexPixelSize]; // Floor * Width * RGB
-	std::fill(m_bgTexPixels, m_bgTexPixels + (width * height * m_bgTexPixelSize), GLfloat(0)); // init to 0
+	delete[] m_bgTexRGBA;
+	m_bgTexRGBA = new GLuint[width * height];
+	std::fill(m_bgTexRGBA, m_bgTexRGBA + (width * height), GLuint(0));
 
 	delete[] m_bgTexDepth;
 	m_bgTexDepth = new GLfloat[width * height];
@@ -31,14 +31,14 @@ void Raycaster::RecreateBackgroundArrays(int width, int height)
 
 void Raycaster::ClearBackgroundArrays()
 {
-	std::fill(m_bgTexPixels, m_bgTexPixels + (m_rayConfig.xResolution * m_rayConfig.yResolution * m_bgTexPixelSize), GLfloat(0));
+	std::fill(m_bgTexRGBA, m_bgTexRGBA + (m_rayConfig.xResolution * m_rayConfig.yResolution), GLuint(0));
 	std::fill(m_bgTexDepth, m_bgTexDepth + (m_rayConfig.xResolution * m_rayConfig.yResolution), GLfloat(m_mapMaxDepth));
 }
 
 void Raycaster::LoadLevel(const char* filename)
 {
 	LevelManager::LoadLevel(filename, m_map);
-	if (m_bgTexPixels == nullptr)
+	if (m_bgTexRGBA == nullptr)
 	{
 		RecreateBackgroundArrays(m_rayConfig.xResolution, m_rayConfig.yResolution);
 	}
@@ -446,12 +446,14 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 					ASSERT(texX < pFloorTexture->w);
 					ASSERT(texY < pFloorTexture->h);
 					Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pFloorTexture->pixels) + (texY * pFloorTexture->pitch) + (texX * pFloorTexture->format->BytesPerPixel));
-					Uint8 r, g, b;
-					SDL_GetRGB(*pixel, pFloorTexture->format, &r, &g, &b);
+					Uint8 r, g, b, a;
+					SDL_GetRGBA(*pixel, pFloorTexture->format, &r, &g, &b, &a);
 
-					m_bgTexPixels[(m_bgTexPixelSize * x) + ((m_bgTexPixelSize * (m_rayConfig.yResolution - y)) * m_rayConfig.xResolution) + 0] = (float)r / 255;
-					m_bgTexPixels[(m_bgTexPixelSize * x) + ((m_bgTexPixelSize * (m_rayConfig.yResolution - y)) * m_rayConfig.xResolution) + 1] = (float)g / 255;
-					m_bgTexPixels[(m_bgTexPixelSize * x) + ((m_bgTexPixelSize * (m_rayConfig.yResolution - y)) * m_rayConfig.xResolution) + 2] = (float)b / 255;
+					GLuint& colByte = m_bgTexRGBA[x + ((m_rayConfig.yResolution - y) * m_rayConfig.xResolution)];
+					colByte |= (r << 0);
+					colByte |= (g << 8);
+					colByte |= (b << 16);
+					colByte |= (a << 24);
 
 					m_bgTexDepth[x + ((m_rayConfig.yResolution - y) * m_rayConfig.xResolution)] = depth;
 				}
@@ -472,12 +474,14 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 					ASSERT(texX < pRoofTexture->w);
 					ASSERT(texY < pRoofTexture->h);
 					Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pRoofTexture->pixels) + (texY * pRoofTexture->pitch) + (texX * pRoofTexture->format->BytesPerPixel));
-					Uint8 r, g, b;
-					SDL_GetRGB(*pixel, pRoofTexture->format, &r, &g, &b);
+					Uint8 r, g, b, a;
+					SDL_GetRGBA(*pixel, pRoofTexture->format, &r, &g, &b, &a);
 
-					m_bgTexPixels[(m_bgTexPixelSize * x) + (m_bgTexPixelSize * y * m_rayConfig.xResolution) + 0] = (float)r / 255;
-					m_bgTexPixels[(m_bgTexPixelSize * x) + (m_bgTexPixelSize * y * m_rayConfig.xResolution) + 1] = (float)g / 255;
-					m_bgTexPixels[(m_bgTexPixelSize * x) + (m_bgTexPixelSize * y * m_rayConfig.xResolution) + 2] = (float)b / 255;
+					GLuint& colByte = m_bgTexRGBA[x + (y * m_rayConfig.xResolution)];
+					colByte |= (r << 0);
+					colByte |= (g << 8);
+					colByte |= (b << 16);
+					colByte |= (a << 24);
 
 					m_bgTexDepth[x + (y * m_rayConfig.xResolution)] = depth;
 				}
@@ -485,8 +489,8 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 			floorXY += floorStep;
 		}
 	}
-	// Upload Floors+Ceilings background texture (SLOW)
-	rend.SetBackgroundTextureData(m_bgTexPixels, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
+	// Upload Floor+Ceiling background texture for this frame
+	rend.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
 	ClearBackgroundArrays();
 
 	// Using DDA (digital differential analysis) to quickly calculate intersections
@@ -514,7 +518,6 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, const float angle)
 			// calculate ray length needed to reach left edge. Example: rayStart position of (7.33) - 7 leaves us with: 0.33 (ie. we are 33% across this tile)
 			// 0.33 * rayUnitStepsize = length of the ray to travel 1 unit in X, scaled by the actual distance from edge
 			rayLength1D.x = (rayStart.x - static_cast<float>(mapCheck.x)) * rayUnitStepSize.x;
-
 		}
 		else
 		{

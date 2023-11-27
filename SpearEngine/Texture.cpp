@@ -2,6 +2,10 @@
 #include "SDL_Image.h"
 #include "Colour.h"
 
+#if _DEBUG
+#include "FrameProfiler.h"
+#endif
+
 namespace Spear
 {
 	Texture::Texture()
@@ -13,19 +17,32 @@ namespace Spear
 		FreeTexture();
 	}
 
-	void Texture::Allocate()
+	void Texture::Allocate(int width, int height)
 	{
+		m_textureWidth = width;
+		m_textureHeight = height;
+		
 		// Create new texture slot and get ID
 		glGenTextures(1, &m_textureId);
+		glBindTexture(GL_TEXTURE_2D, m_textureId);
+
+		// Create the texture
+		GLCheck(glTexImage2D(
+			GL_TEXTURE_2D,						// type of texture we are assigning to
+			0,									// mip map level
+			GL_RGBA,							// pixel format of how texture should be stored 
+			width,
+			height,
+			0,									// texture border width
+			GL_RGBA,							// format of the data BEING assigned
+			GL_UNSIGNED_INT_8_8_8_8_REV,		// data type of the pixel data being assigned
+			NULL
+		));
+		glBindTexture(GL_TEXTURE_2D, NULL);
 	}
 
 	bool Texture::SetDataFromFile(const char* filename)
 	{
-		if (m_textureId == 0)
-		{
-			Allocate();
-		}
-
 		m_pSDLSurface = IMG_Load(filename);
 		if (!m_pSDLSurface)
 		{
@@ -46,21 +63,26 @@ namespace Spear
 			m_pSDLSurface = pConvertedSurface;		// update pointer to converted image
 		}
 
+		if (m_textureId == 0 || m_textureWidth != m_pSDLSurface->w || m_textureHeight != m_pSDLSurface->h)
+		{
+			Allocate(m_pSDLSurface->w, m_pSDLSurface->h);
+		}
+
 		// bind THIS texture
 		glBindTexture(GL_TEXTURE_2D, m_textureId);
 
 		// load pixelData into texture slot
-		GLCheck(glTexImage2D(
-			GL_TEXTURE_2D,						// type of texture we are assigning to
-			0,									// mip map level
-			GL_RGBA,							// pixel format of how texture should be stored 
+		glTexSubImage2D(
+			GL_TEXTURE_2D, 
+			0, 
+			0, 
+			0, 
 			m_pSDLSurface->w,
 			m_pSDLSurface->h,
-			0,									// texture border width
-			GL_RGBA,							// format of the data BEING assigned
-			GL_UNSIGNED_BYTE,					// data type of the pixel data being assigned
+			GL_RGBA, 
+			GL_UNSIGNED_BYTE,
 			m_pSDLSurface->pixels
-		));
+		);
 
 		// nearest pixel filtering
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -75,28 +97,28 @@ namespace Spear
 		return true;
 	}
 
-	bool Texture::SetDataFromArrayRGB(float* pPixels, int width, int height)
+	bool Texture::SetDataFromArrayRGBA(GLuint* pPixels, int width, int height)
 	{
-		if (m_textureId == 0)
+		if (m_textureId == 0 || m_textureWidth != width || m_textureHeight != height)
 		{
-			Allocate();
+			Allocate(width, height);
 		}
 
 		// bind THIS texture
 		glBindTexture(GL_TEXTURE_2D, m_textureId);
 
-		// load pixelData into texture slot
-		GLCheck(glTexImage2D(
-			GL_TEXTURE_2D,				// type of texture we are assigning to
-			0,							// mip map level
-			GL_RGB,						// pixel format of how texture should be stored 
+		// update data in previously allocated memory
+		glTexSubImage2D(
+			GL_TEXTURE_2D,
+			0,
+			0,
+			0,
 			width,
 			height,
-			0,							// texture border width
-			GL_RGB,						// format of the data BEING assigned
-			GL_FLOAT,					// data type of the pixel data being assigned
+			GL_RGBA,
+			GL_UNSIGNED_BYTE,
 			pPixels
-		));
+		);
 
 		// nearest pixel filtering
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

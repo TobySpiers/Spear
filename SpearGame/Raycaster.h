@@ -56,8 +56,7 @@ private:
 
 	// Background Floor/Ceiling Render
 	static GLfloat* m_bgTexDepth;
-	static GLfloat* m_bgTexPixels;
-	static const int m_bgTexPixelSize{3}; // 3 values: R,G,B
+	static GLuint* m_bgTexRGBA;
 
 	// Depth
 	static GLfloat m_mapMaxDepth;
