@@ -392,7 +392,7 @@ namespace Spear
 	void ScreenRenderer::SetBackgroundTextureData(GLfloat* pDataRGB, GLfloat* pDataDepth, int width, int height)
 	{
 		START_PROFILE("Upload Background Array");
-		m_backgroundTexture.SetDataFromArrayRGB(pDataRGB, width, height);
+		m_backgroundTexture[m_backgroundTextureActive].SetDataFromArrayRGB(pDataRGB, width, height);
 		END_PROFILE("Upload Background Array");
 
 		START_PROFILE("Upload Depth Array");
@@ -416,7 +416,9 @@ namespace Spear
 
 	void ScreenRenderer::EraseBackgroundTextureData()
 	{
-		m_backgroundTexture.FreeTexture();
+		m_backgroundTexture[0].FreeTexture();
+		m_backgroundTexture[1].FreeTexture();
+		m_backgroundTextureActive = 0;
 	}
 
 	void ScreenRenderer::AddTexturedLine(const LineData& line, int batchId)
@@ -575,10 +577,7 @@ namespace Spear
 		glDepthFunc(GL_LESS);
 
 		// Render scene 
-		if (m_backgroundTexture.Exists())
-		{
-			RenderBackground();
-		}
+		RenderBackground();
 		RenderRawLines();
 		RenderTexturedLines();
 
@@ -598,20 +597,26 @@ namespace Spear
 
 	void ScreenRenderer::RenderBackground()
 	{
-		glUseProgram(m_backgroundShader);
+		if (m_backgroundTexture[m_backgroundTextureActive].Exists())
+		{
+			glUseProgram(m_backgroundShader);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_backgroundTexture.GetTextureId());
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, m_backgroundTexture[m_backgroundTextureActive].GetTextureId());
 
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, m_backgroundDepthBuffer);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, m_backgroundDepthBuffer);
 
-		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
+			GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
 
-		// Unbind textures
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, 0);
+			// Unbind textures
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			// swap active background texture
+			m_backgroundTextureActive = (m_backgroundTextureActive == 0 ? 1 : 0);
+		}
 	}
 
 	void ScreenRenderer::RenderRawLines()
