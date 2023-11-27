@@ -389,10 +389,10 @@ namespace Spear
 		m_lineBatchCount = 0;
 	}
 
-	void ScreenRenderer::SetBackgroundTextureData(GLfloat* pDataRGB, GLfloat* pDataDepth, int width, int height)
+	void ScreenRenderer::SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height)
 	{
 		START_PROFILE("Upload Background Array");
-		m_backgroundTexture[m_backgroundTextureActive].SetDataFromArrayRGB(pDataRGB, width, height);
+		m_backgroundTexture[m_backgroundTextureActive].SetDataFromArrayRGBA(pDataRGBA, width, height);
 		END_PROFILE("Upload Background Array");
 
 		START_PROFILE("Upload Depth Array");
