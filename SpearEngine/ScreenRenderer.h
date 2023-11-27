@@ -148,7 +148,8 @@ namespace Spear
 		GLuint m_fboDepthBuffer{0};
 
 		// screen background
-		Texture m_backgroundTexture;
+		Texture m_backgroundTexture[2]; // double buffer prevents having to wait for last frame to finish
+		int m_backgroundTextureActive{0};
 		GLuint m_backgroundDepthBuffer{0};
 
 		// sprite data
