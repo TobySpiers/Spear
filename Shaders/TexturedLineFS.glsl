@@ -13,5 +13,5 @@ void main()
 	// temporary solution. ideally we should use the VS depth calculation and adjust BackgroundFS.glsl to the same range
 	
 	color = texture(textureSampler, v_UV);
-	color.rgb *= (1 - gl_FragDepth);
+	color.rgb *= (1 - (gl_FragDepth * 2));
 }

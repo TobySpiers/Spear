@@ -4,10 +4,7 @@
 #ifdef _DEBUG
 #define START_PROFILE(x) FrameProfiler::StartCategory(x);
 #define END_PROFILE(x) FrameProfiler::EndCategory(x);
-#else
-#define START_PROFILE(x)
-#define END_PROFILE(x)
-#endif
+
 
 class FrameProfiler
 {
@@ -24,3 +21,8 @@ public:
 	static void EndCategory(const char* catName);
 
 };
+
+#else
+#define START_PROFILE(x);
+#define END_PROFILE(x);
+#endif

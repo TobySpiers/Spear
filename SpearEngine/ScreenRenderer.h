@@ -144,8 +144,9 @@ namespace Spear
 
 		// frame buffer
 		GLuint m_fbo{0};
-		GLuint m_fboRenderTexture{0};
-		GLuint m_fboDepthBuffer{0};
+		GLuint m_fboDepthTexture{0};
+		GLuint m_fboRenderTexture[2] = {}; // double buffer so we can write next frame before finishing prev frame
+		int m_fboRenderTextureActive{0};
 
 		// screen background
 		Texture m_backgroundTexture[2]; // double buffer prevents having to wait for last frame to finish
@@ -194,5 +195,6 @@ namespace Spear
 		GLuint m_spriteShader{0};
 		GLuint m_textShader{0};
 		GLuint m_backgroundShader{0};
+		GLuint m_screenShader{0};
 	};
 }

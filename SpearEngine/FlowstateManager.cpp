@@ -1,9 +1,6 @@
 #include "Core.h"
 #include "FlowstateManager.h"
-
-#if _DEBUG
 #include "FrameProfiler.h"
-#endif
 
 namespace Spear
 {

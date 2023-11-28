@@ -2,10 +2,7 @@
 #include "ScreenRenderer.h"
 #include "ShaderCompiler.h"
 #include "TextureFont.h"
-
-#if _DEBUG
 #include "FrameProfiler.h"
-#endif
 
 namespace Spear
 {
@@ -26,8 +23,9 @@ namespace Spear
 		m_spriteShader = ShaderCompiler::CreateShaderProgram("../Shaders/SpriteVS.glsl", "../Shaders/SpriteFS.glsl");
 		m_textShader = ShaderCompiler::CreateShaderProgram("../Shaders/TextVS.glsl", "../Shaders/TextFS.glsl");
 		m_backgroundShader = ShaderCompiler::CreateShaderProgram("../Shaders/BackgroundVS.glsl", "../Shaders/BackgroundFS.glsl");
+		m_screenShader = ShaderCompiler::CreateShaderProgram("../Shaders/ScreenVS.glsl", "../Shaders/ScreenFS.glsl");
 
-		// Setup background shader samplers
+		// Set samplers (colour-texture/depth-texture) for the background shader
 		GLint bgTexLoc = glGetUniformLocation(m_backgroundShader, "textureSampler");
 		GLint bgDepthLoc = glGetUniformLocation(m_backgroundShader, "depthSampler");
 		glUseProgram(m_backgroundShader);
@@ -40,6 +38,9 @@ namespace Spear
 	{
 		ReleaseAll();
 		glDeleteFramebuffers(1, &m_fbo);
+		glDeleteTextures(1, &m_fboRenderTexture[0]);
+		glDeleteTextures(1, &m_fboRenderTexture[1]);
+		glDeleteTextures(1, &m_fboDepthTexture);
 	}
 
 	void ScreenRenderer::InitialiseFrameBufferObject()
@@ -48,32 +49,60 @@ namespace Spear
 		glGenFramebuffers(1, &m_fbo);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
-		// Create render texture
-		glGenTextures(1, &m_fboRenderTexture);
-		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture);
+		// Create render texture 0
+		glGenTextures(1, &m_fboRenderTexture[0]);
+		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[0]);
 		glTexImage2D(
 			GL_TEXTURE_2D, 
 			0, 
-			GL_RGB, 
+			GL_RGBA, 
 			Core::GetWindowSize().x,
 			Core::GetWindowSize().y,
 			0, 
-			GL_RGB, 
+			GL_RGBA, 
 			GL_UNSIGNED_BYTE, 
 			NULL
 		);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		// Attach render texture
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fboRenderTexture, 0);
+		// Create render texture 1
+		glGenTextures(1, &m_fboRenderTexture[1]);
+		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[1]);
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_RGBA,
+			Core::GetWindowSize().x,
+			Core::GetWindowSize().y,
+			0,
+			GL_RGBA,
+			GL_UNSIGNED_BYTE,
+			NULL
+		);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		// Setup depth + stencil buffer (renderbuffers are write-only)
-		glGenRenderbuffers(1, &m_fboDepthBuffer);
-		glBindRenderbuffer(GL_RENDERBUFFER, m_fboDepthBuffer);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Core::GetWindowSize().x, Core::GetWindowSize().y);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_fboDepthBuffer);
+		// Create depth texture
+		glGenTextures(1, &m_fboDepthTexture);
+		glBindTexture(GL_TEXTURE_2D, m_fboDepthTexture);
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_DEPTH_COMPONENT,
+			Core::GetWindowSize().x,
+			Core::GetWindowSize().y,
+			0,
+			GL_DEPTH_COMPONENT,
+			GL_FLOAT,
+			NULL
+		);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		// Attach initial textures
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fboRenderTexture[0], 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_fboDepthTexture, 0);
 
 		// Unbind
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -565,12 +594,14 @@ namespace Spear
 	{
 		START_PROFILE("ScreenRenderer_Total");
 
-		// FIRST PASS ----------------------------------------
-		//glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-		//GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		//ASSERT(result == GL_FRAMEBUFFER_COMPLETE);
+		// FIRST PASS (to FrameBuffer) ----------------------------------------
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+		GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		ASSERT(result == GL_FRAMEBUFFER_COMPLETE);
 
 		// Prepare frame (alpha blending for sprites/text)
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fboRenderTexture[m_fboRenderTextureActive], 0);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_DEPTH_TEST);
@@ -580,23 +611,25 @@ namespace Spear
 		RenderBackground();
 		RenderRawLines();
 		RenderTexturedLines();
+		RenderSprites();
 
 		glDisable(GL_DEPTH_TEST);
-		RenderSprites();
 		RenderText();
 
-		// SECOND PASS ----------------------------------------
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//glUseProgram(m_backgroundShader);
-		//glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture);
-		//GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
+		// SECOND PASS (to Screen) ----------------------------------------
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glUseProgram(m_screenShader);
+		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[m_fboRenderTextureActive]);
+		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
+		m_fboRenderTextureActive = (m_fboRenderTextureActive == 0 ? 1 : 0); // swap buffer
 
 		END_PROFILE("ScreenRenderer_Total");
 	}
 
 	void ScreenRenderer::RenderBackground()
 	{
+		START_PROFILE("ScreenRenderer_Background");
 		if (m_backgroundTexture[m_backgroundTextureActive].Exists())
 		{
 			glUseProgram(m_backgroundShader);
@@ -617,10 +650,13 @@ namespace Spear
 			// swap active background texture
 			m_backgroundTextureActive = (m_backgroundTextureActive == 0 ? 1 : 0);
 		}
+		END_PROFILE("ScreenRenderer_Background");
 	}
 
 	void ScreenRenderer::RenderRawLines()
 	{
+		START_PROFILE("ScreenRenderer_RawLines");
+
 		glUseProgram(m_lineShaderColour);
 		glBindVertexArray(m_rawlineVAO);
 
@@ -649,10 +685,14 @@ namespace Spear
 		// render
 		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, m_rawlineCount)); // 4 vertices per instance, m_lineCount instances
 		m_rawlineCount = 0;
+		
+		END_PROFILE("ScreenRenderer_RawLines");
 	}
 
 	void ScreenRenderer::RenderTexturedLines()
 	{
+		START_PROFILE("ScreenRenderer_TexturedLines");
+
 		// SETUP VAO
 		glUseProgram(m_lineShaderTextures);
 		glBindVertexArray(m_lineVAO);
@@ -695,10 +735,14 @@ namespace Spear
 			GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, batch.count)); // 4 vertices per instance, m_lineCount instances
 			batch.count = 0;
 		}
+
+		END_PROFILE("ScreenRenderer_TexturedLines");
 	}
 
 	void ScreenRenderer::RenderSprites()
 	{
+		START_PROFILE("ScreenRenderer_Sprites");
+
 		// Set sprite shader + VAO
 		glUseProgram(m_spriteShader);
 		glBindVertexArray(m_spriteVAO);
@@ -743,10 +787,14 @@ namespace Spear
 			GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, batch.count)); // 4 vertices per instance, batch.count instances
 			batch.count = 0;
 		}
+
+		END_PROFILE("ScreenRenderer_Sprites");
 	}
 
 	void ScreenRenderer::RenderText()
 	{
+		START_PROFILE("ScreenRenderer_Text");
+
 		// Set sprite shader + VAO
 		glUseProgram(m_textShader);
 		glBindVertexArray(m_textVAO);
@@ -791,6 +839,8 @@ namespace Spear
 			GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, batch.count)); // 4 vertices per instance, batch.count instances
 			batch.count = 0;
 		}
+
+		END_PROFILE("ScreenRenderer_Text");
 	}
 
 	void ScreenRenderer::ReleaseAll()

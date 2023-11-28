@@ -14,6 +14,7 @@ public:
 private:
 	Vector2f m_pos{0.f, 0.f};
 	float m_moveSpeed{2.f};
+	float m_pitch{0.f}; // vertical look
 	float m_rotation{TO_RADIANS(-90.f)};
 	float m_turnSpeed{TO_RADIANS(5.f)};
 };

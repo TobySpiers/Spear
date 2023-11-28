@@ -24,6 +24,6 @@ void main()
 	uvCoords[2] = vec4(0, 0, inColor.y, inColor.x);
 	uvCoords[3] = vec4(1, 0, inColor.y, inColor.x);
 	
-	gl_Position = vec4(quadPoints[gl_VertexID].xy, 0.0, 1.0);
+	gl_Position = vec4(quadPoints[gl_VertexID].xy, 0.1, 1.0);
 	v_data = uvCoords[gl_VertexID];
 }

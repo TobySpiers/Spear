@@ -28,7 +28,7 @@ void FlowstateGame::StateEnter()
 	Spear::ServiceLocator::GetInputManager().ConfigureInputs(config, INPUT_COUNT);
 
 	// Set background colour
-	glClearColor(.1f, .1f, .1f, 1.f);
+	glClearColor(0.f, 1.f, 0.f, 1.f);
 
 	// Load world textures
 	m_worldTextures.Allocate(64, 64, 4); // 64x64 textures (4 slots)
