@@ -71,7 +71,7 @@ namespace Spear
 		#endif
 
 		u64 frameStart;
-		float deltaTime{0.016f};
+		float deltaTime{1.f / targetFPS };
 		const u64 targetFrequency = SDL_GetPerformanceFrequency()/targetFPS;
 		while (!m_shutdown)
 		{

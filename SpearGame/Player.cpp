@@ -34,6 +34,8 @@ void Player::Update(float deltaTime)
 
 	// mouse look
 	m_rotation += (input.GetMouseAxis().x * 0.005f);
+ 	m_pitch += (input.GetMouseAxis().y * 0.005f);
+	m_pitch = std::min(std::max(m_pitch, -.5f), .5f); // cap pitch at half-up and half-down (greater angles reveal psuedo-3d-ness)
 
 	// retro look
 	if (input.InputHold(INPUT_ROTATE_LEFT))
@@ -51,7 +53,7 @@ void Player::Draw(bool perspective) const
 	if (perspective)
 	{
 		//Spear::Raycaster::Draw3DWalls(m_rayParams, m_pWalls, m_wallCount);
-		Raycaster::Draw3DGrid(m_pos, m_rotation);
+		Raycaster::Draw3DGrid(m_pos, m_pitch, m_rotation);
 	}
 	else
 	{

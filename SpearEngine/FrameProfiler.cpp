@@ -1,4 +1,6 @@
 #include "FrameProfiler.h"
+
+#ifdef _DEBUG
 #include <unordered_map>
 #include <fstream>
 #include <iomanip>
@@ -118,3 +120,5 @@ void FrameProfiler::SaveProfile(const char* outputFilename)
 
 	LOG("...Profiling data succesfully saved");
 }
+
+#endif
