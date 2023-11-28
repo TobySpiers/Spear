@@ -373,14 +373,10 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, float pitch, const float angle)
 {
 	START_PROFILE("3D Raycaster");
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
+	rend.SetBatchLineWidth(0, 1.f);
 
 	// Calculate 'real' pitch (in_pitch is percentage from -1 to +1)
 	pitch = pitch * m_rayConfig.yResolution;
-
-	// Calculate our resolution
-	float pixelWidth{ static_cast<float>(Spear::Core::GetWindowSize().x) / m_rayConfig.xResolution };
-	float pixelHeight{ static_cast<float>(Spear::Core::GetWindowSize().y) / m_rayConfig.yResolution };
-	rend.SetBatchLineWidth(0, pixelWidth * 2);
 
 	// Screen Plane ray-distribution to avoid squash/stretch warping
 	const float halfFov{ m_rayConfig.fieldOfView / 2 };
@@ -531,7 +527,7 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, float pitch, const float angle)
 		Vector2f rayDir = Normalize(rayEnd - rayStart);
 
 		Vector2f rayUnitStepSize{ sqrt(1 + (rayDir.y / rayDir.x) * (rayDir.y / rayDir.x)),		// length required to travel 1 X unit in Ray Direction
-									sqrt(1 + (rayDir.x / rayDir.y) * (rayDir.x / rayDir.y)) };	// length required to travel 1 Y unit in Ray Direction
+								  sqrt(1 + (rayDir.x / rayDir.y) * (rayDir.x / rayDir.y)) };	// length required to travel 1 Y unit in Ray Direction
 
 		Vector2i mapCheck = rayStart.ToInt(); // truncation will 'snap' position to tile
 		Vector2f rayLength1D; // total length of ray: via x units, via y units
@@ -611,16 +607,13 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, float pitch, const float angle)
 		{
 			// Project THIS RAY onto the FORWARD VECTOR of the camera to get distance from camera with no fisheye distortion
 			Vector2f intersection{rayStart + rayDir * distance};
+			float mid{ rend.GetInternalResolution().y / 2.0f };
 			float depth{ Projection(intersection - pos, forward * m_rayConfig.farClip).Length() };
-			float height{ (Spear::Core::GetWindowSize().y / 2.0f) / depth };
-			float mid{ Spear::Core::GetWindowSize().y / 2.0f };
-
-			// Y offset for walls (vertical mouse-look)
-			float scaledPitch = pitch * pixelHeight;
+			float height{ mid / depth};
 
 			Spear::ScreenRenderer::LineData line;
-			line.start = Vector2f((screenX * pixelWidth), (mid - height) - scaledPitch);
-			line.end = Vector2f((screenX * pixelWidth), (mid + height) - scaledPitch);
+			line.start = Vector2f(screenX, (mid - height) - pitch);
+			line.end = Vector2f(screenX, (mid + height) - pitch);
 			line.texLayer = m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].texIdWall;
 			line.depth = depth / m_mapMaxDepth;
 
@@ -655,6 +648,7 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, float pitch, const float angle)
 			}
 		}
 	}
+
 	END_PROFILE("3D Walls CPU")
 	END_PROFILE("3D Raycaster");
 }

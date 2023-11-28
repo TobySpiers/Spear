@@ -91,6 +91,7 @@ namespace Spear
 		static float GetWindowScale();
 
 		static Vector2f GetNormalizedDeviceCoordinate(const Vector2f& inCoord);
+		static Vector2f GetNormalizedDeviceCoordinate(const Vector2f& inCoord, const Vector2f& viewport);
 
 	private:
 		static bool m_shutdown;
