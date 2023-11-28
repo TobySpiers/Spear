@@ -88,6 +88,12 @@ namespace Spear
 		ScreenRenderer();
 		~ScreenRenderer();
 
+		// General
+		void SetInternalResolution(int width, int height);
+		Vector2i GetInternalResolution() {return m_fboResolution;};
+		void Render();
+		void ReleaseAll();
+
 		// Sprite Batch System
 		int CreateSpriteBatch(const TextureBase& batchTexture, int capacity);
 		const TextureBase* GetBatchTextures(int batchId);
@@ -112,9 +118,6 @@ namespace Spear
 		// Background
 		void SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height);
 		void EraseBackgroundTextureData();
-
-		void Render();
-		void ReleaseAll();
 
 	private:
 		void InitialiseFrameBufferObject();
@@ -143,6 +146,7 @@ namespace Spear
 		};
 
 		// frame buffer
+		Vector2i m_fboResolution{0, 0};
 		GLuint m_fbo{0};
 		GLuint m_fboDepthTexture{0};
 		GLuint m_fboRenderTexture[2] = {}; // double buffer so we can write next frame before finishing prev frame

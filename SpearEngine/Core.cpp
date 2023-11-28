@@ -139,12 +139,17 @@ namespace Spear
 		return m_windowParams.scale;
 	}
 
-	// Convert WindowCoordinate (0,0 BottomLeft) to DeviceCoordinate (-1,-1 BottomLeft)
+	// Convert WindowCoordinate (0,0 : x,x > BottomLeft : TopRight) to DeviceCoordinate (-1,-1 : 1, 1 > BottomLeft : TopRight)
 	Vector2f Core::GetNormalizedDeviceCoordinate(const Vector2f& inCoord)
 	{
+		return GetNormalizedDeviceCoordinate(inCoord, Vector2f(m_windowParams.width, m_windowParams.height));
+	}
+
+	Vector2f Core::GetNormalizedDeviceCoordinate(const Vector2f& inCoord, const Vector2f& viewport)
+	{
 		return Vector2f(
-			-1 + (2 * (inCoord.x / m_windowParams.width)),
-			1 - (2 * (inCoord.y / m_windowParams.height))
+			-1 + (2 * (inCoord.x / viewport.x)),
+			1 - (2 * (inCoord.y / viewport.y))
 		);
 	}
 }

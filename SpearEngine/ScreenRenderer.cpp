@@ -49,49 +49,62 @@ namespace Spear
 		glGenFramebuffers(1, &m_fbo);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
-		// Create render texture 0
+		// Create fbo resources
 		glGenTextures(1, &m_fboRenderTexture[0]);
-		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[0]);
-		glTexImage2D(
-			GL_TEXTURE_2D, 
-			0, 
-			GL_RGBA, 
-			Core::GetWindowSize().x,
-			Core::GetWindowSize().y,
-			0, 
-			GL_RGBA, 
-			GL_UNSIGNED_BYTE, 
-			NULL
-		);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		// Create render texture 1
 		glGenTextures(1, &m_fboRenderTexture[1]);
-		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[1]);
+		glGenTextures(1, &m_fboDepthTexture);
+		SetInternalResolution(Core::GetWindowSize().x, Core::GetWindowSize().y);
+
+		// Attach resources
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fboRenderTexture[0], 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_fboDepthTexture, 0);
+
+		// Unbind fbo
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	void ScreenRenderer::SetInternalResolution(int width, int height)
+	{
+		// Initialise render texture 0
+		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[0]);
 		glTexImage2D(
 			GL_TEXTURE_2D,
 			0,
 			GL_RGBA,
-			Core::GetWindowSize().x,
-			Core::GetWindowSize().y,
+			width,
+			height,
 			0,
 			GL_RGBA,
 			GL_UNSIGNED_BYTE,
 			NULL
 		);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-		// Create depth texture
-		glGenTextures(1, &m_fboDepthTexture);
+		// Initialise render texture 1
+		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[1]);
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_RGBA,
+			width,
+			height,
+			0,
+			GL_RGBA,
+			GL_UNSIGNED_BYTE,
+			NULL
+		);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		// Initialise depth texture
 		glBindTexture(GL_TEXTURE_2D, m_fboDepthTexture);
 		glTexImage2D(
 			GL_TEXTURE_2D,
 			0,
 			GL_DEPTH_COMPONENT,
-			Core::GetWindowSize().x,
-			Core::GetWindowSize().y,
+			width,
+			height,
 			0,
 			GL_DEPTH_COMPONENT,
 			GL_FLOAT,
@@ -100,12 +113,7 @@ namespace Spear
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-		// Attach initial textures
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fboRenderTexture[0], 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_fboDepthTexture, 0);
-
-		// Unbind
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		m_fboResolution = Vector2i(width, height);
 	}
 
 	void ScreenRenderer::InitialiseBackgroundBuffers()
@@ -456,8 +464,8 @@ namespace Spear
 		LineBatch& batch = m_lineBatches[batchId];
 		ASSERT(batch.count < batch.capacity);
 
-		const Vector2f startPos{Core::GetNormalizedDeviceCoordinate(line.start)};
-		const Vector2f endPos{Core::GetNormalizedDeviceCoordinate(line.end)};
+		const Vector2f startPos{Core::GetNormalizedDeviceCoordinate(line.start, m_fboResolution.ToFloat())};
+		const Vector2f endPos{Core::GetNormalizedDeviceCoordinate(line.end, m_fboResolution.ToFloat())};
 
 		int batchPosIndex{ LINE_FLOATS_PER_POS * batch.indexOffset };
 		int linePosIndex{ batchPosIndex + (LINE_FLOATS_PER_POS * batch.count) };
@@ -600,6 +608,7 @@ namespace Spear
 		ASSERT(result == GL_FRAMEBUFFER_COMPLETE);
 
 		// Prepare frame (alpha blending for sprites/text)
+		glViewport(0, 0, m_fboResolution.x, m_fboResolution.y);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fboRenderTexture[m_fboRenderTextureActive], 0);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		glEnable(GL_BLEND);
@@ -607,22 +616,23 @@ namespace Spear
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 
-		// Render scene 
+		// Render internal scene 
 		RenderBackground();
 		RenderRawLines();
 		RenderTexturedLines();
 		RenderSprites();
 
-		glDisable(GL_DEPTH_TEST);
-		RenderText();
-
 		// SECOND PASS (to Screen) ----------------------------------------
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDisable(GL_DEPTH_TEST);
+		glViewport(0, 0, Core::GetWindowSize().x, Core::GetWindowSize().y);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glUseProgram(m_screenShader);
 		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[m_fboRenderTextureActive]);
 		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
 		m_fboRenderTextureActive = (m_fboRenderTextureActive == 0 ? 1 : 0); // swap buffer
+		
+		RenderText();
 
 		END_PROFILE("ScreenRenderer_Total");
 	}
@@ -729,7 +739,8 @@ namespace Spear
 			GLint texLoc = glGetUniformLocation(m_lineShaderTextures, "textureSampler");
 			glUniform1i(texLoc, 0);
 			GLint widthLoc = glGetUniformLocation(m_lineShaderTextures, "lineWidth");
-			glUniform2f(widthLoc, batch.lineWidth / Core::GetWindowSize().x, batch.lineWidth / Core::GetWindowSize().y);
+			glUniform2f(widthLoc, batch.lineWidth / (m_fboResolution.x / 2), batch.lineWidth / (m_fboResolution.y / 2));
+			// (width / resolution) is half a pixel as device coordinates range from -1 to +1, halving m_fboResolution fixes this
 
 			// render
 			GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, batch.count)); // 4 vertices per instance, m_lineCount instances

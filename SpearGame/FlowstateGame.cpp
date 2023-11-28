@@ -47,7 +47,7 @@ void FlowstateGame::StateEnter()
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
-bool viewPerspective{false};
+bool view3D{false};
 RaycastParams rayParams;
 int FlowstateGame::StateUpdate(float deltaTime)
 {
@@ -59,7 +59,16 @@ int FlowstateGame::StateUpdate(float deltaTime)
 
 	if (input.InputStart(INPUT_TOGGLE))
 	{
-		viewPerspective = !viewPerspective;
+		view3D = !view3D;
+
+		if (view3D)
+		{
+			Spear::ServiceLocator::GetScreenRenderer().SetInternalResolution(rayParams.xResolution, rayParams.yResolution);
+		}
+		else
+		{
+			Spear::ServiceLocator::GetScreenRenderer().SetInternalResolution(Spear::Core::GetWindowSize().x, Spear::Core::GetWindowSize().y);
+		}
 	}
 
 	if (input.InputHold(INPUT_SHOOT))
@@ -89,13 +98,16 @@ int FlowstateGame::StateUpdate(float deltaTime)
 void FlowstateGame::StateRender()
 {
 
-	m_player.Draw(viewPerspective);
+	m_player.Draw(view3D);
 
 	Spear::ServiceLocator::GetScreenRenderer().Render();
 }
 
 void FlowstateGame::StateExit()
 {
+	view3D = false;
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
 	SDL_SetRelativeMouseMode(SDL_FALSE);
+
+	Spear::ServiceLocator::GetScreenRenderer().SetInternalResolution(Spear::Core::GetWindowSize().x, Spear::Core::GetWindowSize().y);
 }
