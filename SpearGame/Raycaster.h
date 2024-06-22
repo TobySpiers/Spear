@@ -40,8 +40,8 @@ public:
 	static void LoadLevel(const char* filename);
 	static void ApplyConfig(const RaycastParams& config);
 
-	static void Draw2DWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
-	static void Draw3DWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
+	static void Draw2DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
+	static void Draw3DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
 
 	static void Draw2DGrid(const Vector2f& pos, const float angle);
 	static void Draw3DGrid(const Vector2f& pos, float pitch, const float angle);
@@ -60,4 +60,27 @@ private:
 
 	// Depth
 	static GLfloat m_mapMaxDepth;
+
+	// For storing internal per-frame data
+	struct RaycastFrameData
+	{
+		float		viewPitch;		// 'slope' used for rays sampling floor/ceiling
+		float		viewHeight;		// vertical position of camera
+		Vector2f	viewPos;		// 2D position of camera (XY)
+		Vector2f	viewForward;	// forward vector for camera view
+		
+		// screen plane (allows even distribution of ray endpoints, radial distribution caused warping due to uneven gap sizes between ray endpoints hitting flat surfaces)
+		Vector2f	screenPlaneEdgePositionL;	// position of left edge of camera far clip
+		Vector2f	screenPlaneEdgePositionR;	// position of right edge of camera far clip
+		Vector2f	screenPlaneVector;			// direction from left to right
+
+		Vector2f	raySpacingDir;		// direction to space rays horizontally for walls
+		float		raySpacingLength;	// spacing to use between each ray
+
+		// although we have similar data for wall-rays, we need to know Fov distribution for floor-rays because
+		// rays sampled directly in front of us need to be bunched tightly together while distant rays are spread out
+		Vector2f	fovMinAngle;	// minimum ray angle based on fov (left edge of 'visual cone')
+		Vector2f	fovMaxAngle;	// maximum ray angle based on fov (right edge of 'visual cone')
+	};
+	static RaycastFrameData m_frame;
 };

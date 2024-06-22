@@ -52,6 +52,9 @@
       <Filter>SpearGraphics</Filter>
     </ClCompile>
     <ClCompile Include="FrameProfiler.cpp" />
+    <ClCompile Include="ThreadManager.cpp">
+      <Filter>SpearCore</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -97,5 +100,8 @@
       <Filter>SpearGraphics</Filter>
     </ClInclude>
     <ClInclude Include="FrameProfiler.h" />
+    <ClInclude Include="ThreadManager.h">
+      <Filter>SpearCore</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

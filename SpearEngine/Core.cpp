@@ -54,8 +54,9 @@ namespace Spear
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 		// enable double-buffer to avoid screentearing, set depth buffer to 24 bits (common balance for precision/memory use)
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+		// This isn't used as we are manually rendering through OpenGL
+		//SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		//SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
 		// Initialise all services
 		ServiceLocator::Initialise(params);
