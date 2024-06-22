@@ -6,9 +6,7 @@
 
 #include "Raycaster.h"
 #include "LevelManager.h"
-
 #include <algorithm>
-
 
 GLuint* Raycaster::m_bgTexRGBA{nullptr};
 GLfloat* Raycaster::m_bgTexDepth{nullptr};
@@ -58,7 +56,6 @@ void Raycaster::ApplyConfig(const RaycastParams& config)
 void Raycaster::Draw2DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
 {
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
-	//rend.SetBatchLineWidth(1.0f);
 
 	// Define the 'screen'
 	const float halfFov{ m_rayConfig.fieldOfView / 2 };
@@ -76,7 +73,8 @@ void Raycaster::Draw2DLooseWalls(const Vector2f& pos, const float angle, Raycast
 		Spear::ScreenRenderer::LineData line;
 		line.start = pWalls[i].origin;
 		line.end = pWalls[i].origin + pWalls[i].vec;
-		rend.AddRawLine(line, pWalls[i].colour);
+		line.colour = pWalls[i].colour;
+		rend.AddLine(line);
 	}
 
 	// Draw each ray
@@ -111,7 +109,7 @@ void Raycaster::Draw2DLooseWalls(const Vector2f& pos, const float angle, Raycast
 		Spear::ScreenRenderer::LineData line;
 		line.start = pos;
 		line.end = foundIntersect? intersect : rayEndPoint;
-		rend.AddRawLine(line, Colour4f::White());
+		rend.AddLine(line);
 	}
 }
 
@@ -119,7 +117,6 @@ void Raycaster::Draw3DLooseWalls(const Vector2f& pos, const float angle, Raycast
 {
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 	int lineWidth{ static_cast<int>(Spear::Core::GetWindowSize().x) / m_rayConfig.xResolution };
-	//rend.SetBatchLineWidth(lineWidth);
 
 	// Define a flat 'screen plane' to evenly distribute rays onto
 	// This distribution ensures objects do not squash/stretch as they traverse the screen
@@ -178,7 +175,8 @@ void Raycaster::Draw3DLooseWalls(const Vector2f& pos, const float angle, Raycast
 			Spear::ScreenRenderer::LineData line;
 			line.start = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid - height);
 			line.end = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid + height);
-			rend.AddRawLine(line, rayColour);
+			line.colour = rayColour;
+			rend.AddLine(line);
 		}
 	}
 }
@@ -186,7 +184,6 @@ void Raycaster::Draw3DLooseWalls(const Vector2f& pos, const float angle, Raycast
 void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 {
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
-	rend.SetBatchLineWidth(0, 2.0f);
 
 	// Draw tiles
 	for (int x = 0; x < m_map.gridWidth; x++)
@@ -315,15 +312,14 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 		// RENDER
 		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		Spear::ScreenRenderer::LineData line;
-		Colour4f lineColour = Colour4f::White();
 		if (tileFound)
 		{
 			rayEnd = rayStart + rayDir * distance;
-			lineColour = Colour4f::Red();
+			line.colour = Colour4f::Red();
 		}
 		line.start = pos * m_rayConfig.scale2D;
 		line.end = rayEnd * m_rayConfig.scale2D;
-		rend.AddRawLine(line, lineColour);
+		rend.AddLine(line);
 	}
 
 	//FLOOR CASTING
@@ -368,18 +364,11 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 		}
 	}
 }
-
-void Raycast3DFloorChunk()
-{
-
-}
 	
 // CPU bound for now. Potential to eventualy convert into a shader...
 void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float angle)
 {
-	START_PROFILE("3D Raycaster");
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
-	rend.SetBatchLineWidth(0, 1.f);
 
 	// Calculate const data for this frame
 	{
@@ -403,31 +392,30 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		m_frame.fovMinAngle = Vector2f(cos(angle - halfFov), sin(angle - halfFov));
 		m_frame.fovMaxAngle = Vector2f(cos(angle + halfFov), sin(angle + halfFov));
 	}
-
-	// FLOOR/CEILING CASTING (SLOW) --------------------------------------------------------------------------
-	START_PROFILE("3D Floor/Roof CPU")
 	const Spear::TextureBase* pMapTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(0);
 
+	// Floor/Ceiling Casting
+	START_PROFILE("Raycast Roof/Floor")
 	for (int y = 0; y < m_rayConfig.yResolution; y++)
 	{
 		// Current y position compared to the center of the screen (the horizon)
 		// Starts at 1, increases to HalfHeight
-		int rayPitchFloor = (y - m_rayConfig.yResolution / 2) + m_frame.viewPitch + 1;
-		int rayPitchRoof = (y - m_rayConfig.yResolution / 2) - m_frame.viewPitch + 2;
+		const int rayPitchFloor = (y - m_rayConfig.yResolution / 2) + m_frame.viewPitch + 1;
+		const int rayPitchRoof = (y - m_rayConfig.yResolution / 2) - m_frame.viewPitch + 2;
 
 		// Horizontal distance from the camera to the floor for the current row.
 		// 0.5 is the z position exactly in the middle between floor and ceiling.
-		float rowDistanceFloor = m_frame.viewHeight / rayPitchFloor;
-		float rowDistanceRoof = m_frame.viewHeight / rayPitchRoof;
+		const float rowDistanceFloor = m_frame.viewHeight / rayPitchFloor;
+		const float rowDistanceRoof = m_frame.viewHeight / rayPitchRoof;
+
+		// vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' horizontally by 1 ray)
+		const Vector2f floorStep = rowDistanceFloor * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
+		const Vector2f roofStep = rowDistanceRoof * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
 
 		// starting position of first pixel in row (left)
 		// essentially the 'left-most ray' along a length (depth) of rowDistance
 		Vector2f floorXY = m_frame.viewPos + rowDistanceFloor * m_frame.fovMinAngle;
 		Vector2f roofXY = m_frame.viewPos + rowDistanceRoof * m_frame.fovMinAngle;
-
-		// vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' horizontally by 1 ray)
-		Vector2f floorStep = rowDistanceFloor * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
-		Vector2f roofStep = rowDistanceRoof * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
 
 		// Draw background texture
 		for (int x = 0; x < m_rayConfig.xResolution; ++x)
@@ -436,8 +424,8 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 			if(rowDistanceFloor > 0)
 			{
 				// Render floor
-				int floorCellX = (int)(floorXY.x);
-				int floorCellY = (int)(floorXY.y);
+				const int floorCellX = (int)(floorXY.x);
+				const int floorCellY = (int)(floorXY.y);
 
 				if(floorCellX >= 0 && floorCellY >= 0 && floorCellX < m_map.gridWidth && floorCellY < m_map.gridHeight)
 				{
@@ -464,13 +452,14 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 						Uint8 r, g, b, a;
 						SDL_GetRGBA(*pixel, pFloorTexture->format, &r, &g, &b, &a);
 
-						GLuint& colByte = m_bgTexRGBA[x + ((m_rayConfig.yResolution - y) * m_rayConfig.xResolution)];
+						const int textureArrayIndex{ x + ((m_rayConfig.yResolution - y) * m_rayConfig.xResolution) };
+						GLuint& colByte = m_bgTexRGBA[textureArrayIndex];
 						colByte |= (r << 0);
 						colByte |= (g << 8);
 						colByte |= (b << 16);
 						colByte |= (a << 24);
 
-						m_bgTexDepth[x + ((m_rayConfig.yResolution - y) * m_rayConfig.xResolution)] = depth;
+						m_bgTexDepth[textureArrayIndex] = depth;
 					}
 				}
 				floorXY += floorStep;
@@ -480,8 +469,8 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 			if(rowDistanceRoof > 0)
 			{
 				// Render roof
-				int roofCellX = (int)(roofXY.x);
-				int roofCellY = (int)(roofXY.y);
+				const int roofCellX = (int)(roofXY.x);
+				const int roofCellY = (int)(roofXY.y);
 
 				if (roofCellX >= 0 && roofCellY >= 0 && roofCellX < m_map.gridWidth && roofCellY < m_map.gridHeight)
 				{
@@ -521,13 +510,10 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 			}
 		}
 	}
-	END_PROFILE("3D Floor/Roof CPU")
-	// Upload Floor+Ceiling background texture for this frame
-	rend.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
-	ClearBackgroundArrays();
+	END_PROFILE("Raycast Roof/Floor")
 
 	// Using DDA (digital differential analysis) to quickly calculate intersections
-	START_PROFILE("3D Walls CPU")
+	START_PROFILE("Raycast Walls")
 	for (int screenX = 0; screenX < m_rayConfig.xResolution; screenX++)
 	{
 		Vector2f rayStart = m_frame.viewPos;
@@ -535,7 +521,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		Vector2f rayDir = Normalize(rayEnd - rayStart);
 
 		Vector2f rayUnitStepSize{ sqrt(1 + (rayDir.y / rayDir.x) * (rayDir.y / rayDir.x)),		// length required to travel 1 X unit in Ray Direction
-								  sqrt(1 + (rayDir.x / rayDir.y) * (rayDir.x / rayDir.y)) };	// length required to travel 1 Y unit in Ray Direction
+									sqrt(1 + (rayDir.x / rayDir.y) * (rayDir.x / rayDir.y)) };	// length required to travel 1 Y unit in Ray Direction
 
 		Vector2i mapCheck = rayStart.ToInt(); // truncation will 'snap' position to tile
 		Vector2f rayLength1D; // total length of ray: via x units, via y units
@@ -577,6 +563,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		eRayHit rayHit{RAY_NOHIT};
 		float distance{ 0.f };
+		int wallNodeIndex{ 0 };
 		while (rayHit == RAY_NOHIT && distance < m_rayConfig.farClip)
 		{
 			bool side{false};
@@ -601,7 +588,8 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 			if (mapCheck.x >= 0 && mapCheck.x < m_map.gridWidth && mapCheck.y >= 0 && mapCheck.y < m_map.gridHeight)
 			{
 				// if tile has assigned value 1, it EXISTS
-				if (m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].texIdWall != eLevelTextures::TEX_NONE)
+				wallNodeIndex = mapCheck.x + (mapCheck.y * m_map.gridWidth);
+				if (m_map.pNodes[wallNodeIndex].texIdWall != eLevelTextures::TEX_NONE)
 				{
 					rayHit = side ? RAY_HIT_SIDE : RAY_HIT_FRONT;
 				}
@@ -611,52 +599,79 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		// ====================================
 		// RENDER
 		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-		if (rayHit)
+		if(rayHit)
 		{
-			// Project THIS RAY onto the FORWARD VECTOR of the camera to get distance from camera with no fisheye distortion
 			Vector2f intersection{rayStart + rayDir * distance};
-			float mid{ rend.GetInternalResolution().y / 2.0f };
 			float depth{ Projection(intersection - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
-			float height{ mid / depth};
+			float renderDepth = depth / m_mapMaxDepth;
+			int halfHeight{ static_cast<int>((m_rayConfig.yResolution / 2) / depth) };
 
-			Spear::ScreenRenderer::LineData line;
-			line.start = Vector2f(screenX, (mid - height) - m_frame.viewPitch);
-			line.end = Vector2f(screenX, (mid + height) - m_frame.viewPitch);
-			line.texLayer = m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].texIdWall;
-			line.depth = depth / m_mapMaxDepth;
+			int mid{ static_cast<int>(m_frame.viewPitch + (m_rayConfig.yResolution / 2)) };
+			int top{ mid - halfHeight };
+			int bottom{ mid + halfHeight };
+			const SDL_Surface* pWallTexture = pMapTextures->GetSDLSurface(m_map.pNodes[wallNodeIndex].texIdWall);
+			ASSERT(pWallTexture);
 
-			// UV X coord
-			if (rayHit == RAY_HIT_FRONT)
+			// Draw textured vertical line segments for wall
+			bool bWallFinished = false;
+			int renderedUp = 0;
+			int renderedDown = 0;
+			while (!bWallFinished)
 			{
-				int tileStart = static_cast<int>(intersection.x); // truncate to find start of tile
-				line.texPosX = intersection.x - tileStart;
-			}
-			else
-			{
-				int tileStart = static_cast<int>(intersection.y); // truncate to find start of tile
-				line.texPosX = intersection.y - tileStart;
-			}
-			rend.AddTexturedLine(line, 0);
+				for (int screenY = std::max(0, top); screenY < bottom; screenY++)
+				{
+					if (screenY >= m_rayConfig.yResolution)
+					{
+						break;
+					}
 
-			if (m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].extendUp)
-			{
-				Spear::ScreenRenderer::LineData upSection = line;
+					const int screenIndex{ screenX + (screenY * m_rayConfig.xResolution) };
+					if (renderDepth < m_bgTexDepth[screenIndex])
+					{
+						// X Index into WallTexture = x position inside cell
+						int texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
+						if (texX < 0)
+							texX += pWallTexture->w;
+						// Y Index into WallTexture = percentage through current Y forloop
+						int texY = (pWallTexture->h - 1) - static_cast<int>((static_cast<float>(screenY - top) / (bottom - top)) * (pWallTexture->h - 1));
+						ASSERT(texX < pWallTexture->w && texX >= 0);
+						ASSERT(texY < pWallTexture->h && texY >= 0);
 
-				upSection.end.y = upSection.start.y;
-				upSection.start.y -= (height * 2);
-				upSection.depth *= 1.1f;
-				rend.AddTexturedLine(upSection, 0);
-			}
-			if (m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].extendDown)
-			{
-				line.start.y = line.end.y;
-				line.end.y += (height * 2);
-				line.depth *= 1.1f;
-				rend.AddTexturedLine(line, 0);
+						Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texY * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
+						Uint8 r, g, b, a;
+						SDL_GetRGBA(*pixel, pWallTexture->format, &r, &g, &b, &a);
+
+						GLuint& colByte = m_bgTexRGBA[screenIndex];
+						colByte = 0;
+						colByte |= (r << 0);
+						colByte |= (g << 8);
+						colByte |= (b << 16);
+						colByte |= (a << 24);
+
+						m_bgTexDepth[screenIndex] = renderDepth;
+					}
+				}
+
+				if (m_map.pNodes[wallNodeIndex].extendUp > renderedUp++)
+				{
+					top = (renderedUp * (halfHeight * 2)) + mid - halfHeight;
+					bottom = (renderedUp * (halfHeight * 2)) + mid + halfHeight;
+				}
+				else if (m_map.pNodes[wallNodeIndex].extendDown > renderedDown++)
+				{
+					top = (-renderedDown * (halfHeight * 2)) + mid - halfHeight;
+					bottom = (-renderedDown * (halfHeight * 2)) + mid + halfHeight;
+				}
+				else
+				{
+					bWallFinished = true;
+				}
 			}
 		}
 	}
+	END_PROFILE("Raycast Walls")
 
-	END_PROFILE("3D Walls CPU")
-	END_PROFILE("3D Raycaster");
+	// Upload Floor+Ceiling background texture for this frame
+	rend.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
+	ClearBackgroundArrays();
 }

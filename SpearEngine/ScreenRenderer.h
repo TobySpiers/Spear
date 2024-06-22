@@ -21,20 +21,12 @@ namespace Spear
 	constexpr int TEXT_POS_MAXBYTES{TEXT_FLOATS_PER_POS * TEXT_CHAR_MAX};
 	constexpr int TEXT_COL_MAXBYTES{TEXT_FLOATS_PER_COLOR * TEXT_CHAR_MAX};
 
-	// TEXTURED LINE BATCHES
-	constexpr int LINE_MAX{2000};
-	constexpr int LINE_BATCH_MAX{2};
-	constexpr int LINE_FLOATS_PER_POS{4}; // 0,1: startXY, 2,3: endXY
-	constexpr int LINE_FLOATS_PER_INFO{3}; // 0: x pos, 1: texture slot, 2: depth
-	constexpr int LINE_POS_MAXBYTES{LINE_FLOATS_PER_POS * LINE_MAX};
-	constexpr int LINE_INFO_MAXBYTES{LINE_FLOATS_PER_INFO * LINE_MAX};
-
-	// UNTEXTURED LINES (NO BATCHES)
-	constexpr int RAWLINE_MAX{ 10000 };
-	constexpr int RAWLINE_FLOATS_PER_POS{ 4 }; 
-	constexpr int RAWLINE_FLOATS_PER_COLOR{ 4 }; // 4 values (rgba)
-	constexpr int RAWLINE_POS_MAXBYTES{ RAWLINE_FLOATS_PER_POS * RAWLINE_MAX };
-	constexpr int RAWLINE_COL_MAXBYTES{ RAWLINE_FLOATS_PER_COLOR * RAWLINE_MAX };
+	// LINES (UNBATCHED)
+	constexpr int LINE_MAX{ 10000 };
+	constexpr int LINE_FLOATS_PER_POS{ 4 }; // 4 values (x1, y1, x2, y2) 
+	constexpr int LINE_FLOATS_PER_COLOR{ 4 }; // 4 values (rgba)
+	constexpr int LINE_POS_MAXBYTES{ LINE_FLOATS_PER_POS * LINE_MAX };
+	constexpr int LINE_COL_MAXBYTES{ LINE_FLOATS_PER_COLOR * LINE_MAX };
 
 	// System for rendering 2D images to the screen
 	class ScreenRenderer
@@ -69,11 +61,10 @@ namespace Spear
 
 		struct LineData
 		{
+			Colour4f colour{ 1.f, 1.f, 1.f, 1.f };
 			Vector2f start{ 0.f, 0.f };
 			Vector2f end{ 0.f, 0.f };
-			float texPosX{0.f};
 			float depth{0.f};
-			int texLayer{0};
 		};
 
 		struct LinePolyData
@@ -82,6 +73,7 @@ namespace Spear
 			Vector2f pos{ 0.f, 0.f };
 			float radius{ 0.f };
 			float rotation{ 0.f };
+			float depth{ 0.f };
 			int segments{ 3 };
 		};
 
@@ -105,14 +97,8 @@ namespace Spear
 		void AddText(const TextData& text, int fontBatchId = 0);
 		void ClearTextBatches();
 
-		// Line Batch System
-		int CreateLineBatch(const TextureBase& batchTexture, int capacity, float lineWidth = 1.f);
-		void SetBatchLineWidth(int batchId, float width){m_lineBatches[batchId].lineWidth = width; };
-		void AddTexturedLine(const LineData& line, int batchId);
-		void ClearLineBatches();
-
 		// Raw Lines (discrete batches not necessary as no textures used)
-		void AddRawLine(const LineData& line, Colour4f colour);
+		void AddLine(const LineData& line);
 		void AddLinePoly(const LinePolyData& circle);
 
 		// Background
@@ -122,14 +108,12 @@ namespace Spear
 	private:
 		void InitialiseFrameBufferObject();
 		void InitialiseBackgroundBuffers();
-		void InitialiseRawLineBuffers();
-		void InitialiseTexturedLineBuffers();
+		void InitialiseLineBuffers();
 		void InitialiseSpriteBuffers();
 		void InitialiseTextBuffers();
 
 		void RenderBackground();
-		void RenderRawLines();
-		void RenderTexturedLines();
+		void RenderLines();
 		void RenderSprites();
 		void RenderText();
 
@@ -139,10 +123,6 @@ namespace Spear
 			int capacity{0};	// maximum items allowed in batch
 			int count{0};		// number of items currently in batch
 			const TextureBase* pTexture{nullptr};
-		};
-		struct LineBatch : TextureBatch
-		{
-			float lineWidth{1.f};
 		};
 
 		// frame buffer
@@ -176,26 +156,18 @@ namespace Spear
 		TextureBatch m_textBatches[TEXT_BATCH_MAX] = {};
 		int m_textBatchCount{0};
 
-		// textured line data
-		GLuint m_lineVAO{0};
+		// line data
+		GLuint m_lineVAO{ 0 };
 		GLuint m_linePosBuffer{0};
-		GLuint m_lineUVBuffer{0};
+		GLuint m_lineColorBuffer{0};
+		GLuint m_lineDepthBuffer{0};
 		GLfloat m_linePosData[LINE_POS_MAXBYTES] = {};
-		GLfloat m_lineUVData[LINE_INFO_MAXBYTES] = {};
-		LineBatch m_lineBatches[LINE_BATCH_MAX] = {};
-		int m_lineBatchCount{0};
-
-		// untextured line data
-		GLuint m_rawlineVAO{ 0 };
-		GLuint m_rawlinePosBuffer{0};
-		GLuint m_rawlineColorBuffer{0};
-		GLfloat m_rawlinePosData[RAWLINE_POS_MAXBYTES] = {};
-		GLfloat m_rawLineColData[RAWLINE_COL_MAXBYTES] = {};
-		int m_rawlineCount{0};
+		GLfloat m_lineColData[LINE_COL_MAXBYTES] = {};
+		GLfloat m_lineDepthData[LINE_MAX] = {};
+		int m_lineCount{0};
 
 		// shaders
-		GLuint m_lineShaderTextures{0};
-		GLuint m_lineShaderColour{0};
+		GLuint m_lineShader{0};
 		GLuint m_spriteShader{0};
 		GLuint m_textShader{0};
 		GLuint m_backgroundShader{0};

@@ -17,7 +17,7 @@ struct RaycastParams
 	float fieldOfView{ TO_RADIANS(75.f) };
 	float farClip{50};
 	int xResolution{300}; // affects performance for walls + floors + ceilings.
-	int yResolution{250}; // affects performance for floors + ceilings.
+	int yResolution{200}; // affects performance for floors + ceilings.
 
 	// Used only for 2D top-down rendering. Scale 1 = 1 tile : 1 pixel.
 	float scale2D{ 75.f };
