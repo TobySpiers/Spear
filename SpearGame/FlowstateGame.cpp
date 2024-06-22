@@ -37,7 +37,6 @@ void FlowstateGame::StateEnter()
 	m_worldTextures.SetDataFromFile(2, "../Assets/SPRITES/wall64_rough.png");
 	m_worldTextures.SetDataFromFile(3, "../Assets/SPRITES/wall64_wolf.png");
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_worldTextures, 500);
-	Spear::ServiceLocator::GetScreenRenderer().CreateLineBatch(m_worldTextures, 1800);
 
 	// Load world
 	Raycaster::LoadLevel("level");

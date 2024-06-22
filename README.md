@@ -24,7 +24,8 @@
 • Ctrl+S: overwrite existing map\
 • Spacebar: toggle active edit mode\
 • Left Click: select/apply tiles\
-• Right Click: delete/decrement tiles
+• Right Click: delete/decrement tiles\
+• Q/E: zoom out/in
 
 # Screenshots
 ![Purple Room](Screenshots/PurpleRoom.png)

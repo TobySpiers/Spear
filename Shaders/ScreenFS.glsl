@@ -8,7 +8,7 @@ out vec4 color;
 void main() 
 {	
 	color = texture(textureSampler, v_texCoord);
-	color.r = color.g;
-	color.g = color.b;
-	color.b = color.r;
+	color.r = color.r;
+	color.g = color.g;
+	color.b = color.b;
 }

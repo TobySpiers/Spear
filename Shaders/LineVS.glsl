@@ -4,6 +4,7 @@ uniform vec2 lineWidth;
 
 layout(location = 0) in vec4 inPos;
 layout(location = 1) in vec4 inColor;
+layout(location = 2) in float inDepth;
 
 out vec4 v_color;
 
@@ -26,6 +27,6 @@ void main()
 	linePoints[2] = inPos.zw + (perpendicular * adjustedWidth);
 	linePoints[3] = inPos.zw;
 	
-	gl_Position = vec4(linePoints[gl_VertexID].xy, 0.1, 1.0);	
+	gl_Position = vec4(linePoints[gl_VertexID].xy, inDepth, 1.0);	
 	v_color = inColor;
 }
