@@ -15,6 +15,7 @@ GLfloat* Raycaster::m_bgTexDepth{nullptr};
 RaycastParams Raycaster::m_rayConfig;
 MapData Raycaster::m_map;
 GLfloat Raycaster::m_mapMaxDepth{FLT_MAX};
+Raycaster::RaycastFrameData Raycaster::m_frame;
 
 void Raycaster::RecreateBackgroundArrays(int width, int height)
 {
@@ -54,7 +55,7 @@ void Raycaster::ApplyConfig(const RaycastParams& config)
 	m_rayConfig = config; 
 };
 
-void Raycaster::Draw2DWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
+void Raycaster::Draw2DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
 {
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 	//rend.SetBatchLineWidth(1.0f);
@@ -114,7 +115,7 @@ void Raycaster::Draw2DWalls(const Vector2f& pos, const float angle, RaycastWall*
 	}
 }
 
-void Raycaster::Draw3DWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
+void Raycaster::Draw3DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
 {
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 	int lineWidth{ static_cast<int>(Spear::Core::GetWindowSize().x) / m_rayConfig.xResolution };
@@ -367,59 +368,66 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 		}
 	}
 }
+
+void Raycast3DFloorChunk()
+{
+
+}
 	
 // CPU bound for now. Potential to eventualy convert into a shader...
-void Raycaster::Draw3DGrid(const Vector2f& pos, float pitch, const float angle)
+void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float angle)
 {
 	START_PROFILE("3D Raycaster");
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 	rend.SetBatchLineWidth(0, 1.f);
 
-	// Calculate 'real' pitch (in_pitch is percentage from -1 to +1)
-	pitch = pitch * m_rayConfig.yResolution;
+	// Calculate const data for this frame
+	{
+		// Calculate 'real' pitch (in_pitch is just a percentage from -1 to +1)
+		m_frame.viewPitch = inPitch * m_rayConfig.yResolution;
+		m_frame.viewHeight = 0.625f * m_rayConfig.yResolution;
+		m_frame.viewForward = Normalize(Vector2f(cos(angle), sin(angle)));
+		m_frame.viewPos = inPos;
 
-	// Screen Plane ray-distribution to avoid squash/stretch warping
-	const float halfFov{ m_rayConfig.fieldOfView / 2 };
-	const Vector2f forward{ Normalize(Vector2f(cos(angle), sin(angle))) };
-	const Vector2f screenPlaneL{ pos + (Vector2f(cos(angle - halfFov), sin(angle - halfFov)) * m_rayConfig.farClip) };
-	const Vector2f screenPlaneR{ pos + (Vector2f(cos(angle + halfFov), sin(angle + halfFov)) * m_rayConfig.farClip) };
-	const Vector2f screenVector{ screenPlaneR - screenPlaneL };
+		// Screen Plane ray-distribution to avoid squash/stretch warping
+		const float halfFov{ m_rayConfig.fieldOfView / 2 };
+		m_frame.screenPlaneEdgePositionL = inPos + (Vector2f(cos(angle - halfFov), sin(angle - halfFov)) * m_rayConfig.farClip);
+		m_frame.screenPlaneEdgePositionR = inPos + (Vector2f(cos(angle + halfFov), sin(angle + halfFov)) * m_rayConfig.farClip);
+		m_frame.screenPlaneVector = m_frame.screenPlaneEdgePositionR - m_frame.screenPlaneEdgePositionL;
 
-	// Ray angle/spacing data
-	const Vector2f raySpacingDir{ forward.Normal() * -1 };
-	const float raySpacingLength{ screenVector.Length() / m_rayConfig.xResolution };
+		// Ray angle/spacing data
+		m_frame.raySpacingDir = m_frame.viewForward.Normal() * -1; // 'Normal' as in 'perpendicular': gives us sideways direction
+		m_frame.raySpacingLength = m_frame.screenPlaneVector.Length() / m_rayConfig.xResolution;
+
+		// unit vectors representing directions to form left/right edge of FoV
+		m_frame.fovMinAngle = Vector2f(cos(angle - halfFov), sin(angle - halfFov));
+		m_frame.fovMaxAngle = Vector2f(cos(angle + halfFov), sin(angle + halfFov));
+	}
 
 	// FLOOR/CEILING CASTING (SLOW) --------------------------------------------------------------------------
 	START_PROFILE("3D Floor/Roof CPU")
 	const Spear::TextureBase* pMapTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(0);
 
-	// unit vectors representing directions to form left/right edge of FoV
-	Vector2f planeDirLeft = Vector2f(cos(angle - halfFov), sin(angle - halfFov));
-	Vector2f planeDirRight = Vector2f(cos(angle + halfFov), sin(angle + halfFov));
-
-	// Vertical position of the camera.
-	float posZ = 0.625f * m_rayConfig.yResolution;
-
 	for (int y = 0; y < m_rayConfig.yResolution; y++)
 	{
 		// Current y position compared to the center of the screen (the horizon)
 		// Starts at 1, increases to HalfHeight
-		int rayPitchFloor = (y - m_rayConfig.yResolution / 2) + pitch + 1;
-		int rayPitchRoof = (y - m_rayConfig.yResolution / 2) - pitch + 2;
+		int rayPitchFloor = (y - m_rayConfig.yResolution / 2) + m_frame.viewPitch + 1;
+		int rayPitchRoof = (y - m_rayConfig.yResolution / 2) - m_frame.viewPitch + 2;
 
 		// Horizontal distance from the camera to the floor for the current row.
 		// 0.5 is the z position exactly in the middle between floor and ceiling.
-		float rowDistanceFloor = posZ / rayPitchFloor;
-		float rowDistanceRoof = posZ / rayPitchRoof;
+		float rowDistanceFloor = m_frame.viewHeight / rayPitchFloor;
+		float rowDistanceRoof = m_frame.viewHeight / rayPitchRoof;
 
 		// starting position of first pixel in row (left)
 		// essentially the 'left-most ray' along a length (depth) of rowDistance
-		Vector2f floorXY = pos + rowDistanceFloor * planeDirLeft;
-		Vector2f roofXY = pos + rowDistanceRoof * planeDirLeft;
+		Vector2f floorXY = m_frame.viewPos + rowDistanceFloor * m_frame.fovMinAngle;
+		Vector2f roofXY = m_frame.viewPos + rowDistanceRoof * m_frame.fovMinAngle;
 
 		// vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' horizontally by 1 ray)
-		Vector2f floorStep = rowDistanceFloor * (planeDirRight - planeDirLeft) / m_rayConfig.xResolution;
-		Vector2f roofStep = rowDistanceRoof * (planeDirRight - planeDirLeft) / m_rayConfig.xResolution;
+		Vector2f floorStep = rowDistanceFloor * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
+		Vector2f roofStep = rowDistanceRoof * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
 
 		// Draw background texture
 		for (int x = 0; x < m_rayConfig.xResolution; ++x)
@@ -434,7 +442,7 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, float pitch, const float angle)
 				if(floorCellX >= 0 && floorCellY >= 0 && floorCellX < m_map.gridWidth && floorCellY < m_map.gridHeight)
 				{
 					// Calculate floor depth 
-					float depth{ Projection(floorXY - pos, forward * m_rayConfig.farClip).Length() };
+					float depth{ Projection(floorXY - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
 					depth /= m_mapMaxDepth;
 
 					// Floor tex sampling
@@ -478,7 +486,7 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, float pitch, const float angle)
 				if (roofCellX >= 0 && roofCellY >= 0 && roofCellX < m_map.gridWidth && roofCellY < m_map.gridHeight)
 				{
 					// Calculate roof depth
-					float depth{ Projection(roofXY - pos, forward * m_rayConfig.farClip).Length() };
+					float depth{ Projection(roofXY - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
 					depth /= m_mapMaxDepth;
 
 					// Roof tex sampling
@@ -522,8 +530,8 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, float pitch, const float angle)
 	START_PROFILE("3D Walls CPU")
 	for (int screenX = 0; screenX < m_rayConfig.xResolution; screenX++)
 	{
-		Vector2f rayStart = pos;
-		Vector2f rayEnd{ screenPlaneL - (raySpacingDir * raySpacingLength * screenX) };
+		Vector2f rayStart = m_frame.viewPos;
+		Vector2f rayEnd{ m_frame.screenPlaneEdgePositionL - (m_frame.raySpacingDir * m_frame.raySpacingLength * screenX) };
 		Vector2f rayDir = Normalize(rayEnd - rayStart);
 
 		Vector2f rayUnitStepSize{ sqrt(1 + (rayDir.y / rayDir.x) * (rayDir.y / rayDir.x)),		// length required to travel 1 X unit in Ray Direction
@@ -608,12 +616,12 @@ void Raycaster::Draw3DGrid(const Vector2f& pos, float pitch, const float angle)
 			// Project THIS RAY onto the FORWARD VECTOR of the camera to get distance from camera with no fisheye distortion
 			Vector2f intersection{rayStart + rayDir * distance};
 			float mid{ rend.GetInternalResolution().y / 2.0f };
-			float depth{ Projection(intersection - pos, forward * m_rayConfig.farClip).Length() };
+			float depth{ Projection(intersection - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
 			float height{ mid / depth};
 
 			Spear::ScreenRenderer::LineData line;
-			line.start = Vector2f(screenX, (mid - height) - pitch);
-			line.end = Vector2f(screenX, (mid + height) - pitch);
+			line.start = Vector2f(screenX, (mid - height) - m_frame.viewPitch);
+			line.end = Vector2f(screenX, (mid + height) - m_frame.viewPitch);
 			line.texLayer = m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].texIdWall;
 			line.depth = depth / m_mapMaxDepth;
 

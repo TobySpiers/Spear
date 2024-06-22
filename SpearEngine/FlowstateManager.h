@@ -15,7 +15,6 @@ namespace Spear
 
 		// Update game. Return a slot id to pick new state:
 		// return -1 to remain in current state.
-		// return -2 to quit.
 		virtual int StateUpdate(float deltaTime) = 0;
 
 		// Render game

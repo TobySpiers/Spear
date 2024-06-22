@@ -3,6 +3,7 @@
 #include "WindowManager.h"
 #include "InputManager.h"
 #include "ScreenRenderer.h"
+#include "ThreadManager.h"
 
 #include "ServiceLocator.h"
 
@@ -12,6 +13,7 @@ namespace Spear
 	static WindowManager* s_pWindowManager{nullptr};
 	static InputManager* s_pInputManager{nullptr};
 	static ScreenRenderer* s_pScreenRenderer{nullptr};
+	static ThreadManager* s_pThreadManager{nullptr};
 
 	void ServiceLocator::Initialise(const WindowParams& params)
 	{
@@ -34,6 +36,11 @@ namespace Spear
 		{
 			s_pScreenRenderer = new ScreenRenderer;
 		}
+
+		if (!s_pThreadManager)
+		{
+			s_pThreadManager = new ThreadManager;
+		}
 	}
 
 	void ServiceLocator::Shutdown()
@@ -49,6 +56,9 @@ namespace Spear
 
 		delete s_pScreenRenderer;
 		s_pScreenRenderer = nullptr;
+
+		delete s_pThreadManager;
+		s_pThreadManager = nullptr;
 	}
 
 	FlowstateManager& ServiceLocator::GetFlowstateManager()
@@ -73,5 +83,11 @@ namespace Spear
 	{
 		ASSERT(s_pScreenRenderer);
 		return *s_pScreenRenderer;
+	}
+
+	ThreadManager& ServiceLocator::GetThreadManager()
+	{
+		ASSERT(s_pThreadManager);
+		return *s_pThreadManager;
 	}
 }

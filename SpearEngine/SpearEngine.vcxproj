@@ -29,6 +29,7 @@
     <ClInclude Include="TextureArray.h" />
     <ClInclude Include="TextureBase.h" />
     <ClInclude Include="TextureFont.h" />
+    <ClInclude Include="ThreadManager.h" />
     <ClInclude Include="UiButton.h" />
     <ClInclude Include="WindowManager.h" />
     <ClInclude Include="ServiceLocator.h" />
@@ -45,6 +46,7 @@
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureArray.cpp" />
     <ClCompile Include="TextureFont.cpp" />
+    <ClCompile Include="ThreadManager.cpp" />
     <ClCompile Include="UiButton.cpp" />
     <ClCompile Include="WindowManager.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />
@@ -157,6 +159,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -172,6 +175,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
+      <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
