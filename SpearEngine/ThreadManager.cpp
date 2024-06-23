@@ -11,6 +11,41 @@
 
 namespace Spear
 {
+
+	void TaskHandle::Initialise(int threads)
+	{
+		std::unique_lock lock(m_mutex);
+		m_activeThreads.store(threads);
+	}
+
+	int TaskHandle::RemainingThreads()
+	{
+		return m_activeThreads.load();
+	}
+
+	void TaskHandle::DecrementRemainingThreads()
+	{
+		std::unique_lock lock(m_mutex);
+		m_activeThreads.store(std::max(m_activeThreads.load() - 1, 0));
+		if (m_activeThreads.load() == 0)
+		{
+			m_conditionTaskComplete.notify_all();
+		}
+	}
+
+	bool TaskHandle::IsTaskComplete()
+	{
+		return m_activeThreads.load() == 0;
+	}
+
+	void TaskHandle::WaitForTaskComplete()
+	{
+		ASSERT(m_activeThreads.load() > 0);
+
+		std::shared_lock lock(m_mutex);
+		m_conditionTaskComplete.wait(lock, [&]() {return m_activeThreads.load() == 0; });
+	}
+
 	ThreadManager::ThreadManager()
 	{
 		const int safeThreadCount = std::min(std::jthread::hardware_concurrency() - 1, THREAD_COUNT);
@@ -30,23 +65,32 @@ namespace Spear
 		// no need to call join() in destructor when using jthread
 	}
 
-	void ThreadManager::DispatchTask(const ThreadTask& task)
+	void ThreadManager::DispatchTask(const ThreadTask& task, TaskHandle* taskStatus)
 	{
-		std::scoped_lock<std::mutex> lock(m_mutex);
+		if (taskStatus)
+		{
+			taskStatus->Initialise(1); // initialise handle for a single thread
+		}
 
-		m_queuedTasks.push({task, 0});
+		std::scoped_lock<std::mutex> lock(m_mutex);
+		m_queuedTasks.push({task, taskStatus, 0});
 
 		// let a waiting thread know there is a new task available
 		m_queuedTasksUpdated.notify_one();
 	}
 
-	void ThreadManager::DispatchTaskMulti(const ThreadTask& task, u32 taskInstances)
+	void ThreadManager::DispatchTaskDistributed(const ThreadTask& task, TaskHandle* taskStatus, u32 taskInstances)
 	{
+		if (taskStatus)
+		{
+			taskStatus->Initialise(taskInstances);
+		}
+
 		std::scoped_lock<std::mutex> lock(m_mutex);
 
 		for(u32 i = 0; i < taskInstances; i++)
 		{
-			m_queuedTasks.push({ task, i });
+			m_queuedTasks.push({ task, taskStatus, i });
 		}
 
 		// let all waiting threads know there are new tasks available
@@ -81,7 +125,11 @@ namespace Spear
 
 			if (bClaimedJob)
 			{
-				threadTask.task(threadTask.taskInstanceID);
+				int returnValue = threadTask.task(threadTask.taskInstanceID);
+				if (threadTask.pTaskStatus)
+				{
+					threadTask.pTaskStatus->DecrementRemainingThreads();
+				}
 			}
 		}
 
