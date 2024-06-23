@@ -184,39 +184,63 @@ void Raycaster::Draw3DLooseWalls(const Vector2f& pos, const float angle, Raycast
 void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 {
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
+	ClearBackgroundArrays();
+	rend.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
+
+	constexpr float opacityFloor = 0.5f;
+	constexpr float opacityRoof = 0.7f;
+	constexpr float depthWorld = 0.5f;
+	constexpr float depthPlayer = 0.25f;
+
+	// Draw player
+	Spear::ScreenRenderer::LinePolyData playerPoly;
+	playerPoly.colour = Colour4f::Red();
+	playerPoly.radius = 0.2f * m_rayConfig.scale2D;
+	playerPoly.segments = 3;
+	playerPoly.pos = Spear::Core::GetWindowSize().ToFloat() / 2;
+	playerPoly.rotation = angle;
+	playerPoly.depth = depthPlayer;
+	rend.AddLinePoly(playerPoly);
+
+	const Vector2f camOffset = (Spear::Core::GetWindowSize().ToFloat() / 2) - pos * m_rayConfig.scale2D;
 
 	// Draw tiles
 	for (int x = 0; x < m_map.gridWidth; x++)
 	{
 		for (int y = 0; y < m_map.gridHeight; y++)
 		{
-			Spear::ScreenRenderer::LinePolyData square;
-			square.segments = 4;
-			square.colour = m_map.pNodes[x + (y * m_map.gridWidth)].texIdWall != eLevelTextures::TEX_NONE ? Colour4f::Blue() : Colour4f::White();
-			square.pos = Vector2f(x, y) + Vector2f(0.5, 0.5f);
-			square.radius = 0.65f; // this is radius of each corner (not width/height)... sizing slightly under 0.707 for visual niceness
-			square.rotation = TO_RADIANS(45.f);
-
-			if (x == pos.ToInt().x && y == pos.ToInt().y)
+			const int nodeIndex = x + (y * m_map.gridWidth);
+			GridNode& node = m_map.pNodes[nodeIndex];
+			bool bWallTexture = node.texIdWall != TEX_NONE;
+			bool bRoofTexture = node.texIdRoof != TEX_NONE;
+			int texId = bWallTexture ? node.texIdWall : (bRoofTexture ? node.texIdRoof : node.texIdFloor);
+			if (texId != TEX_NONE)
 			{
-				square.colour = Colour4f::Green();
+				Spear::ScreenRenderer::SpriteData sprite;
+				sprite.pos = Vector2f(x, y) * m_rayConfig.scale2D;
+				sprite.pos += (Vector2f(m_rayConfig.scale2D, m_rayConfig.scale2D) / 2) + camOffset;
+				sprite.size *= 1.2f;
+				sprite.texLayer = texId;
+				if (!bWallTexture)
+				{
+					if(bRoofTexture)
+					{
+						sprite.opacity = opacityRoof;
+					}
+					else
+					{
+						sprite.opacity = opacityFloor;
+					}
+				}
+				if (!bRoofTexture)
+				{
+					sprite.depth = depthWorld;
+				}
+
+				rend.AddSprite(sprite, 0);
 			}
-
-			square.pos *= m_rayConfig.scale2D;
-			square.radius *= m_rayConfig.scale2D;
-
-			rend.AddLinePoly(square);
 		}
 	}
-
-	// Draw player
-	Spear::ScreenRenderer::LinePolyData poly;
-	poly.colour = Colour4f::Red();
-	poly.radius = 0.2f * m_rayConfig.scale2D;
-	poly.segments = 3;
-	poly.pos = pos * m_rayConfig.scale2D;
-	poly.rotation = angle;
-	rend.AddLinePoly(poly);
 
 	// Draw rays
 	const Vector2f forward{ Normalize(Vector2f(cos(angle), sin(angle))) };
@@ -317,8 +341,9 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 			rayEnd = rayStart + rayDir * distance;
 			line.colour = Colour4f::Red();
 		}
-		line.start = pos * m_rayConfig.scale2D;
-		line.end = rayEnd * m_rayConfig.scale2D;
+		line.start = (pos * m_rayConfig.scale2D) + camOffset;
+		line.end = (rayEnd * m_rayConfig.scale2D) + camOffset;
+		line.depth = depthPlayer;
 		rend.AddLine(line);
 	}
 
@@ -365,7 +390,6 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	}
 }
 	
-// CPU bound for now. Potential to eventualy convert into a shader...
 void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float angle)
 {
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
@@ -400,7 +424,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 	{
 		// Current y position compared to the center of the screen (the horizon)
 		// Starts at 1, increases to HalfHeight
-		const int rayPitchFloor = (y - m_rayConfig.yResolution / 2) + m_frame.viewPitch + 1;
+		const int rayPitchFloor = (y - m_rayConfig.yResolution / 2) + m_frame.viewPitch + 2;
 		const int rayPitchRoof = (y - m_rayConfig.yResolution / 2) - m_frame.viewPitch + 2;
 
 		// Horizontal distance from the camera to the floor for the current row.
@@ -452,7 +476,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 						Uint8 r, g, b, a;
 						SDL_GetRGBA(*pixel, pFloorTexture->format, &r, &g, &b, &a);
 
-						const int textureArrayIndex{ x + ((m_rayConfig.yResolution - y) * m_rayConfig.xResolution) };
+						const int textureArrayIndex{ x + ((m_rayConfig.yResolution - (y + 1)) * m_rayConfig.xResolution) };
 						GLuint& colByte = m_bgTexRGBA[textureArrayIndex];
 						colByte |= (r << 0);
 						colByte |= (g << 8);

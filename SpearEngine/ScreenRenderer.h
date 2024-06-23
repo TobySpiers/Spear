@@ -8,9 +8,9 @@ namespace Spear
 	constexpr int SPRITE_MAX{1000};
 	constexpr int SPRITE_BATCH_MAX{10};
 	constexpr int SPRITE_FLOATS_PER_POS{4}; // 4 values (2 for xy, 2 for width/height)
-	constexpr int SPRITE_FLOATS_PER_COLOR{2}; // 2 values (x: texture depth, y: opacity)
+	constexpr int SPRITE_FLOATS_PER_DRAW{3}; // 2 values (x: texture depth, y: opacity, z: render depth)
 	constexpr int SPRITE_POS_MAXBYTES{SPRITE_FLOATS_PER_POS * SPRITE_MAX};
-	constexpr int SPRITE_COL_MAXBYTES{SPRITE_FLOATS_PER_COLOR * SPRITE_MAX};
+	constexpr int SPRITE_DRAW_MAXBYTES{SPRITE_FLOATS_PER_DRAW * SPRITE_MAX};
 
 	// TEXT BATCHES
 	constexpr const char* TEXT_DEFAULT_FONT = "../Assets/FONTS/PublicPixelRegular24/PublicPixel";
@@ -142,7 +142,7 @@ namespace Spear
 		GLuint m_spritePosBuffer{0};
 		GLuint m_spriteColBuffer{0};
 		GLfloat m_spritePosData[SPRITE_POS_MAXBYTES] = {};
-		GLfloat m_spriteColData[SPRITE_COL_MAXBYTES] = {};
+		GLfloat m_spriteDrawData[SPRITE_DRAW_MAXBYTES] = {};
 		TextureBatch m_spriteBatches[SPRITE_BATCH_MAX] = {};
 		int m_spriteBatchCount{0};
 
