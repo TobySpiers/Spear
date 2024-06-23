@@ -220,21 +220,21 @@ namespace Spear
 		);
 		glVertexAttribDivisor(0, 1);
 
-		// SETUP COL BUFFER
+		// SETUP DRAW BUFFER
 		glGenBuffers(1, &m_spriteColBuffer);
 		glBindBuffer(GL_ARRAY_BUFFER, m_spriteColBuffer);
 		glBufferData(
 			GL_ARRAY_BUFFER,
-			SPRITE_COL_MAXBYTES * sizeof(GLfloat),
+			SPRITE_DRAW_MAXBYTES * sizeof(GLfloat),
 			nullptr,
 			GL_STATIC_DRAW
 		);
 
-		// + COL ATTRIB
+		// + DRAW ATTRIB
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(
 			1,
-			SPRITE_FLOATS_PER_COLOR, 
+			SPRITE_FLOATS_PER_DRAW, 
 			GL_FLOAT,
 			GL_FALSE,
 			0,
@@ -459,10 +459,11 @@ namespace Spear
 		m_spritePosData[spritePosIndex + 2] = sprite.size.x;
 		m_spritePosData[spritePosIndex + 3] = sprite.size.y;
 
-		int batchColIndex{SPRITE_FLOATS_PER_COLOR * batch.indexOffset};
-		int spriteColIndex{batchColIndex + (SPRITE_FLOATS_PER_COLOR * batch.count)};
-		m_spriteColData[spriteColIndex + 0] = sprite.opacity;
-		m_spriteColData[spriteColIndex + 1] = sprite.texLayer;
+		int batchDrawIndex{SPRITE_FLOATS_PER_DRAW * batch.indexOffset};
+		int spriteDrawIndex{batchDrawIndex + (SPRITE_FLOATS_PER_DRAW * batch.count)};
+		m_spriteDrawData[spriteDrawIndex + 0] = sprite.opacity;
+		m_spriteDrawData[spriteDrawIndex + 1] = sprite.texLayer;
+		m_spriteDrawData[spriteDrawIndex + 2] = sprite.depth;
 
 		batch.count++;
 	}
@@ -654,8 +655,8 @@ namespace Spear
 			glBufferSubData(
 				GL_ARRAY_BUFFER,
 				0,
-				sizeof(GLfloat) * batch.count * SPRITE_FLOATS_PER_COLOR,
-				&m_spriteColData[batch.indexOffset * SPRITE_FLOATS_PER_COLOR]
+				sizeof(GLfloat) * batch.count * SPRITE_FLOATS_PER_DRAW,
+				&m_spriteDrawData[batch.indexOffset * SPRITE_FLOATS_PER_DRAW]
 			);
 
 			// texture

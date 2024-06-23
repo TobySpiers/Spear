@@ -58,6 +58,7 @@ void FlowstateEditor::StateEnter()
 		m_textureButtons[i].Initialise(m_menuTextures);
 		m_textureButtons[i].m_sprite.texLayer = i;
 		m_textureButtons[i].m_sprite.pos = Vector2f(50.f, 100.f + (i * 75.f));
+		m_textureButtons[i].m_sprite.depth = 0.f;
 	}
 }
 
@@ -304,6 +305,11 @@ void FlowstateEditor::StateRender()
 
 	// Draw Map Data
 	Vector2i mouseNode{MousePosToGridIndex()};
+	constexpr float floorDepth = 0.9f;
+	constexpr float wallDepth = 0.8f;
+	constexpr float roofDepth = 0.7f;
+	constexpr float outlineDepth = 0.1f;
+	constexpr float inactiveOpacity = 0.2f;
 	for (int x = 0; x < m_map.gridWidth; x++)
 	{
 		for (int y = 0; y < m_map.gridHeight; y++)
@@ -318,6 +324,7 @@ void FlowstateEditor::StateRender()
 			square.pos += m_camOffset;
 			square.radius = TileRadius() + 2;
 			square.rotation = TO_RADIANS(45.f);
+			square.depth = outlineDepth;
 
 			if(mouseNode.x == x && mouseNode.y == y && !m_cursorInMenu)
 			{
@@ -344,15 +351,15 @@ void FlowstateEditor::StateRender()
 				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise);
 			}
 
-			// Floor Textures
-			if (node.texIdFloor != TEX_NONE)
+			// Roof Textures
+			if (node.texIdRoof != TEX_NONE && m_curMode == MODE_ROOF)
 			{
 				Spear::ScreenRenderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * MapSpacing();
 				sprite.pos += m_camOffset;
-				sprite.opacity = 0.25f;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
-				sprite.texLayer = node.texIdFloor;
+				sprite.texLayer = node.texIdRoof;
+				sprite.depth = roofDepth;
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 
@@ -364,23 +371,31 @@ void FlowstateEditor::StateRender()
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdWall;
+				sprite.depth = wallDepth;
 
-				if(m_curMode == MODE_ROOF)
+				if(m_curMode != MODE_WALL && m_curMode != MODE_COLLISION)
 				{
-					sprite.opacity = 0.5f;
+					sprite.opacity = inactiveOpacity;
 				}
 
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 
-			// Roof Textures
-			if (m_curMode == MODE_ROOF && node.texIdRoof != TEX_NONE)
+			// Floor Textures
+			if (node.texIdFloor != TEX_NONE)
 			{
 				Spear::ScreenRenderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * MapSpacing();
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
-				sprite.texLayer = node.texIdRoof;
+				sprite.texLayer = node.texIdFloor;
+				sprite.depth = floorDepth;
+
+				if (m_curMode != MODE_FLOOR)
+				{
+					sprite.opacity = inactiveOpacity;
+				}
+
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 		}

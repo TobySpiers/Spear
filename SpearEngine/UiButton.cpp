@@ -40,15 +40,21 @@ namespace Spear
 
 	void UiButton::Update()
 	{
+		constexpr float opacityDefault = 1.0f;
+		constexpr float opacityHighlight = 0.9f;
+		constexpr float opacityClick = 0.8f;
+		
+
+
 		if (MouseOver())
 		{
 			if (ServiceLocator::GetInputManager().ClickHold() || ServiceLocator::GetInputManager().RightClickHold())
 			{
-				m_sprite.opacity = 0.9f;
+				m_sprite.opacity = opacityClick;
 			}
 			else
 			{
-				m_sprite.opacity = 1.0f;
+				m_sprite.opacity = opacityHighlight;
 			}
 
 			if (ServiceLocator::GetInputManager().ClickRelease())
@@ -61,7 +67,7 @@ namespace Spear
 		}
 		else
 		{
-			m_sprite.opacity = 0.8f;
+			m_sprite.opacity = opacityDefault;
 		}
 	}
 
