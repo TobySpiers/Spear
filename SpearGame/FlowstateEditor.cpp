@@ -174,8 +174,10 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 					break;
 				case MODE_RISE:
 					node.extendUp = 0;
+					break;
 				case MODE_FALL:
 					node.extendDown = 0;
+					break;
 				case MODE_COLLISION:
 					node.collisionMask = eCollisionType::COLL_NONE;
 					break;

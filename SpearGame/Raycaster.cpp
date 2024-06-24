@@ -399,7 +399,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 	// Calculate const data for this frame
 	{
 		// Calculate 'real' pitch (in_pitch is just a percentage from -1 to +1)
-		m_frame.viewPitch = inPitch * m_rayConfig.yResolution;
+		m_frame.viewPitch = std::roundf(inPitch * m_rayConfig.yResolution);
 		m_frame.viewHeight = 0.625f * m_rayConfig.yResolution;
 		m_frame.viewForward = Normalize(Vector2f(cos(angle), sin(angle)));
 		m_frame.viewPos = inPos;
@@ -431,8 +431,8 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		{
 			// Current y position compared to the center of the screen (the horizon)
 			// Starts at 1, increases to HalfHeight
-			const int rayPitchFloor = (y - m_rayConfig.yResolution / 2) + m_frame.viewPitch + 2;
-			const int rayPitchRoof = (y - m_rayConfig.yResolution / 2) - m_frame.viewPitch + 2;
+			const int rayPitchFloor = (y - (m_rayConfig.yResolution / 2)) + m_frame.viewPitch;
+			const int rayPitchRoof = (y - (m_rayConfig.yResolution / 2)) - m_frame.viewPitch;
 
 			// Horizontal distance from the camera to the floor for the current row.
 			// 0.5 is the z position exactly in the middle between floor and ceiling.
@@ -605,110 +605,247 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 			// ====================================
 			// DETERMINE RAY LENGTH
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+			int rayEncounters{ 0 }; // track how many walls this ray has encountered (used to render tall walls behind short walls)
 			eRayHit rayHit{ RAY_NOHIT };
 			float distance{ 0.f };
 			int wallNodeIndex{ 0 };
-			while (rayHit == RAY_NOHIT && distance < m_rayConfig.farClip)
+			while (rayEncounters < m_rayConfig.rayEncounterLimit && distance < m_rayConfig.farClip)
 			{
-				bool side{ false };
-				if (rayLength1D.x < rayLength1D.y)
+				rayHit = RAY_NOHIT;
+				while (rayHit == RAY_NOHIT && distance < m_rayConfig.farClip)
 				{
-					// X distance is currently shortest, increase X
-					mapCheck.x += step.x;
-					distance = rayLength1D.x;
-					rayLength1D.x += rayUnitStepSize.x; // increase ray by 1 X unit
-
-					side = true;
-				}
-				else
-				{
-					// Y distance is currently shortest, increase Y
-					mapCheck.y += step.y;
-					distance = rayLength1D.y;
-					rayLength1D.y += rayUnitStepSize.y; // increase ray by 1 Y unit
-				}
-
-				// Check position is within range of array
-				if (mapCheck.x >= 0 && mapCheck.x < m_map.gridWidth && mapCheck.y >= 0 && mapCheck.y < m_map.gridHeight)
-				{
-					// if tile has assigned value 1, it EXISTS
-					wallNodeIndex = mapCheck.x + (mapCheck.y * m_map.gridWidth);
-					if (m_map.pNodes[wallNodeIndex].texIdWall != eLevelTextures::TEX_NONE)
+					bool side{ false };
+					if (rayLength1D.x < rayLength1D.y)
 					{
-						rayHit = side ? RAY_HIT_SIDE : RAY_HIT_FRONT;
-					}
-				}
-			}
+						// X distance is currently shortest, increase X
+						mapCheck.x += step.x;
+						distance = rayLength1D.x;
+						rayLength1D.x += rayUnitStepSize.x; // increase ray by 1 X unit
 
-			// ====================================
-			// RENDER
-			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-			if (rayHit)
-			{
-				Vector2f intersection{ rayStart + rayDir * distance };
-				float depth{ Projection(intersection - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
-				float renderDepth = depth / m_mapMaxDepth;
-				int halfHeight{ static_cast<int>((m_rayConfig.yResolution / 2) / depth) };
-
-				int mid{ static_cast<int>(m_frame.viewPitch + (m_rayConfig.yResolution / 2)) };
-				int top{ mid - halfHeight };
-				int bottom{ mid + halfHeight };
-				const SDL_Surface* pWallTexture = pMapTextures->GetSDLSurface(m_map.pNodes[wallNodeIndex].texIdWall);
-				ASSERT(pWallTexture);
-
-				// Draw textured vertical line segments for wall
-				bool bWallFinished = false;
-				int renderedUp = 0;
-				int renderedDown = 0;
-				while (!bWallFinished)
-				{
-					for (int screenY = std::max(0, top); screenY < bottom; screenY++)
-					{
-						if (screenY >= m_rayConfig.yResolution)
-						{
-							break;
-						}
-
-						const int screenIndex{ screenX + (screenY * m_rayConfig.xResolution) };
-						if (renderDepth < m_bgTexDepth[screenIndex])
-						{
-							// X Index into WallTexture = x position inside cell
-							int texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
-							if (texX < 0)
-								texX += pWallTexture->w;
-							// Y Index into WallTexture = percentage through current Y forloop
-							int texY = (pWallTexture->h - 1) - static_cast<int>((static_cast<float>(screenY - top) / (bottom - top)) * (pWallTexture->h - 1));
-							ASSERT(texX < pWallTexture->w && texX >= 0);
-							ASSERT(texY < pWallTexture->h && texY >= 0);
-
-							Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texY * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
-							Uint8 r, g, b, a;
-							SDL_GetRGBA(*pixel, pWallTexture->format, &r, &g, &b, &a);
-
-							GLuint& colByte = m_bgTexRGBA[screenIndex];
-							colByte = 0;
-							colByte |= (r << 0);
-							colByte |= (g << 8);
-							colByte |= (b << 16);
-							colByte |= (a << 24);
-
-							m_bgTexDepth[screenIndex] = renderDepth;
-						}
-					}
-
-					if (m_map.pNodes[wallNodeIndex].extendUp > renderedUp++)
-					{
-						top = (renderedUp * (halfHeight * 2)) + mid - halfHeight;
-						bottom = (renderedUp * (halfHeight * 2)) + mid + halfHeight;
-					}
-					else if (m_map.pNodes[wallNodeIndex].extendDown > renderedDown++)
-					{
-						top = (-renderedDown * (halfHeight * 2)) + mid - halfHeight;
-						bottom = (-renderedDown * (halfHeight * 2)) + mid + halfHeight;
+						side = true;
 					}
 					else
 					{
-						bWallFinished = true;
+						// Y distance is currently shortest, increase Y
+						mapCheck.y += step.y;
+						distance = rayLength1D.y;
+						rayLength1D.y += rayUnitStepSize.y; // increase ray by 1 Y unit
+					}
+
+					// Check position is within range of array
+					if (mapCheck.x >= 0 && mapCheck.x < m_map.gridWidth && mapCheck.y >= 0 && mapCheck.y < m_map.gridHeight)
+					{
+						wallNodeIndex = mapCheck.x + (mapCheck.y * m_map.gridWidth);
+						GridNode& node = m_map.pNodes[wallNodeIndex];
+
+						// if tile has a wall texture and is tall enough to be visible...
+						const bool wallExists = node.texIdWall != TEX_NONE || (node.extendUp && node.texIdRoof != TEX_NONE) || (node.extendDown && node.texIdFloor != TEX_NONE);
+						if (wallExists)
+						{
+							rayHit = side ? RAY_HIT_SIDE : RAY_HIT_FRONT;
+							rayEncounters++;
+						}
+					}
+				}
+
+				// ====================================
+				// RENDER
+				// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+				if (rayHit)
+				{
+					Vector2f intersection{ rayStart + rayDir * distance };
+					float depth{ Projection(intersection - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
+					float renderDepth = depth / m_mapMaxDepth;
+					const int halfHeight{ static_cast<int>(1 + (m_rayConfig.yResolution / 2) / depth) };
+					const int fullHeight{ halfHeight * 2};
+
+					int mid{ static_cast<int>(m_frame.viewPitch + (m_rayConfig.yResolution / 2)) };
+					int bottom{ mid - halfHeight };
+					int top{ mid + halfHeight };
+
+					// Draw textured vertical line segments for wall
+					bool bWallFinished = false;
+					int renderingUp = 0;
+					int renderingDown = 0;
+
+					GridNode& node = m_map.pNodes[wallNodeIndex];
+					const SDL_Surface* pWallTexture{ nullptr };
+					if (node.texIdWall != TEX_NONE)
+					{
+						pWallTexture = pMapTextures->GetSDLSurface(m_map.pNodes[wallNodeIndex].texIdWall);
+					}
+					while (!bWallFinished)
+					{
+						for (int screenY = std::max(0, bottom); screenY <= top; screenY++)
+						{
+							// For extension walls based on floors/roofs, skip the initial wall strip
+							if (node.texIdWall == TEX_NONE && !renderingUp && !renderingDown)
+							{
+								break;
+							}
+							ASSERT(pWallTexture);
+
+							if (screenY >= m_rayConfig.yResolution)
+							{
+								break;
+							}
+
+							const int screenIndex{ screenX + (screenY * m_rayConfig.xResolution) };
+							if (renderDepth < m_bgTexDepth[screenIndex])
+							{
+								// X Index into WallTexture = x position inside cell
+								int texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
+								if (texX < 0)
+									texX += pWallTexture->w;
+								// Y Index into WallTexture = percentage through current Y forloop
+								int texY = (pWallTexture->h - 1) - static_cast<int>((static_cast<float>(screenY - bottom) / (top - bottom)) * (pWallTexture->h - 1));
+								ASSERT(texX < pWallTexture->w && texX >= 0);
+								ASSERT(texY < pWallTexture->h && texY >= 0);
+
+								Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texY * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
+								Uint8 r, g, b, a;
+								SDL_GetRGBA(*pixel, pWallTexture->format, &r, &g, &b, &a);
+
+								GLuint& colByte = m_bgTexRGBA[screenIndex];
+								colByte = 0;
+								colByte |= (r << 0);
+								colByte |= (g << 8);
+								colByte |= (b << 16);
+								colByte |= (a << 24);
+
+								m_bgTexDepth[screenIndex] = renderDepth;
+							}
+						}
+
+						// 'Picture cleanup' logic: floor dropoff
+						bool fillSeamFloorDropoff = false;
+						if (node.texIdWall == TEX_NONE && node.extendDown && renderingDown == 1 && !fillSeamFloorDropoff)
+						{
+							// If we have rendered the first segment of a downward wall extension based on a FLOOR
+							// Take the highest pixel of the wall extension, and fill empty pixels above it until reaching a non-empty pixel (position of FLOOR pixels)
+							fillSeamFloorDropoff = true;
+
+							int texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
+							if (texX < 0)
+								texX += pWallTexture->w;
+							Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texX * pWallTexture->format->BytesPerPixel));
+							Uint8 r, g, b, a;
+							SDL_GetRGBA(*pixel, pWallTexture->format, &r, &g, &b, &a);
+
+							constexpr int yFillLimit{ 7 };
+							for (int screenY = top + 1; screenY < top + yFillLimit; screenY++)
+							{
+								if (screenY >= m_rayConfig.yResolution || screenY < 0)
+								{
+									continue;
+								}
+
+								const int screenIndex{ screenX + (screenY * m_rayConfig.xResolution) };
+								GLuint& nextColByte = m_bgTexRGBA[screenIndex];
+								if (nextColByte == 0)
+								{
+									if (m_rayConfig.highlightCorrectivePixels)
+									{
+										nextColByte |= (255 << 0);
+										nextColByte |= (0 << 8);
+										nextColByte |= (0 << 16);
+										nextColByte |= (255 << 24);
+									}
+									else
+									{
+										nextColByte |= (r << 0);
+										nextColByte |= (g << 8);
+										nextColByte |= (b << 16);
+										nextColByte |= (a << 24);
+									}
+									m_bgTexDepth[screenIndex] = renderDepth;
+								}
+								else
+								{
+									break;
+								}
+							}
+						}
+
+						// 'Picture cleanup' logic: roof riseup
+						bool fillSeamRoofRise = false;
+						if (node.texIdWall == TEX_NONE && node.extendUp && renderingUp == 1 && !fillSeamRoofRise)
+						{
+							// If we have rendered the first segment of an upward wall extension based on a ROOF
+							// Take the lowest pixel of the wall extension, and fill empty pixels below it until reaching a non-empty pixel (position of ROOF pixels)
+							fillSeamRoofRise = true;
+							
+							int texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
+							if (texX < 0)
+								texX += pWallTexture->w;
+							Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + ((pWallTexture->w - 1) * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
+							Uint8 r, g, b, a;
+							SDL_GetRGBA(*pixel, pWallTexture->format, &r, &g, &b, &a);
+
+							constexpr int yFillLimit{ 7 };
+							for (int screenY = bottom - 1; screenY > bottom - yFillLimit; screenY--)
+							{
+								if (screenY >= m_rayConfig.yResolution || screenY < 0)
+								{
+									continue;
+								}
+
+								const int screenIndex{ screenX + (screenY * m_rayConfig.xResolution) };
+								GLuint& nextColByte = m_bgTexRGBA[screenIndex];
+								if (nextColByte == 0)
+								{
+									if (m_rayConfig.highlightCorrectivePixels)
+									{
+										nextColByte |= (255 << 0);
+										nextColByte |= (0 << 8);
+										nextColByte |= (0 << 16);
+										nextColByte |= (255 << 24);
+									}
+									else
+									{
+										nextColByte |= (r << 0);
+										nextColByte |= (g << 8);
+										nextColByte |= (b << 16);
+										nextColByte |= (a << 24);
+									}
+									m_bgTexDepth[screenIndex] = renderDepth;
+								}
+								else
+								{
+									break;
+								}
+							}
+						}
+
+						if (node.extendUp > renderingUp++)
+						{
+							bottom = top + 1;
+							top = bottom + fullHeight;
+							
+							if (node.texIdRoof != TEX_NONE)
+							{
+								pWallTexture = pMapTextures->GetSDLSurface(node.texIdRoof);
+							}
+						}
+						else if (node.extendDown > renderingDown++)
+						{
+							if (renderingDown == 1)
+							{
+								bottom = mid - halfHeight;
+								top = mid + halfHeight;
+							}
+							top = bottom - 1;
+							bottom = top - fullHeight;
+							
+							if (node.texIdFloor != TEX_NONE)
+							{
+								pWallTexture = pMapTextures->GetSDLSurface(node.texIdFloor);
+							}
+						}
+						else
+						{
+							bWallFinished = true;
+						}
 					}
 				}
 			}
