@@ -26,8 +26,8 @@ struct GridNode
 	int texIdWall{ TEX_NONE };
 	int texIdFloor{ TEX_NONE };
 
-	int extendUp{ 0 };	// additional units for walls above
-	int extendDown{ 0 };// additional units for walls below
+	int extendUp{ 0 };				// additional units for walls above... uses texIdRoof if set, otherwise uses texIdWall
+	int extendDown{ 0 };			// additional units for walls below... uses texIdFloor if set, otherwise uses texIdWall
 
 	int collisionMask{ COLL_NONE };
 
