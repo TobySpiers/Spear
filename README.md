@@ -28,6 +28,6 @@
 • Q/E: zoom out/in
 
 # Screenshots
-![Purple Room](Screenshots/PurpleRoom.png)
-![Castle Room](Screenshots/CastleRoom.png)
+![2D View](Screenshots/2DView.png)
+![3D View](Screenshots/3DView.png)
 ![Level Editor](Screenshots/LevelEditor.png)
