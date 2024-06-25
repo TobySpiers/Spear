@@ -670,36 +670,47 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 
 					GridNode& node = m_map.pNodes[wallNodeIndex];
 					const SDL_Surface* pWallTexture{ nullptr };
+					
+					int texX = -1;
+					auto CalcTexX = [&]()
+					{
+						// X Index into WallTexture = x position inside cell
+						texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
+						if (texX < 0)
+						{
+							texX += pWallTexture->w;
+						}
+						ASSERT(texX < pWallTexture->w && texX >= 0);
+					};
 					if (node.texIdWall != TEX_NONE)
 					{
 						pWallTexture = pMapTextures->GetSDLSurface(m_map.pNodes[wallNodeIndex].texIdWall);
+						CalcTexX();
 					}
+
 					while (!bWallFinished)
 					{
+						// Loop to draw various wall strips. First used to draw 'core' wall strip. Then, upper wall strips, followed by lower wall strips.
 						for (int screenY = std::max(0, bottom); screenY <= top; screenY++)
 						{
-							// For extension walls based on floors/roofs, skip the initial wall strip
-							if (node.texIdWall == TEX_NONE && !renderingUp && !renderingDown)
+							// Walls can be drawn based on Floor/Wall/Roof. As such, certain visits to this loop may have no texture active and should be skipped.
+							if (!pWallTexture)
 							{
 								break;
 							}
-							ASSERT(pWallTexture);
 
+							// If we go off the bottom of the screen, skip any remaining wall strip.
 							if (screenY >= m_rayConfig.yResolution)
 							{
 								break;
 							}
 
+							// Draw only if our depth is nearer than any existing pixel
 							const int screenIndex{ screenX + (screenY * m_rayConfig.xResolution) };
 							if (renderDepth < m_bgTexDepth[screenIndex])
 							{
-								// X Index into WallTexture = x position inside cell
-								int texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
-								if (texX < 0)
-									texX += pWallTexture->w;
 								// Y Index into WallTexture = percentage through current Y forloop
 								int texY = (pWallTexture->h - 1) - static_cast<int>((static_cast<float>(screenY - bottom) / (top - bottom)) * (pWallTexture->h - 1));
-								ASSERT(texX < pWallTexture->w && texX >= 0);
 								ASSERT(texY < pWallTexture->h && texY >= 0);
 
 								Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texY * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
@@ -717,23 +728,13 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							}
 						}
 
-						// 'Picture cleanup' logic: floor dropoff
-						bool fillSeamFloorDropoff = false;
-						if (node.texIdWall == TEX_NONE && node.extendDown && renderingDown == 1 && !fillSeamFloorDropoff)
+						// Lambda function used to cleanup picture. Corrects small pixel gaps formed by Roof/Floor extending into walls above/below the playspace.
+						auto FixSeams = [&](int yStart, int yStep, const GLuint& correctivePixel)
 						{
-							// If we have rendered the first segment of a downward wall extension based on a FLOOR
-							// Take the highest pixel of the wall extension, and fill empty pixels above it until reaching a non-empty pixel (position of FLOOR pixels)
-							fillSeamFloorDropoff = true;
-
-							int texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
-							if (texX < 0)
-								texX += pWallTexture->w;
-							Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texX * pWallTexture->format->BytesPerPixel));
-							Uint8 r, g, b, a;
-							SDL_GetRGBA(*pixel, pWallTexture->format, &r, &g, &b, &a);
-
-							constexpr int yFillLimit{ 7 };
-							for (int screenY = top + 1; screenY < top + yFillLimit; screenY++)
+							yStart += yStep;
+							constexpr int seamCorrectionLimit{ 7 };
+							const int seamCorrectionEnd = yStart + (seamCorrectionLimit * yStep);
+							for (int screenY = yStart; std::abs(screenY - seamCorrectionEnd) > 0; screenY += yStep)
 							{
 								if (screenY >= m_rayConfig.yResolution || screenY < 0)
 								{
@@ -753,10 +754,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 									}
 									else
 									{
-										nextColByte |= (r << 0);
-										nextColByte |= (g << 8);
-										nextColByte |= (b << 16);
-										nextColByte |= (a << 24);
+										nextColByte = correctivePixel;
 									}
 									m_bgTexDepth[screenIndex] = renderDepth;
 								}
@@ -765,58 +763,9 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 									break;
 								}
 							}
-						}
+						};
 
-						// 'Picture cleanup' logic: roof riseup
-						bool fillSeamRoofRise = false;
-						if (node.texIdWall == TEX_NONE && node.extendUp && renderingUp == 1 && !fillSeamRoofRise)
-						{
-							// If we have rendered the first segment of an upward wall extension based on a ROOF
-							// Take the lowest pixel of the wall extension, and fill empty pixels below it until reaching a non-empty pixel (position of ROOF pixels)
-							fillSeamRoofRise = true;
-							
-							int texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
-							if (texX < 0)
-								texX += pWallTexture->w;
-							Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + ((pWallTexture->w - 1) * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
-							Uint8 r, g, b, a;
-							SDL_GetRGBA(*pixel, pWallTexture->format, &r, &g, &b, &a);
-
-							constexpr int yFillLimit{ 7 };
-							for (int screenY = bottom - 1; screenY > bottom - yFillLimit; screenY--)
-							{
-								if (screenY >= m_rayConfig.yResolution || screenY < 0)
-								{
-									continue;
-								}
-
-								const int screenIndex{ screenX + (screenY * m_rayConfig.xResolution) };
-								GLuint& nextColByte = m_bgTexRGBA[screenIndex];
-								if (nextColByte == 0)
-								{
-									if (m_rayConfig.highlightCorrectivePixels)
-									{
-										nextColByte |= (255 << 0);
-										nextColByte |= (0 << 8);
-										nextColByte |= (0 << 16);
-										nextColByte |= (255 << 24);
-									}
-									else
-									{
-										nextColByte |= (r << 0);
-										nextColByte |= (g << 8);
-										nextColByte |= (b << 16);
-										nextColByte |= (a << 24);
-									}
-									m_bgTexDepth[screenIndex] = renderDepth;
-								}
-								else
-								{
-									break;
-								}
-							}
-						}
-
+						// Prepare data for next iteration to render upper wall strips.
 						if (node.extendUp > renderingUp++)
 						{
 							bottom = top + 1;
@@ -826,7 +775,29 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							{
 								pWallTexture = pMapTextures->GetSDLSurface(node.texIdRoof);
 							}
+							else if (node.texIdWall != TEX_NONE)
+							{
+								pWallTexture = pMapTextures->GetSDLSurface(node.texIdWall);
+							}
+							else
+							{
+								pWallTexture = nullptr;
+							}
+
+							if (texX == -1 && pWallTexture)
+							{
+								CalcTexX();
+							}
+
+							if (pWallTexture && renderingUp == 1 && node.texIdWall == TEX_NONE)
+							{
+								const Uint32* correctivePixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + ((pWallTexture->w - 1) * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
+								Uint8 r, g, b, a;
+								SDL_GetRGBA(*correctivePixel, pWallTexture->format, &r, &g, &b, &a);
+								FixSeams(bottom, -1, r | (g << 8) | (b << 16) | (a << 24));
+							}
 						}
+						// Prepare data for next iteration to render lower wall strips.
 						else if (node.extendDown > renderingDown++)
 						{
 							if (renderingDown == 1)
@@ -840,6 +811,27 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							if (node.texIdFloor != TEX_NONE)
 							{
 								pWallTexture = pMapTextures->GetSDLSurface(node.texIdFloor);
+							}
+							else if (node.texIdWall != TEX_NONE)
+							{
+								pWallTexture = pMapTextures->GetSDLSurface(node.texIdWall);
+							}
+							else
+							{
+								pWallTexture = nullptr;
+							}
+
+							if (texX == -1 && pWallTexture)
+							{
+								CalcTexX();
+							}
+
+							if (pWallTexture && renderingDown == 1 && node.texIdWall == TEX_NONE)
+							{
+								const Uint32* correctivePixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texX * pWallTexture->format->BytesPerPixel));
+								Uint8 r, g, b, a;
+								SDL_GetRGBA(*correctivePixel, pWallTexture->format, &r, &g, &b, &a);
+								FixSeams(top, 1, r | (g << 8) | (b << 16) | (a << 24));
 							}
 						}
 						else
