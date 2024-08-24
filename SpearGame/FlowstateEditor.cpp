@@ -391,7 +391,7 @@ void FlowstateEditor::StateRender()
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdFloor;
-				sprite.depth = floorDepth;
+				sprite.depth = m_curMode == MODE_FLOOR ? roofDepth : floorDepth;
 
 				if (m_curMode != MODE_FLOOR)
 				{
