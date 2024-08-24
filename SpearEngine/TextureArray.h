@@ -9,6 +9,10 @@ namespace Spear
 		TextureArray();
 		~TextureArray();
 
+		// For automatically allocating an array from a directory (all files must have equal dimensions)
+		bool InitialiseFromDirectory(const char* dir, int* out_totalSlots = nullptr);
+
+		// For manually allocating an array slot-by-slot:
 		void Allocate(GLuint width, GLuint height, GLuint slots);
 		bool SetDataFromFile(GLuint slot, const char* filename);
 		bool SetDataFromArrayRGBA(GLuint slot, float* pPixels, int width, int height);
