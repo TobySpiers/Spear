@@ -295,7 +295,7 @@ namespace Spear
 
 		// Load default font
 		m_defaultFont.LoadFont(TEXT_DEFAULT_FONT);
-		CreateTextBatch(m_defaultFont, 150);
+		CreateTextBatch(m_defaultFont, 300);
 	}
 
 	int ScreenRenderer::CreateSpriteBatch(const TextureBase& batchTexture, int capacity)

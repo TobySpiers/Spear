@@ -47,18 +47,17 @@ void FlowstateEditor::StateEnter()
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_menuTextures, 20);
 
 	// Load map textures
-	m_mapTextures.Allocate(64, 64, eLevelTextures::TEX_TOTAL); // 64x64 textures (tex-total slots)
-	m_mapTextures.SetDataFromFile(eLevelTextures::TEX_STONE, "../Assets/SPRITES/wall64_wolf.png");
-	m_mapTextures.SetDataFromFile(eLevelTextures::TEX_WOOD, "../Assets/SPRITES/wall64_rough.png");
+	m_mapTextures.InitialiseFromDirectory("../Assets/TILESETS/64");
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_mapTextures, 800);
 
 	// Assign map textures to Editor Buttons
-	for (int i = 0; i < eLevelTextures::TEX_TOTAL; i++)
+	for (int i = 0; i < m_mapTextures.GetDepth(); i++)
 	{
-		m_textureButtons[i].Initialise(m_menuTextures);
-		m_textureButtons[i].m_sprite.texLayer = i;
-		m_textureButtons[i].m_sprite.pos = Vector2f(50.f, 100.f + (i * 75.f));
-		m_textureButtons[i].m_sprite.depth = 0.f;
+		m_textureButtons.push_back(Spear::UiButton());
+		m_textureButtons.back().Initialise(m_menuTextures);
+		m_textureButtons.back().m_sprite.texLayer = i;
+		m_textureButtons.back().m_sprite.pos = Vector2f(50.f, 100.f + (i * 75.f));
+		m_textureButtons.back().m_sprite.depth = 0.f;
 	}
 }
 
@@ -73,7 +72,7 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 
 	// Editor HUD Controls
 	m_cursorInMenu = false;
-	for (int i = 0; i < eLevelTextures::TEX_TOTAL; i++)
+	for (int i = 0; i < m_mapTextures.GetDepth(); i++)
 	{
 		m_textureButtons[i].Update();
 
@@ -404,7 +403,7 @@ void FlowstateEditor::StateRender()
 	}
 
 	// Draw Editor Buttons
-	for (int i = 0; i < eLevelTextures::TEX_TOTAL; i++)
+	for (int i = 0; i < m_mapTextures.GetDepth(); i++)
 	{
 		m_textureButtons[i].Draw(BATCH_MAP);
 	}

@@ -78,13 +78,13 @@ public:
 	Spear::TextureArray m_menuTextures;
 	Spear::TextureArray m_mapTextures;
 
-	Spear::UiButton m_textureButtons[eLevelTextures::TEX_TOTAL];
+	std::vector<Spear::UiButton> m_textureButtons;
 
 	Vector2f m_camOffset{400.f, 200.f};
 	float m_camZoom{1.f};
 	bool m_cursorInMenu{false};
 	int m_curMode{EditorMode::MODE_WALL};
-	int m_curTex{eLevelTextures::TEX_STONE};
+	int m_curTex{0};
 	int m_clickCache{0};
 
 	float m_saveCooldown{0.f};

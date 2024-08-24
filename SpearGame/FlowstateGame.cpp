@@ -31,11 +31,7 @@ void FlowstateGame::StateEnter()
 	glClearColor(0.f, 1.f, 0.f, 1.f);
 
 	// Load world textures
-	m_worldTextures.Allocate(64, 64, 4); // 64x64 textures (4 slots)
-	m_worldTextures.SetDataFromFile(0, "../Assets/SPRITES/wall64_wolf.png");
-	m_worldTextures.SetDataFromFile(1, "../Assets/SPRITES/wall64_rough.png");
-	m_worldTextures.SetDataFromFile(2, "../Assets/SPRITES/wall64_rough.png");
-	m_worldTextures.SetDataFromFile(3, "../Assets/SPRITES/wall64_wolf.png");
+	m_worldTextures.InitialiseFromDirectory("../Assets/TILESETS/64");
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_worldTextures, 500);
 
 	// Load world
