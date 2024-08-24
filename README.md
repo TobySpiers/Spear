@@ -25,7 +25,8 @@
 • Spacebar: toggle active edit mode\
 • Left Click: select/apply tiles\
 • Right Click: delete/decrement tiles\
-• Q/E: zoom out/in
+• Q/E: zoom out/in\
+• -/+: decrease/increase map size
 
 # Screenshots
 ![2D View](Screenshots/2DView.png)

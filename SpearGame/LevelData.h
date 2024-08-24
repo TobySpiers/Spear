@@ -7,11 +7,6 @@ constexpr int MAP_HEIGHT_MAX_SUPPORTED{ 40 };
 enum eLevelTextures
 {
 	TEX_NONE = -1,
-
-	TEX_STONE,
-	TEX_WOOD,
-
-	TEX_TOTAL
 };
 
 enum eCollisionType
