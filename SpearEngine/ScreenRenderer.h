@@ -5,7 +5,7 @@
 namespace Spear
 {
 	// SPRITE BATCHES
-	constexpr int SPRITE_MAX{1000};
+	constexpr int SPRITE_MAX{1500};
 	constexpr int SPRITE_BATCH_MAX{10};
 	constexpr int SPRITE_FLOATS_PER_POS{4}; // 4 values (2 for xy, 2 for width/height)
 	constexpr int SPRITE_FLOATS_PER_DRAW{3}; // 2 values (x: texture depth, y: opacity, z: render depth)
@@ -14,7 +14,7 @@ namespace Spear
 
 	// TEXT BATCHES
 	constexpr const char* TEXT_DEFAULT_FONT = "../Assets/FONTS/PublicPixelRegular24/PublicPixel";
-	constexpr int TEXT_CHAR_MAX{200}; // eats into total allocated for SPRITE_MAX
+	constexpr int TEXT_CHAR_MAX{700}; // eats into total allocated for SPRITE_MAX
 	constexpr int TEXT_BATCH_MAX{2};
 	constexpr int TEXT_FLOATS_PER_POS{4}; // 4 values (2 for xy, 2 for scale)
 	constexpr int TEXT_FLOATS_PER_COLOR{4}; // RGBA

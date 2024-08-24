@@ -734,6 +734,30 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							yStart += yStep;
 							constexpr int seamCorrectionLimit{ 7 };
 							const int seamCorrectionEnd = yStart + (seamCorrectionLimit * yStep);
+
+							// Detect whether this strip is a seam or just the end of a wall
+							bool bIsSeam{ false };
+							for (int screenY = yStart; std::abs(screenY - seamCorrectionEnd) > 0; screenY += yStep)
+							{
+								if (screenY >= m_rayConfig.yResolution || screenY < 0)
+								{
+									continue;
+								}
+
+								const int screenIndex{ screenX + (screenY * m_rayConfig.xResolution) };
+								GLuint& nextColByte = m_bgTexRGBA[screenIndex];
+								if (nextColByte)
+								{
+									bIsSeam = true;
+									break;
+								}
+							}
+							if (!bIsSeam)
+							{
+								return;
+							}
+
+							// If this is a seam (ie. wall connected to floor/ceiling) fill pixels sequentially until first non-empty pixel is reached
 							for (int screenY = yStart; std::abs(screenY - seamCorrectionEnd) > 0; screenY += yStep)
 							{
 								if (screenY >= m_rayConfig.yResolution || screenY < 0)
