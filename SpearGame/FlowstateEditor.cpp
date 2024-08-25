@@ -138,7 +138,7 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 				{
 					case MODE_WALL:
 						node.texIdWall = m_curTex;
-						node.collisionMask = eCollisionType::COLL_SOLID;
+						node.collisionMask = eCollisionMask::COLL_WALL;
 						break;
 					case MODE_FLOOR:
 						node.texIdFloor = m_curTex;
@@ -153,7 +153,7 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 						node.extendDown = m_clickCache;
 						break;
 					case MODE_COLLISION:
-						node.collisionMask = eCollisionType::COLL_SOLID;
+						node.collisionMask = eCollisionMask::COLL_WALL;
 						break;
 				}
 			}
@@ -163,7 +163,7 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 				{
 				case MODE_WALL:
 					node.texIdWall = eLevelTextures::TEX_NONE;
-					node.collisionMask = eCollisionType::COLL_NONE;
+					node.collisionMask = eCollisionMask::COLL_NONE;
 					break;
 				case MODE_FLOOR:
 					node.texIdFloor = eLevelTextures::TEX_NONE;
@@ -178,7 +178,7 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 					node.extendDown = 0;
 					break;
 				case MODE_COLLISION:
-					node.collisionMask = eCollisionType::COLL_NONE;
+					node.collisionMask = eCollisionMask::COLL_NONE;
 					break;
 				}
 			}

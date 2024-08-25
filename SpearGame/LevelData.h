@@ -9,10 +9,18 @@ enum eLevelTextures
 	TEX_NONE = -1,
 };
 
-enum eCollisionType
+enum eCollisionMask : u8
 {
-	COLL_NONE,
-	COLL_SOLID,
+	COLL_NONE = 0,
+
+	COLL_WALL	= 1 << 0,
+	COLL_SOLID	= 1 << 1,
+};
+
+enum class eCollisionSearch
+{
+	WALL_TEXTURE,
+	COLLISION
 };
 
 struct GridNode
@@ -43,15 +51,12 @@ struct EditorMapData
 
 struct MapData
 {
+	const GridNode* GetNode(Vector2i index);
+	const GridNode* GetNode(int x, int y);
+
+	bool CollisionSearchDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos = nullptr, bool* out_bVerticalHit = nullptr);
+
 	int gridWidth{10};
 	int gridHeight{10};
 	GridNode* pNodes{nullptr};
 };
-
-//struct RaycastDDAGrid
-//{
-//	u8* pRoofIds{ nullptr };
-//	s8* pWorldIds{ nullptr };	// positive = wall+floor, negative = floor, 0 = empty
-//	u8 width{ 0 };
-//	u8 height{ 0 };
-//};

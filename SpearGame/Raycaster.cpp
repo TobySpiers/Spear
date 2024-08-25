@@ -459,16 +459,16 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					const int floorCellX = (int)(floorXY.x);
 					const int floorCellY = (int)(floorXY.y);
 
-					if (floorCellX >= 0 && floorCellY >= 0 && floorCellX < m_map->gridWidth && floorCellY < m_map->gridHeight)
+					if (const GridNode* floorNode = m_map->GetNode(floorCellX, floorCellY))
 					{
 						// Calculate floor depth 
 						float depth{ Projection(floorXY - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
 						depth /= m_mapMaxDepth;
 
 						// Floor tex sampling
-						if (m_map->pNodes[floorCellX + (floorCellY * m_map->gridWidth)].texIdFloor != eLevelTextures::TEX_NONE)
+						if (floorNode->texIdFloor != eLevelTextures::TEX_NONE)
 						{
-							const SDL_Surface* pFloorTexture = pMapTextures->GetSDLSurface(m_map->pNodes[floorCellX + (floorCellY * m_map->gridWidth)].texIdFloor);
+							const SDL_Surface* pFloorTexture = pMapTextures->GetSDLSurface(floorNode->texIdFloor);
 							ASSERT(pFloorTexture);
 
 							int texX = static_cast<int>((floorXY.x - floorCellX) * pFloorTexture->w);
@@ -504,16 +504,16 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					const int roofCellX = (int)(roofXY.x);
 					const int roofCellY = (int)(roofXY.y);
 
-					if (roofCellX >= 0 && roofCellY >= 0 && roofCellX < m_map->gridWidth && roofCellY < m_map->gridHeight)
+					if (const GridNode* roofNode = m_map->GetNode(roofCellX, roofCellY))
 					{
 						// Calculate roof depth
 						float depth{ Projection(roofXY - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
 						depth /= m_mapMaxDepth;
 
 						// Roof tex sampling
-						if (m_map->pNodes[roofCellX + (roofCellY * m_map->gridWidth)].texIdRoof != eLevelTextures::TEX_NONE)
+						if (roofNode->texIdRoof != eLevelTextures::TEX_NONE)
 						{
-							const SDL_Surface* pRoofTexture = pMapTextures->GetSDLSurface(m_map->pNodes[roofCellX + (roofCellY * m_map->gridWidth)].texIdRoof);
+							const SDL_Surface* pRoofTexture = pMapTextures->GetSDLSurface(roofNode->texIdRoof);
 							ASSERT(pRoofTexture);
 
 							int texX = static_cast<int>((roofXY.x - roofCellX) * pRoofTexture->w);
@@ -634,13 +634,12 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					}
 
 					// Check position is within range of array
-					if (mapCheck.x >= 0 && mapCheck.x < m_map->gridWidth && mapCheck.y >= 0 && mapCheck.y < m_map->gridHeight)
+					if (const GridNode* node = m_map->GetNode(mapCheck))
 					{
 						wallNodeIndex = mapCheck.x + (mapCheck.y * m_map->gridWidth);
-						GridNode& node = m_map->pNodes[wallNodeIndex];
 
 						// if tile has a wall texture and is tall enough to be visible...
-						const bool wallExists = node.texIdWall != TEX_NONE || (node.extendUp && node.texIdRoof != TEX_NONE) || (node.extendDown && node.texIdFloor != TEX_NONE);
+						const bool wallExists = node->texIdWall != TEX_NONE || (node->extendUp && node->texIdRoof != TEX_NONE) || (node->extendDown && node->texIdFloor != TEX_NONE);
 						if (wallExists)
 						{
 							rayHit = side ? RAY_HIT_SIDE : RAY_HIT_FRONT;
@@ -685,7 +684,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					};
 					if (node.texIdWall != TEX_NONE)
 					{
-						pWallTexture = pMapTextures->GetSDLSurface(m_map->pNodes[wallNodeIndex].texIdWall);
+						pWallTexture = pMapTextures->GetSDLSurface(node.texIdWall);
 						CalcTexX();
 					}
 
