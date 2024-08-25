@@ -44,7 +44,7 @@ class Raycaster
 
 public:
 	//static void SubmitNewGrid(u8 width, u8 height, const s8* pWorldIds, const u8* pRoofIds);
-	static void LoadLevel(const char* filename);
+	static void Init(MapData& map);
 	static void ApplyConfig(const RaycastParams& config);
 
 	static void Draw2DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
@@ -58,8 +58,8 @@ private:
 	static void ClearBackgroundArrays();
 
 	// Raycast Data
-	static MapData m_map;
 	static RaycastParams m_rayConfig;
+	static MapData* m_map;
 
 	// Background Floor/Ceiling Render
 	static GLfloat* m_bgTexDepth;

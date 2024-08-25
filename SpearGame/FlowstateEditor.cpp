@@ -7,7 +7,7 @@
 
 #include "eFlowstate.h"
 #include "FlowstateEditor.h"
-#include "LevelManager.h"
+#include "LevelFileManager.h"
 
 
 void FlowstateEditor::StateEnter()
@@ -428,12 +428,12 @@ void FlowstateEditor::SaveLevel()
 {
 	if(m_saveCooldown <= 0.f)
 	{
-		LevelManager::EditorSaveLevel("level", m_map);
+		LevelFileManager::EditorSaveLevel("level", m_map);
 		m_saveCooldown = 3.0f;
 	}
 }
 
 void FlowstateEditor::LoadLevel()
 {
-	LevelManager::EditorLoadLevel("level", m_map);
+	LevelFileManager::EditorLoadLevel("level", m_map);
 }

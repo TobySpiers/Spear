@@ -5,7 +5,7 @@
 struct EditorMapData;
 struct MapData;
 
-class LevelManager
+class LevelFileManager
 {
 public:
 	static void EditorSaveLevel(const char* levelName, const EditorMapData& rMapData);

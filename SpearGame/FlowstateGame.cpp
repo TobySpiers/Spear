@@ -7,6 +7,7 @@
 #include "eFlowstate.h"
 #include "Player.h"
 #include "FlowstateGame.h"
+#include "LevelFileManager.h"
 
 void FlowstateGame::StateEnter()
 {
@@ -16,8 +17,8 @@ void FlowstateGame::StateEnter()
 
 	config[INPUT_UP] = SDL_SCANCODE_W;
 	config[INPUT_LEFT] = SDL_SCANCODE_A;
-	config[INPUT_RIGHT] = SDL_SCANCODE_D;
 	config[INPUT_DOWN] = SDL_SCANCODE_S;
+	config[INPUT_RIGHT] = SDL_SCANCODE_D;
 
 	config[INPUT_ROTATE_LEFT] = SDL_SCANCODE_Q;
 	config[INPUT_ROTATE_RIGHT] = SDL_SCANCODE_E;
@@ -35,10 +36,11 @@ void FlowstateGame::StateEnter()
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_worldTextures, 500);
 
 	// Load world
-	Raycaster::LoadLevel("level");
+	LevelFileManager::LoadLevel("level", m_gameState.mapData);
+	Raycaster::Init(m_gameState.mapData);
 
 	// Position player in middle of grid
-	m_player.SetPos(Vector2f(5, 5));
+	m_gameState.player.SetPos(Vector2f(5, 5));
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
@@ -79,7 +81,7 @@ int FlowstateGame::StateUpdate(float deltaTime)
 		Raycaster::ApplyConfig(rayParams);
 	}
 
-	m_player.Update(deltaTime);
+	m_gameState.player.Update(deltaTime);
 
 	Spear::ScreenRenderer::TextData fpsText;
 	fpsText.text = std::to_string(deltaTime);
@@ -93,7 +95,7 @@ int FlowstateGame::StateUpdate(float deltaTime)
 void FlowstateGame::StateRender()
 {
 
-	m_player.Draw(view3D);
+	m_gameState.player.Draw(view3D);
 
 	Spear::ServiceLocator::GetScreenRenderer().Render();
 }

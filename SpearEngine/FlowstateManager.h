@@ -32,6 +32,9 @@ namespace Spear
 		FlowstateManager(){};
 		~FlowstateManager(){};
 
+		Flowstate* GetFlowstate(u32 slot);
+		bool IsFlowstateActive(Flowstate* flowstate);
+
 		void RegisterState(Flowstate* pState, u32 slot);
 		void DeregisterState(u32 slot);
 		void SetInitialState(u32 slot);
