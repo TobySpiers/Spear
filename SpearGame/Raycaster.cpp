@@ -6,13 +6,13 @@
 #include "SpearEngine/FrameProfiler.h"
 
 #include "Raycaster.h"
-#include "LevelManager.h"
+#include "LevelFileManager.h"
 #include <algorithm>
 
 GLuint* Raycaster::m_bgTexRGBA{nullptr};
 GLfloat* Raycaster::m_bgTexDepth{nullptr};
+MapData* Raycaster::m_map{ nullptr };
 RaycastParams Raycaster::m_rayConfig;
-MapData Raycaster::m_map;
 GLfloat Raycaster::m_mapMaxDepth{FLT_MAX};
 Raycaster::RaycastFrameData Raycaster::m_frame;
 
@@ -33,14 +33,15 @@ void Raycaster::ClearBackgroundArrays()
 	std::fill(m_bgTexDepth, m_bgTexDepth + (m_rayConfig.xResolution * m_rayConfig.yResolution), GLfloat(m_mapMaxDepth));
 }
 
-void Raycaster::LoadLevel(const char* filename)
+void Raycaster::Init(MapData& map)
 {
-	LevelManager::LoadLevel(filename, m_map);
 	if (m_bgTexRGBA == nullptr)
 	{
 		RecreateBackgroundArrays(m_rayConfig.xResolution, m_rayConfig.yResolution);
 	}
-	m_mapMaxDepth = sqrt(pow(m_map.gridWidth, 2) + pow(m_map.gridHeight, 2));
+	m_mapMaxDepth = sqrt(pow(map.gridWidth, 2) + pow(map.gridHeight, 2));
+
+	m_map = &map;
 }
 
 void Raycaster::ApplyConfig(const RaycastParams& config)
@@ -206,12 +207,12 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	const Vector2f camOffset = (Spear::Core::GetWindowSize().ToFloat() / 2) - pos * m_rayConfig.scale2D;
 
 	// Draw tiles
-	for (int x = 0; x < m_map.gridWidth; x++)
+	for (int x = 0; x < m_map->gridWidth; x++)
 	{
-		for (int y = 0; y < m_map.gridHeight; y++)
+		for (int y = 0; y < m_map->gridHeight; y++)
 		{
-			const int nodeIndex = x + (y * m_map.gridWidth);
-			GridNode& node = m_map.pNodes[nodeIndex];
+			const int nodeIndex = x + (y * m_map->gridWidth);
+			GridNode& node = m_map->pNodes[nodeIndex];
 			bool bWallTexture = node.texIdWall != TEX_NONE;
 			bool bRoofTexture = node.texIdRoof != TEX_NONE;
 			int texId = bWallTexture ? node.texIdWall : (bRoofTexture ? node.texIdRoof : node.texIdFloor);
@@ -323,10 +324,10 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 			}
 
 			// Check position is within range of array
-			if(mapCheck.x >= 0 && mapCheck.x < m_map.gridWidth && mapCheck.y >= 0 && mapCheck.y < m_map.gridHeight)
+			if(mapCheck.x >= 0 && mapCheck.x < m_map->gridWidth && mapCheck.y >= 0 && mapCheck.y < m_map->gridHeight)
 			{	
 				// if tile is assigned a tex value it EXISTS
-				if (m_map.pNodes[mapCheck.x + (mapCheck.y * m_map.gridWidth)].texIdWall != eLevelTextures::TEX_NONE)
+				if (m_map->pNodes[mapCheck.x + (mapCheck.y * m_map->gridWidth)].texIdWall != eLevelTextures::TEX_NONE)
 				{
 					tileFound = true;
 				}
@@ -458,16 +459,16 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					const int floorCellX = (int)(floorXY.x);
 					const int floorCellY = (int)(floorXY.y);
 
-					if (floorCellX >= 0 && floorCellY >= 0 && floorCellX < m_map.gridWidth && floorCellY < m_map.gridHeight)
+					if (floorCellX >= 0 && floorCellY >= 0 && floorCellX < m_map->gridWidth && floorCellY < m_map->gridHeight)
 					{
 						// Calculate floor depth 
 						float depth{ Projection(floorXY - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
 						depth /= m_mapMaxDepth;
 
 						// Floor tex sampling
-						if (m_map.pNodes[floorCellX + (floorCellY * m_map.gridWidth)].texIdFloor != eLevelTextures::TEX_NONE)
+						if (m_map->pNodes[floorCellX + (floorCellY * m_map->gridWidth)].texIdFloor != eLevelTextures::TEX_NONE)
 						{
-							const SDL_Surface* pFloorTexture = pMapTextures->GetSDLSurface(m_map.pNodes[floorCellX + (floorCellY * m_map.gridWidth)].texIdFloor);
+							const SDL_Surface* pFloorTexture = pMapTextures->GetSDLSurface(m_map->pNodes[floorCellX + (floorCellY * m_map->gridWidth)].texIdFloor);
 							ASSERT(pFloorTexture);
 
 							int texX = static_cast<int>((floorXY.x - floorCellX) * pFloorTexture->w);
@@ -503,16 +504,16 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					const int roofCellX = (int)(roofXY.x);
 					const int roofCellY = (int)(roofXY.y);
 
-					if (roofCellX >= 0 && roofCellY >= 0 && roofCellX < m_map.gridWidth && roofCellY < m_map.gridHeight)
+					if (roofCellX >= 0 && roofCellY >= 0 && roofCellX < m_map->gridWidth && roofCellY < m_map->gridHeight)
 					{
 						// Calculate roof depth
 						float depth{ Projection(roofXY - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
 						depth /= m_mapMaxDepth;
 
 						// Roof tex sampling
-						if (m_map.pNodes[roofCellX + (roofCellY * m_map.gridWidth)].texIdRoof != eLevelTextures::TEX_NONE)
+						if (m_map->pNodes[roofCellX + (roofCellY * m_map->gridWidth)].texIdRoof != eLevelTextures::TEX_NONE)
 						{
-							const SDL_Surface* pRoofTexture = pMapTextures->GetSDLSurface(m_map.pNodes[roofCellX + (roofCellY * m_map.gridWidth)].texIdRoof);
+							const SDL_Surface* pRoofTexture = pMapTextures->GetSDLSurface(m_map->pNodes[roofCellX + (roofCellY * m_map->gridWidth)].texIdRoof);
 							ASSERT(pRoofTexture);
 
 							int texX = static_cast<int>((roofXY.x - roofCellX) * pRoofTexture->w);
@@ -633,10 +634,10 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					}
 
 					// Check position is within range of array
-					if (mapCheck.x >= 0 && mapCheck.x < m_map.gridWidth && mapCheck.y >= 0 && mapCheck.y < m_map.gridHeight)
+					if (mapCheck.x >= 0 && mapCheck.x < m_map->gridWidth && mapCheck.y >= 0 && mapCheck.y < m_map->gridHeight)
 					{
-						wallNodeIndex = mapCheck.x + (mapCheck.y * m_map.gridWidth);
-						GridNode& node = m_map.pNodes[wallNodeIndex];
+						wallNodeIndex = mapCheck.x + (mapCheck.y * m_map->gridWidth);
+						GridNode& node = m_map->pNodes[wallNodeIndex];
 
 						// if tile has a wall texture and is tall enough to be visible...
 						const bool wallExists = node.texIdWall != TEX_NONE || (node.extendUp && node.texIdRoof != TEX_NONE) || (node.extendDown && node.texIdFloor != TEX_NONE);
@@ -668,7 +669,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					int renderingUp = 0;
 					int renderingDown = 0;
 
-					GridNode& node = m_map.pNodes[wallNodeIndex];
+					GridNode& node = m_map->pNodes[wallNodeIndex];
 					const SDL_Surface* pWallTexture{ nullptr };
 					
 					int texX = -1;
@@ -684,7 +685,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					};
 					if (node.texIdWall != TEX_NONE)
 					{
-						pWallTexture = pMapTextures->GetSDLSurface(m_map.pNodes[wallNodeIndex].texIdWall);
+						pWallTexture = pMapTextures->GetSDLSurface(m_map->pNodes[wallNodeIndex].texIdWall);
 						CalcTexX();
 					}
 

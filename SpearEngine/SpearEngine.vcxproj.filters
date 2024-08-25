@@ -51,9 +51,11 @@
     <ClCompile Include="TextureFont.cpp">
       <Filter>SpearGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="FrameProfiler.cpp" />
     <ClCompile Include="ThreadManager.cpp">
       <Filter>SpearCore</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameProfiler.cpp">
+      <Filter>Misc</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -99,9 +101,11 @@
     <ClInclude Include="TextureFont.h">
       <Filter>SpearGraphics</Filter>
     </ClInclude>
-    <ClInclude Include="FrameProfiler.h" />
     <ClInclude Include="ThreadManager.h">
       <Filter>SpearCore</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameProfiler.h">
+      <Filter>Misc</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

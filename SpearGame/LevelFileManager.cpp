@@ -1,11 +1,11 @@
-#include "LevelManager.h"
+#include "LevelFileManager.h"
 
 
 std::string GetFilePath(const char* levelName) {return std::string("../Assets/MAPS/") + std::string(levelName) + ".dat"; };
 
-char LevelManager::m_reservedMapMemory[MAP_RESERVED_BYTES];
+char LevelFileManager::m_reservedMapMemory[MAP_RESERVED_BYTES];
 
-void LevelManager::EditorSaveLevel(const char* levelName, const EditorMapData& rMapData)
+void LevelFileManager::EditorSaveLevel(const char* levelName, const EditorMapData& rMapData)
 {
 	std::ofstream file(GetFilePath(levelName));
 
@@ -24,7 +24,7 @@ void LevelManager::EditorSaveLevel(const char* levelName, const EditorMapData& r
 	}
 }
 
-void LevelManager::EditorLoadLevel(const char* levelName, EditorMapData& rMapData)
+void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMapData)
 {
 	rMapData.ClearData();
 
@@ -48,7 +48,7 @@ void LevelManager::EditorLoadLevel(const char* levelName, EditorMapData& rMapDat
 	}
 }
 
-void LevelManager::LoadLevel(const char* levelName, MapData& rMapData)
+void LevelFileManager::LoadLevel(const char* levelName, MapData& rMapData)
 {
 	// Wipe any and all reserved memory to 0
 	std::fill(std::begin(m_reservedMapMemory), std::end(m_reservedMapMemory), '\0');

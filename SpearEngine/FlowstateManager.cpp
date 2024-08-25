@@ -4,6 +4,23 @@
 
 namespace Spear
 {
+	Flowstate* FlowstateManager::GetFlowstate(u32 slot)
+	{
+		if (m_registeredStates.size() > slot)
+		{
+			return m_registeredStates[slot];
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+
+	bool FlowstateManager::IsFlowstateActive(Flowstate* flowstate)
+	{
+		return flowstate == m_pCurState;
+	}
+
 	void FlowstateManager::RegisterState(Flowstate* pState, u32 slot)
 	{
 		ASSERT(pState);
