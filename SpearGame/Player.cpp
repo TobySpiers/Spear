@@ -14,27 +14,48 @@ void Player::Update(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 
-	// movement
-	if (input.InputHold(INPUT_UP))
+	// movement input
+	const float moveDistance{ (input.InputHold(INPUT_SPRINT) ? m_sprintSpeed : m_walkSpeed) * deltaTime };
+	Vector2f moveDirection{ 0.f, 0.f };
+	if (input.InputHold(INPUT_FORWARD))
 	{
-		m_pos = m_pos + Vector2f(cos(m_rotation), sin(m_rotation)) * m_moveSpeed * deltaTime;
+		moveDirection = Vector2f(cos(m_rotation), sin(m_rotation));
 	}
-	else if (input.InputHold(INPUT_DOWN))
+	else if (input.InputHold(INPUT_BACKWARD))
 	{
-		m_pos = m_pos - Vector2f(cos(m_rotation), sin(m_rotation)) * m_moveSpeed * deltaTime;
+		moveDirection = Vector2f(cos(m_rotation), sin(m_rotation)) * -1;
 	}
-	if (input.InputHold(INPUT_LEFT))
+	if (input.InputHold(INPUT_STRAFE_LEFT))
 	{
-		m_pos = m_pos - Vector2f(-sin(m_rotation), cos(m_rotation)) * m_moveSpeed * deltaTime;
+		moveDirection += Vector2f(-sin(m_rotation), cos(m_rotation)) * -1;
 	}
-	else if (input.InputHold(INPUT_RIGHT))
+	else if (input.InputHold(INPUT_STRAFE_RIGHT))
 	{
-		m_pos = m_pos + Vector2f(-sin(m_rotation), cos(m_rotation)) * m_moveSpeed * deltaTime;
+		moveDirection += Vector2f(-sin(m_rotation), cos(m_rotation));
+	}
+	moveDirection = NormalizeNonZero(moveDirection);
+
+	// Pre-checked movement
+	if (moveDirection.x || moveDirection.y)
+	{
+		GameState& gameState = GameState::Get();
+
+		const u8 collisionFlags = eCollisionMask::COLL_WALL | eCollisionMask::COLL_SOLID;
+		if (!gameState.mapData.CollisionSearchDDA(m_pos + Vector2f(0.f, m_collBox), Vector2f((moveDirection.x * moveDistance) + (Sign(moveDirection.x) * m_collBox), 0.f), collisionFlags)
+		&& !gameState.mapData.CollisionSearchDDA(m_pos - Vector2f(0.f, m_collBox), Vector2f((moveDirection.x * moveDistance) + (Sign(moveDirection.x) * m_collBox), 0.f), collisionFlags))
+		{
+			m_pos.x += moveDirection.x * moveDistance;
+		}
+		if (!gameState.mapData.CollisionSearchDDA(m_pos + Vector2f(m_collBox, 0.f), Vector2f(0.f, (moveDirection.y * moveDistance) + (Sign(moveDirection.y) * m_collBox)), collisionFlags)
+		&& !gameState.mapData.CollisionSearchDDA(m_pos - Vector2f(m_collBox, 0.f), Vector2f(0.f, (moveDirection.y * moveDistance) + (Sign(moveDirection.y) * m_collBox)), collisionFlags))
+		{
+			m_pos.y += moveDirection.y * moveDistance;
+		}
 	}
 
 	// mouse look
 	m_rotation += (input.GetMouseAxis().x * 0.005f);
- 	m_pitch += (input.GetMouseAxis().y * 0.005f);
+ 	m_pitch += (input.GetMouseAxis().y * 0.004f);
 	m_pitch = std::min(std::max(m_pitch, -.5f), .5f); // cap pitch at half-up and half-down (greater angles reveal psuedo-3d-ness)
 
 	// retro look

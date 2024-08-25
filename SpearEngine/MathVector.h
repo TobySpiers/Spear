@@ -53,6 +53,9 @@ template <typename T>
 Vector2<T> Normalize(const Vector2<T>& vec) { return vec / vec.Length(); };
 
 template <typename T>
+Vector2<T> NormalizeNonZero(const Vector2<T>& vec) { return vec.Length() ? vec / vec.Length() : vec; };
+
+template <typename T>
 Vector2<T> Projection(const Vector2<T>& vecToProject, const Vector2<T>& vecTarget) { return Normalize(vecTarget) * Dot(vecToProject, Normalize(vecTarget)); };
 
 template <typename T>
@@ -79,8 +82,12 @@ bool VectorIntersection(const Vector2<T>& posA, const Vector2<T>& vecA, const Ve
 		&& intersectScalarB >= 0 && intersectScalarB <= 1);
 };
 
-
 // Define common vector types
 using Vector2i = Vector2<int>;
 using Vector2f = Vector2<float>;
 using Vector2d = Vector2<double>;
+
+template <typename T> int Sign(T val) 
+{
+	return (T(0) < val) - (val < T(0));
+}
