@@ -4,6 +4,7 @@
 #include "InputManager.h"
 #include "WindowManager.h"
 #include "SDL_Image.h"
+#include "SDL_mixer.h"
 
 #if _DEBUG
 #include "FrameProfiler.h"
@@ -46,6 +47,11 @@ namespace Spear
 		if (IMG_Init(IMG_INIT_PNG) != IMG_INIT_PNG)
 		{
 			LOG("SDL_Image failed to initialise..");
+		}
+
+		if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+		{
+			LOG(std::string("SDL_mixer failed to initialize. Error: ") + Mix_GetError());
 		}
 
 		// Specify our OpenGL version: version 4.1, profile mask = core profile (no backward compat)
