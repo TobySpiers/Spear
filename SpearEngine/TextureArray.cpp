@@ -1,13 +1,7 @@
 #include "TextureArray.h"
 #include "SDL_Image.h"
 #include "Colour.h"
-
-#include <fstream>
-#include <iostream>
-#include <filesystem>
-#include <queue>
-
-std::string GetManifestPath(const char* dir) { return std::string(dir) + "/manifest.dat"; };
+#include "AssetManifest.h"
 
 namespace Spear
 {
@@ -24,86 +18,19 @@ namespace Spear
 		// Make sure any previously set memory is released
 		FreeTexture();
 
-		// Load manifest containing prior known .png files (allows texture indexes to always match values saved inside level.dats after file removals/additions)
-		std::vector<std::string> manifest;
-		std::queue<int> manifestFreeSlots;
-		{
-			std::ifstream file(GetManifestPath(dir));
-			if (file.is_open())
-			{
-				std::string sFileCount;
-				std::getline(file, sFileCount);
-				int fileCount{ std::stoi(sFileCount) };
-
-				for (int i = 0; i < fileCount; i++)
-				{
-					manifest.push_back(std::string());
-					std::getline(file, manifest.back());
-
-					// If file no longer exists, mark this as a free slot we can replace with any newly added files
-					if (!std::filesystem::exists(manifest.back()))
-					{
-						manifestFreeSlots.push(i);
-					}
-				}
-			}
-		}
-
-		// Iterate directory for new files; use these to replace any missing files, otherwise append to back of list
-		for (const std::filesystem::directory_entry& filepath : std::filesystem::directory_iterator(dir))
-		{
-			if (filepath.path().extension() == ".png")
-			{
-				const std::string sPath = filepath.path().string();
-				bool bIsNew{ true };
-				for (std::string& knownPath : manifest)
-				{
-					if (knownPath == sPath)
-					{
-						bIsNew = false;
-						break;
-					}
-				}
-
-				if (bIsNew)
-				{
-					if (manifestFreeSlots.size())
-					{
-						manifest[manifestFreeSlots.front()] = sPath;
-						manifestFreeSlots.pop();
-					}
-					else
-					{
-						manifest.push_back(sPath);
-					}
-				}
-			}
-		}
-		if (!manifest.size() || manifest.size() == manifestFreeSlots.size())
-		{
-			return false;
-		}
-
-		// Save updated manifest
-		{
-			std::ofstream file(GetManifestPath(dir));
-			file << manifest.size() << std::endl;
-			for (const std::string& entry : manifest)
-			{
-				file << entry << std::endl;
-			}
-		}
+		// Load manifest of PNG files in directory
+		Manifest manifest;
+		AssetManifest::GetManifest(dir, ".png", manifest);
 
 		// Load first existing image as a 'template' we can use to configure width/height (assuming all images in a directory are always same resolution)
-		for (int i = 0; i < manifest.size(); i++)
+		for (const std::string& file : manifest)
 		{
-			if (manifestFreeSlots.size() && manifest[i] == manifest[manifestFreeSlots.front()])
+			if (file == "")
 			{
-				manifestFreeSlots.pop();
 				continue;
 			}
 
-			SDL_Surface* paramsTemplate = IMG_Load(manifest[i].c_str());
+			SDL_Surface* paramsTemplate = IMG_Load(file.c_str());
 			Allocate(paramsTemplate->w, paramsTemplate->h, manifest.size());
 			SDL_FreeSurface(paramsTemplate);
 			break;
@@ -112,7 +39,7 @@ namespace Spear
 		// Initialise each slot from manifest (any missing files will be generated a flat purple texture internally within SetDataFromFile)
 		{
 			int i{ 0 };
-			for (std::string filepath : manifest)
+			for (const std::string& filepath : manifest)
 			{
 				SetDataFromFile(i++, filepath.c_str());
 			}

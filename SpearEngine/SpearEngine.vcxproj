@@ -19,8 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AudioManager.h" />
     <ClInclude Include="Colour.h" />
     <ClInclude Include="Core.h" />
+    <ClInclude Include="AssetManifest.h" />
     <ClInclude Include="FlowstateManager.h" />
     <ClInclude Include="FrameProfiler.h" />
     <ClInclude Include="InputManager.h" />
@@ -38,7 +40,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\thirdparty\glad\src\glad.c" />
+    <ClCompile Include="AudioManager.cpp" />
     <ClCompile Include="Core.cpp" />
+    <ClCompile Include="AssetManifest.cpp" />
     <ClCompile Include="FlowstateManager.cpp" />
     <ClCompile Include="FrameProfiler.cpp" />
     <ClCompile Include="InputManager.cpp" />
