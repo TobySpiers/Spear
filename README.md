@@ -32,5 +32,5 @@
 # Screenshots
 ![2D View](Screenshots/2DView.png)
 ![3D View](Screenshots/3DView.png)
-![Fence View] (Screenshots/FenceView.png)
+![Fence View](Screenshots/FenceView.png)
 ![Level Editor](Screenshots/LevelEditor.png)
