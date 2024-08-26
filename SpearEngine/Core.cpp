@@ -83,6 +83,7 @@ namespace Spear
 
 			// Handle SDL events
 			SDL_Event event;
+			int mousewheelInput{ 0 };
 			while(SDL_PollEvent(&event)) // get any pending event
 			{
 				switch (event.type)
@@ -90,11 +91,22 @@ namespace Spear
 				case SDL_QUIT:
 					SignalShutdown();
 					break;
+
+				case SDL_MOUSEWHEEL:
+					if (event.wheel.y > 0)
+					{
+						mousewheelInput = 1;
+					}
+					else if (event.wheel.y < 0)
+					{
+						mousewheelInput = -1;
+					}
+					break;
 				}
 			}
 
 			// Refresh input data
-			inputManager.RefreshInput();
+			inputManager.RefreshInput(mousewheelInput);
 
 			// Update state
 			stateManager.Update(deltaTime);

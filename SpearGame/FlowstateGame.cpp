@@ -40,6 +40,9 @@ void FlowstateGame::StateEnter()
 	LevelFileManager::LoadLevel("level", m_gameState.mapData);
 	Raycaster::Init(m_gameState.mapData);
 
+	// Set darkness
+	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(6.f);
+
 	// Position player in middle of grid
 	m_gameState.player.SetPos(Vector2f(5, 5));
 	SDL_SetRelativeMouseMode(SDL_TRUE);

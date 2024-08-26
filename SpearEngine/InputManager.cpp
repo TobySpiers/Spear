@@ -13,7 +13,7 @@ namespace Spear
 		}
 	}
 
-	void InputManager::RefreshInput()
+	void InputManager::RefreshInput(int mousewheelInput)
 	{
 		// Get latest input data
 		SDL_GetRelativeMouseState(&m_mouseAxis.x, &m_mouseAxis.y);
@@ -21,6 +21,7 @@ namespace Spear
 		const u8* rawKeyState = SDL_GetKeyboardState(NULL);
 
 		// Update InputStates
+		m_mousewheelState = mousewheelInput;
 		UpdateInputState(rawMouseState & SDL_BUTTON(SDL_BUTTON_LEFT), &m_clickLeft);
 		UpdateInputState(rawMouseState & SDL_BUTTON(SDL_BUTTON_RIGHT), &m_clickRight);
 		for (int i = 0; i < m_bindingsSize; i++)

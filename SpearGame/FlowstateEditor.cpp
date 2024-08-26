@@ -79,8 +79,10 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 
 	// Editor HUD Controls
 	m_cursorInMenu = false;
+	const int mouseWheel = input.Wheel();
 	for (int i = 0; i < m_mapTextures.GetDepth(); i++)
 	{
+		m_textureButtons[i].m_sprite.pos.y += m_menuTexturesScrollSpeed * mouseWheel;
 		m_textureButtons[i].Update();
 
 		if (m_textureButtons[i].MouseOver())
@@ -463,7 +465,7 @@ void FlowstateEditor::StateRender()
 	Spear::ScreenRenderer::LinePolyData activeTexButton;
 	activeTexButton.segments = 4;
 	activeTexButton.colour = Colour4f::Blue();
-	activeTexButton.pos = Vector2f(50.f, 100.f + (m_curTex * 75.f));
+	activeTexButton.pos = m_textureButtons[m_curTex].m_sprite.pos;
 	activeTexButton.radius = 48;
 	activeTexButton.rotation = TO_RADIANS(45.f);
 	rend.AddLinePoly(activeTexButton);
