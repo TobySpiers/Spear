@@ -49,6 +49,9 @@ bool view3D{false};
 RaycastParams rayParams;
 int FlowstateGame::StateUpdate(float deltaTime)
 {
+	m_gameState.deltaTime = deltaTime;
+	m_gameState.gameTime += deltaTime;
+
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 	if (input.InputRelease(INPUT_QUIT))
 	{
@@ -95,7 +98,6 @@ int FlowstateGame::StateUpdate(float deltaTime)
 
 void FlowstateGame::StateRender()
 {
-
 	m_gameState.player.Draw(view3D);
 
 	Spear::ServiceLocator::GetScreenRenderer().Render();

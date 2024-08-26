@@ -1,5 +1,6 @@
 #version 410 core
 
+uniform float depthFalloff;
 uniform sampler2D textureSampler;
 uniform sampler2D depthSampler;
 
@@ -15,5 +16,5 @@ void main()
 	// more performant solution is to create FrameBufferObject same size as texture and assign DepthTexture directly
 	
 	color = texture(textureSampler, v_texCoord);
-	color.rgb *= (1 - (gl_FragDepth * 2));
+	color.rgb *= (1 - (gl_FragDepth * depthFalloff));
 }

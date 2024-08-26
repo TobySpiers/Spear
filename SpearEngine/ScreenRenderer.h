@@ -102,6 +102,7 @@ namespace Spear
 		void AddLinePoly(const LinePolyData& circle);
 
 		// Background
+		void SetBackgroundDepthFalloff(float falloff);
 		void SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height);
 		void EraseBackgroundTextureData();
 
@@ -136,6 +137,7 @@ namespace Spear
 		Texture m_backgroundTexture[2]; // double buffer prevents having to wait for last frame to finish
 		int m_backgroundTextureActive{0};
 		GLuint m_backgroundDepthBuffer{0};
+		float m_backgroundDepthFalloff{ 2.f };
 
 		// sprite data
 		GLuint m_spriteVAO{0};
