@@ -3,7 +3,7 @@
 
 # Current features:
 •  **3D Raycast Renderer** with full mouselook\
-•  **An explorable world** including multistory walls/floors/ceilings/bridges\
+•  **An explorable world** including multistory walls, cubes, fences, and bridges\
 •  **Built-in level editor** (WIP)
 
 # Setup
@@ -16,6 +16,7 @@
 *Play Mode*\
 • Spacebar: toggle between 2D Ray Visualisation and 3D Raycaster\
 • WASD: player movement\
+• Shift: sprint\
 • Mouse: horizontal/verical camera movement\
 • Left-Click/Right-Click: increase/decrease ray density (resolution)
 
@@ -31,4 +32,5 @@
 # Screenshots
 ![2D View](Screenshots/2DView.png)
 ![3D View](Screenshots/3DView.png)
+![3D View2] (Screenshots/3DView2.png)
 ![Level Editor](Screenshots/LevelEditor.png)
