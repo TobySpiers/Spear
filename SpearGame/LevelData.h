@@ -9,6 +9,18 @@ enum eLevelTextures
 	TEX_NONE = -1,
 };
 
+enum eDrawFlags : u8
+{
+	// default mode: draws any side facing camera
+	DRAW_DEFAULT = 0,
+
+	// manual flags: only draws enabled sides facing camera
+	DRAW_N = 1 << 0, 
+	DRAW_E = 1 << 1,
+	DRAW_S = 1 << 2,
+	DRAW_W = 1 << 3,
+};
+
 enum eCollisionMask : u8
 {
 	COLL_NONE = 0,
@@ -17,17 +29,12 @@ enum eCollisionMask : u8
 	COLL_SOLID	= 1 << 1,
 };
 
-enum class eCollisionSearch
-{
-	WALL_TEXTURE,
-	COLLISION
-};
-
 struct GridNode
 {
 	int texIdRoof{ TEX_NONE };
 	int texIdWall{ TEX_NONE };
 	int texIdFloor{ TEX_NONE };
+	u8 drawFlags{ DRAW_DEFAULT };
 
 	int extendUp{ 0 };				// additional units for walls above... uses texIdRoof if set, otherwise uses texIdWall
 	int extendDown{ 0 };			// additional units for walls below... uses texIdFloor if set, otherwise uses texIdWall
@@ -47,7 +54,6 @@ struct EditorMapData
 	GridNode& GetNode(int x, int y) { ASSERT(x < gridWidth && y < gridHeight && x >= 0 && y >= 0); return gridNodes[x + (y * MAP_WIDTH_MAX_SUPPORTED)]; }
 	void ClearData();
 };
-
 
 struct MapData
 {

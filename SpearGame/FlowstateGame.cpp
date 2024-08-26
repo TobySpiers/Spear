@@ -30,7 +30,7 @@ void FlowstateGame::StateEnter()
 	Spear::ServiceLocator::GetInputManager().ConfigureInputs(config, INPUT_COUNT);
 
 	// Set background colour
-	glClearColor(0.f, 1.f, 0.f, 1.f);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
 
 	// Load world textures
 	m_worldTextures.InitialiseFromDirectory("../Assets/TILESETS/64");

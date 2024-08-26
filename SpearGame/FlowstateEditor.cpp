@@ -30,7 +30,14 @@ void FlowstateEditor::StateEnter()
 	config[INPUT_SCROLL_DOWN] = SDL_SCANCODE_S;
 	config[INPUT_ZOOM_IN] = SDL_SCANCODE_E;
 	config[INPUT_ZOOM_OUT] = SDL_SCANCODE_Q;
-	config[INPUT_CYCLE_MODE] = SDL_SCANCODE_SPACE;
+
+	config[INPUT_MODE_NEXT] = SDL_SCANCODE_RIGHTBRACKET;
+	config[INPUT_MODE_PREV] = SDL_SCANCODE_LEFTBRACKET;
+
+	config[INPUT_FACE_NORTH] = SDL_SCANCODE_UP;
+	config[INPUT_FACE_EAST] = SDL_SCANCODE_RIGHT;
+	config[INPUT_FACE_SOUTH] = SDL_SCANCODE_DOWN;
+	config[INPUT_FACE_WEST] = SDL_SCANCODE_LEFT;
 	
 	config[INPUT_SAVE] = SDL_SCANCODE_S;
 	config[INPUT_LOAD] = SDL_SCANCODE_L;
@@ -102,12 +109,20 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 			m_map.SetSize(m_map.gridWidth - 1, m_map.gridHeight - 1);
 		}
 	}
-	if (input.InputRelease(INPUT_CYCLE_MODE))
+	if (input.InputRelease(INPUT_MODE_NEXT))
 	{
 		m_curMode++;
 		if (m_curMode >= EditorMode::MODE_TOTAL)
 		{
 			m_curMode = 0;
+		}
+	}
+	else if (input.InputRelease(INPUT_MODE_PREV))
+	{
+		m_curMode--;
+		if (m_curMode < 0)
+		{
+			m_curMode = EditorMode::MODE_TOTAL - 1;
 		}
 	}
 
@@ -119,7 +134,7 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 		{
 			GridNode& node = m_map.GetNode(gridIndex.x, gridIndex.y);
 
-			// During RISE/FALL mode, cache first value so we can mass-edit a set of tiles
+			// During modes such as Rise/Fall, cache first value so we can mass-edit a set of tiles
 			if (input.InputStart(INPUT_APPLY))
 			{
 				if (m_curMode == MODE_RISE)
@@ -180,6 +195,28 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 				case MODE_COLLISION:
 					node.collisionMask = eCollisionMask::COLL_NONE;
 					break;
+				case MODE_DRAW_DIRECTION:
+					node.drawFlags = eDrawFlags::DRAW_DEFAULT;
+					break;
+				}
+			}
+			else if (m_curMode == MODE_DRAW_DIRECTION)
+			{
+				if (input.InputHold(INPUT_FACE_NORTH))
+				{
+					node.drawFlags |= DRAW_N;
+				}
+				if (input.InputHold(INPUT_FACE_EAST))
+				{
+					node.drawFlags |= DRAW_E;
+				}
+				if (input.InputHold(INPUT_FACE_SOUTH))
+				{
+					node.drawFlags |= DRAW_S;
+				}
+				if (input.InputHold(INPUT_FACE_WEST))
+				{
+					node.drawFlags |= DRAW_W;
 				}
 			}
 		}
@@ -266,6 +303,8 @@ const char* FlowstateEditor::GetModeText()
 			return "Fall";
 		case MODE_COLLISION:
 			return "Collision";
+		case MODE_DRAW_DIRECTION:
+			return "DrawDir";
 		default:
 			return "Unknown";
 	}
@@ -350,6 +389,19 @@ void FlowstateEditor::StateRender()
 				textRise.pos = square.pos;
 				textRise.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
 				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise);
+			}
+			else if (m_curMode == MODE_DRAW_DIRECTION)
+			{
+				Spear::ScreenRenderer::TextData textDraw;
+				std::string textFlags{ "" };
+				if (node.drawFlags & DRAW_N) textFlags += "N";
+				if (node.drawFlags & DRAW_E) textFlags += "E";
+				if (node.drawFlags & DRAW_S) textFlags += "S";
+				if (node.drawFlags & DRAW_W) textFlags += "W";
+				textDraw.text = textFlags;
+				textDraw.pos = square.pos;
+				textDraw.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
+				Spear::ServiceLocator::GetScreenRenderer().AddText(textDraw);
 			}
 
 			// Roof Textures

@@ -693,6 +693,33 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 						// Loop to draw various wall strips. First used to draw 'core' wall strip. Then, upper wall strips, followed by lower wall strips.
 						for (int screenY = std::max(0, bottom); screenY <= top; screenY++)
 						{
+							// Respect any drawFlags specified in editor 
+							if (node.drawFlags != eDrawFlags::DRAW_DEFAULT)
+							{
+								if (rayHit == RAY_HIT_SIDE)
+								{
+									if (rayDir.x > 0 && !(node.drawFlags & DRAW_W))
+									{
+										break;
+									}
+									if (rayDir.x < 0 && !(node.drawFlags & DRAW_E))
+									{
+										break;
+									}
+								}
+								else
+								{
+									if (rayDir.y > 0 && !(node.drawFlags & DRAW_N))
+									{
+										break;
+									}
+									if (rayDir.y < 0 && !(node.drawFlags & DRAW_S))
+									{
+										break;
+									}
+								}
+							}
+
 							// Walls can be drawn based on Floor/Wall/Roof. As such, certain visits to this loop may have no texture active and should be skipped.
 							if (!pWallTexture)
 							{
@@ -716,6 +743,10 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 								Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texY * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
 								Uint8 r, g, b, a;
 								SDL_GetRGBA(*pixel, pWallTexture->format, &r, &g, &b, &a);
+								if (!a)
+								{
+									continue;
+								}
 
 								GLuint& colByte = m_bgTexRGBA[screenIndex];
 								colByte = 0;

@@ -24,7 +24,13 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_ZOOM_IN,
 		INPUT_ZOOM_OUT,
 
-		INPUT_CYCLE_MODE,
+		INPUT_MODE_NEXT,
+		INPUT_MODE_PREV,
+
+		INPUT_FACE_NORTH,
+		INPUT_FACE_EAST,
+		INPUT_FACE_SOUTH,
+		INPUT_FACE_WEST,
 
 		INPUT_SAVE,
 		INPUT_LOAD,
@@ -40,6 +46,7 @@ class FlowstateEditor : public Spear::Flowstate
 		MODE_RISE,
 		MODE_FALL,
 		MODE_COLLISION,
+		MODE_DRAW_DIRECTION,
 
 		MODE_TOTAL
 	};
