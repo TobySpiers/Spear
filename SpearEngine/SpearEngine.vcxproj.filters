@@ -13,6 +13,9 @@
     <Filter Include="Misc">
       <UniqueIdentifier>{b9df323f-d827-4ad1-b305-f606b2ff12fa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SpearAudio">
+      <UniqueIdentifier>{a54f4a36-cd60-44a2-846e-5fbf63c2a9a1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ServiceLocator.cpp">
@@ -55,6 +58,12 @@
       <Filter>SpearCore</Filter>
     </ClCompile>
     <ClCompile Include="FrameProfiler.cpp">
+      <Filter>Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioManager.cpp">
+      <Filter>SpearAudio</Filter>
+    </ClCompile>
+    <ClCompile Include="AssetManifest.cpp">
       <Filter>Misc</Filter>
     </ClCompile>
   </ItemGroup>
@@ -105,6 +114,12 @@
       <Filter>SpearCore</Filter>
     </ClInclude>
     <ClInclude Include="FrameProfiler.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioManager.h">
+      <Filter>SpearAudio</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetManifest.h">
       <Filter>Misc</Filter>
     </ClInclude>
   </ItemGroup>

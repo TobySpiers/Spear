@@ -6,6 +6,7 @@ namespace Spear
 	class InputManager;
 	class ScreenRenderer;
 	class ThreadManager;
+	class AudioManager;
 
 	class ServiceLocator
 	{
@@ -21,5 +22,6 @@ namespace Spear
 		static InputManager& GetInputManager();
 		static ScreenRenderer& GetScreenRenderer();
 		static ThreadManager& GetThreadManager();
+		static AudioManager& GetAudioManager();
 	};
 }

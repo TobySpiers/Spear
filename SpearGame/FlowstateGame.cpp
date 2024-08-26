@@ -2,6 +2,7 @@
 #include "SpearEngine/ServiceLocator.h"
 #include "SpearEngine/InputManager.h"
 #include "SpearEngine/ScreenRenderer.h"
+#include "SpearEngine/AudioManager.h"
 
 #include "Raycaster.h"
 #include "eFlowstate.h"
@@ -42,6 +43,14 @@ void FlowstateGame::StateEnter()
 
 	// Set darkness
 	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(6.f);
+
+	// Trigger ambient audio loop
+	Spear::ServiceLocator::GetAudioManager().LoadMusic("../ASSETS/MUSIC/");
+	Spear::ServiceLocator::GetAudioManager().PlayMusic(0);
+
+	// Test CROW SFX
+	Spear::ServiceLocator::GetAudioManager().LoadSounds("../ASSETS/SFX/");
+	Spear::ServiceLocator::GetAudioManager().PlaySound(0);
 
 	// Position player in middle of grid
 	m_gameState.player.SetPos(Vector2f(5, 5));
@@ -108,6 +117,8 @@ void FlowstateGame::StateRender()
 
 void FlowstateGame::StateExit()
 {
+	Spear::ServiceLocator::GetAudioManager().StopMusic();
+
 	view3D = false;
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
 	SDL_SetRelativeMouseMode(SDL_FALSE);
