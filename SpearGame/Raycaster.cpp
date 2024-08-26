@@ -215,7 +215,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 			GridNode& node = m_map->pNodes[nodeIndex];
 			bool bWallTexture = node.texIdWall != TEX_NONE;
 			bool bRoofTexture = node.texIdRoof != TEX_NONE;
-			int texId = bWallTexture ? node.texIdWall : (bRoofTexture ? node.texIdRoof : node.texIdFloor);
+			int texId = bWallTexture ? node.texIdWall : node.texIdFloor;
 			if (texId != TEX_NONE)
 			{
 				Spear::ScreenRenderer::SpriteData sprite;
