@@ -82,6 +82,7 @@ public:
 	// Called once when state ends
 	void StateExit() override;
 
+	float m_menuTexturesScrollSpeed{ 20.f };
 	Spear::TextureArray m_menuTextures;
 	Spear::TextureArray m_mapTextures;
 
