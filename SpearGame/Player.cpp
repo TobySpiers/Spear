@@ -54,9 +54,9 @@ void Player::Update(float deltaTime)
 	}
 
 	// mouse look
-	m_rotation += (input.GetMouseAxis().x * 0.005f);
- 	m_pitch += (input.GetMouseAxis().y * 0.004f);
-	m_pitch = std::min(std::max(m_pitch, -.5f), .5f); // cap pitch at half-up and half-down (greater angles reveal psuedo-3d-ness)
+	m_rotation += (input.GetMouseAxis().x * m_lookSpeed);
+ 	m_pitch += (input.GetMouseAxis().y * m_lookSpeed);
+	m_pitch = std::min(std::max(m_pitch, -m_pitchLimit), m_pitchLimit); // cap pitch at half-up and half-down (greater angles reveal psuedo-3d-ness)
 
 	// retro look
 	if (input.InputHold(INPUT_ROTATE_LEFT))

@@ -365,6 +365,11 @@ namespace Spear
 		m_textBatchCount = 1; // batch 0 is always reserved for default font
 	}
 
+	void ScreenRenderer::SetBackgroundDepthFalloff(float falloff)
+	{
+		m_backgroundDepthFalloff = falloff;
+	}
+
 	void ScreenRenderer::SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height)
 	{
 		START_PROFILE("Upload Background Array");
@@ -567,6 +572,9 @@ namespace Spear
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, m_backgroundDepthBuffer);
+
+			GLint depthFalloffLoc = glGetUniformLocation(m_backgroundShader, "depthFalloff");
+			glUniform1f(depthFalloffLoc, m_backgroundDepthFalloff);
 
 			GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
 
