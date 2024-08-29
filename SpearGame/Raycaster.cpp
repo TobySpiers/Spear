@@ -485,10 +485,15 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 			const Vector2f floorStep = rowDistanceFloor * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
 			const Vector2f roofStep = rowDistanceRoof * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
 
-			// starting position of first pixel in row (left)
+			// endpoint of first ray in row (left)
 			// essentially the 'left-most ray' along a length (depth) of rowDistance
-			Vector2f floorXY = m_frame.viewPos + rowDistanceFloor * m_frame.fovMinAngle;
-			Vector2f roofXY = m_frame.viewPos + rowDistanceRoof * m_frame.fovMinAngle;
+			Vector2f rayEndFloor = m_frame.viewPos + rowDistanceFloor * m_frame.fovMinAngle;
+			Vector2f rayEndRoof = m_frame.viewPos + rowDistanceRoof * m_frame.fovMinAngle;
+
+			// startpoint of first ray in row
+			// update this with same floorSteps applied to floorXY, subtract value from floorXY to determine ray length while avoiding expensive Projection calculations
+			Vector2f rayStartFloor = m_frame.viewPos + Projection(rowDistanceFloor * m_frame.fovMinAngle, m_frame.viewForward.Normal());
+			Vector2f rayStartRoof = m_frame.viewPos + Projection(rowDistanceRoof * m_frame.fovMinAngle, m_frame.viewForward.Normal());
 
 			// Draw background texture
 			for (int x = 0; x < m_rayConfig.xResolution; ++x)
@@ -497,13 +502,13 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 				if (rowDistanceFloor > 0)
 				{
 					// Render floor
-					const int floorCellX = (int)(floorXY.x);
-					const int floorCellY = (int)(floorXY.y);
+					const int floorCellX = (int)(rayEndFloor.x);
+					const int floorCellY = (int)(rayEndFloor.y);
 
 					if (const GridNode* floorNode = m_map->GetNode(floorCellX, floorCellY))
 					{
 						// Calculate floor depth 
-						float depth{ Projection(floorXY - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
+						float depth{ (rayEndFloor - rayStartFloor).Length()};
 						depth /= m_mapMaxDepth;
 
 						// Floor tex sampling
@@ -512,8 +517,8 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							const SDL_Surface* pFloorTexture = pMapTextures->GetSDLSurface(floorNode->texIdFloor);
 							ASSERT(pFloorTexture);
 
-							int texX = static_cast<int>((floorXY.x - floorCellX) * pFloorTexture->w);
-							int texY = static_cast<int>((floorXY.y - floorCellY) * pFloorTexture->h);
+							int texX = static_cast<int>((rayEndFloor.x - floorCellX) * pFloorTexture->w);
+							int texY = static_cast<int>((rayEndFloor.y - floorCellY) * pFloorTexture->h);
 							if (texX < 0)
 								texX += pFloorTexture->w;
 							if (texY < 0)
@@ -535,20 +540,21 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							m_bgTexDepth[textureArrayIndex] = depth;
 						}
 					}
-					floorXY += floorStep;
+					rayEndFloor += floorStep;
+					rayStartFloor += floorStep;
 				}
 
 				// Prevent drawing roof textures behind camera
 				if (rowDistanceRoof > 0)
 				{
 					// Render roof
-					const int roofCellX = (int)(roofXY.x);
-					const int roofCellY = (int)(roofXY.y);
+					const int roofCellX = (int)(rayEndRoof.x);
+					const int roofCellY = (int)(rayEndRoof.y);
 
 					if (const GridNode* roofNode = m_map->GetNode(roofCellX, roofCellY))
 					{
 						// Calculate roof depth
-						float depth{ Projection(roofXY - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
+						float depth{ (rayEndRoof - rayStartRoof).Length() };
 						depth /= m_mapMaxDepth;
 
 						// Roof tex sampling
@@ -557,8 +563,8 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							const SDL_Surface* pRoofTexture = pMapTextures->GetSDLSurface(roofNode->texIdRoof);
 							ASSERT(pRoofTexture);
 
-							int texX = static_cast<int>((roofXY.x - roofCellX) * pRoofTexture->w);
-							int texY = static_cast<int>((roofXY.y - roofCellY) * pRoofTexture->h);
+							int texX = static_cast<int>((rayEndRoof.x - roofCellX) * pRoofTexture->w);
+							int texY = static_cast<int>((rayEndRoof.y - roofCellY) * pRoofTexture->h);
 							if (texX < 0)
 								texX += pRoofTexture->w;
 							if (texY < 0)
@@ -579,7 +585,8 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							m_bgTexDepth[x + (y * m_rayConfig.xResolution)] = depth;
 						}
 					}
-					roofXY += roofStep;
+					rayEndRoof += roofStep;
+					rayStartRoof += roofStep;
 				}
 			}
 		}
