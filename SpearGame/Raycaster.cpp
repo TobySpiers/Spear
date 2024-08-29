@@ -16,6 +16,9 @@ RaycastParams Raycaster::m_rayConfig;
 GLfloat Raycaster::m_mapMaxDepth{FLT_MAX};
 Raycaster::RaycastFrameData Raycaster::m_frame;
 
+constexpr float FOV_MIN{ 35.f };
+constexpr float FOV_MAX{ 95.f };
+
 void Raycaster::RecreateBackgroundArrays(int width, int height)
 {
 	delete[] m_bgTexRGBA;
@@ -42,25 +45,63 @@ void Raycaster::Init(MapData& map)
 	m_mapMaxDepth = sqrt(pow(map.gridWidth, 2) + pow(map.gridHeight, 2));
 
 	m_map = &map;
+
+	ApplyConfig(m_rayConfig);
 }
 
 void Raycaster::ApplyConfig(const RaycastParams& config)
 { 
-		
 	if (config.xResolution != m_rayConfig.xResolution || config.yResolution != m_rayConfig.yResolution)
 	{
 		RecreateBackgroundArrays(config.xResolution, config.yResolution);
 	}
 
-	m_rayConfig = config; 
-};
+	m_rayConfig = config;
+	m_rayConfig.fieldOfView = std::clamp(m_rayConfig.fieldOfView, FOV_MIN, FOV_MAX);
+	ApplyFovModifier(0.f);
+}
+
+void Raycaster::ApplyFovModifier(float fovModifier)
+{
+	// Calculate new fov
+	const float fovModMin{FOV_MIN - m_rayConfig.fieldOfView};
+	const float fovModMax{FOV_MAX - m_rayConfig.fieldOfView};
+	const float fovMod = std::clamp(fovModifier, fovModMin, fovModMax);
+	const float fovResult = m_rayConfig.fieldOfView + fovMod;
+
+	// FoV naturally affects floor/ceiling height but not wall height... This LUT approximates sensible wall height adjustments
+	// There is probably a simple formula to express this as a curve but the current approach works well enough
+	// Perhaps not an ideal solution but solves the problem with a negligible performance cost
+	// Maybe something to revisit at a later date
+	constexpr int fovWallHeightLUTSize{ 9 };
+	const Vector2f fovWallHeightLUT[fovWallHeightLUTSize] = {
+		{35.f, 1.19f},
+		{45.f, 1.16f},
+		{50.f, 1.13f},
+		{55.f, 1.11f},
+		{62.5f, 1.07f},
+		{75.f, 1.f},
+		{90.f, 0.888f},
+		{105.f, 0.777f},
+		{120.f, 0.63f},
+	};
+
+	// Update cached data
+	m_frame.fovWallMultiplier = Lerp(fovResult, fovWallHeightLUT, fovWallHeightLUTSize);
+	m_frame.fov = TO_RADIANS(fovResult);
+}
+
+Vector2i Raycaster::GetResolution()
+{
+	return Vector2i(m_rayConfig.xResolution, m_rayConfig.yResolution);
+}
 
 void Raycaster::Draw2DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
 {
 	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 
 	// Define the 'screen'
-	const float halfFov{ m_rayConfig.fieldOfView / 2 };
+	const float halfFov{ m_frame.fov / 2 };
 	const Vector2f forward{ Normalize(Vector2f(cos(angle), sin(angle))) };
 	const Vector2f screenPlaneL{ pos + (Vector2f(cos(angle + halfFov), sin(angle + halfFov)) * m_rayConfig.farClip) };
 	const Vector2f screenPlaneR{ pos + (Vector2f(cos(angle - halfFov), sin(angle - halfFov)) * m_rayConfig.farClip) };
@@ -123,7 +164,7 @@ void Raycaster::Draw3DLooseWalls(const Vector2f& pos, const float angle, Raycast
 	// Define a flat 'screen plane' to evenly distribute rays onto
 	// This distribution ensures objects do not squash/stretch as they traverse the screen
 	// If we don't do this, radial-distribution results in larger gaps between rays at further edges of flat surfaces
-	const float halfFov{ m_rayConfig.fieldOfView / 2 };
+	const float halfFov{ m_frame.fov / 2 };
 	const Vector2f forward{ Normalize(Vector2f(cos(angle), sin(angle))) };
 	const Vector2f screenPlaneL{ pos + (Vector2f(cos(angle - halfFov), sin(angle - halfFov)) * m_rayConfig.farClip) };
 	const Vector2f screenPlaneR{ pos + (Vector2f(cos(angle + halfFov), sin(angle + halfFov)) * m_rayConfig.farClip) };
@@ -247,7 +288,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	// Draw rays
 	const Vector2f forward{ Normalize(Vector2f(cos(angle), sin(angle))) };
 
-	const float halfFov{ m_rayConfig.fieldOfView / 2 };
+	const float halfFov{ m_frame.fov / 2 };
 	Vector2f fovLeftExtent{ pos + (Vector2f(cos(angle - halfFov), sin(angle - halfFov)) * m_rayConfig.farClip) };
 	Vector2f fovRightExtent{ pos + (Vector2f(cos(angle + halfFov), sin(angle + halfFov)) * m_rayConfig.farClip) };
 	const Vector2f fovExtentWidth{ fovRightExtent - fovLeftExtent };
@@ -406,7 +447,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		m_frame.viewPos = inPos;
 
 		// Screen Plane ray-distribution to avoid squash/stretch warping
-		const float halfFov{ m_rayConfig.fieldOfView / 2 };
+		const float halfFov{ m_frame.fov / 2 };
 		m_frame.screenPlaneEdgePositionL = inPos + (Vector2f(cos(angle - halfFov), sin(angle - halfFov)) * m_rayConfig.farClip);
 		m_frame.screenPlaneEdgePositionR = inPos + (Vector2f(cos(angle + halfFov), sin(angle + halfFov)) * m_rayConfig.farClip);
 		m_frame.screenPlaneVector = m_frame.screenPlaneEdgePositionR - m_frame.screenPlaneEdgePositionL;
@@ -417,7 +458,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 
 		// unit vectors representing directions to form left/right edge of FoV
 		m_frame.fovMinAngle = Vector2f(cos(angle - halfFov), sin(angle - halfFov));
-		m_frame.fovMaxAngle = Vector2f(cos(angle + halfFov), sin(angle + halfFov));
+		m_frame.fovMaxAngle = Vector2f(cos(angle + halfFov), sin(angle + halfFov));		
 	}
 
 	// Floor/Ceiling Casting
@@ -656,7 +697,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					Vector2f intersection{ rayStart + rayDir * distance };
 					float depth{ Projection(intersection - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
 					float renderDepth = depth / m_mapMaxDepth;
-					const int halfHeight{ static_cast<int>(1 + (m_rayConfig.yResolution / 2) / depth) };
+					const int halfHeight{ static_cast<int>((1 + (m_rayConfig.yResolution / 2) / depth) * m_frame.fovWallMultiplier) };
 					const int fullHeight{ halfHeight * 2};
 
 					int mid{ static_cast<int>(m_frame.viewPitch + (m_rayConfig.yResolution / 2)) };

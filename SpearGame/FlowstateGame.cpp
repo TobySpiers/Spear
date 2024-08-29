@@ -58,7 +58,6 @@ void FlowstateGame::StateEnter()
 }
 
 bool view3D{false};
-RaycastParams rayParams;
 int FlowstateGame::StateUpdate(float deltaTime)
 {
 	m_gameState.deltaTime = deltaTime;
@@ -76,7 +75,8 @@ int FlowstateGame::StateUpdate(float deltaTime)
 
 		if (view3D)
 		{
-			Spear::ServiceLocator::GetScreenRenderer().SetInternalResolution(rayParams.xResolution, rayParams.yResolution);
+			const Vector2i res = Raycaster::GetResolution();
+			Spear::ServiceLocator::GetScreenRenderer().SetInternalResolution(res.x, res.y);
 		}
 		else
 		{
@@ -86,15 +86,11 @@ int FlowstateGame::StateUpdate(float deltaTime)
 
 	if (input.InputHold(INPUT_SHOOT))
 	{
-		rayParams.xResolution++;
-		rayParams.yResolution++;
-		Raycaster::ApplyConfig(rayParams);
+		// stub
 	}
 	else if (input.InputHold(INPUT_ALTSHOOT))
 	{
-		rayParams.xResolution--;
-		rayParams.yResolution--;
-		Raycaster::ApplyConfig(rayParams);
+		// stub
 	}
 
 	m_gameState.player.Update(deltaTime);

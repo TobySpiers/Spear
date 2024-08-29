@@ -14,8 +14,10 @@ void Player::Update(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 
-	// movement input
+	// player sprint
 	const float moveDistance{ (input.InputHold(INPUT_SPRINT) ? m_sprintSpeed : m_walkSpeed) * deltaTime };
+	
+	// movement input
 	Vector2f moveDirection{ 0.f, 0.f };
 	if (input.InputHold(INPUT_FORWARD))
 	{

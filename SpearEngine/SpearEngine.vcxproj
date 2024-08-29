@@ -46,6 +46,7 @@
     <ClCompile Include="FlowstateManager.cpp" />
     <ClCompile Include="FrameProfiler.cpp" />
     <ClCompile Include="InputManager.cpp" />
+    <ClCompile Include="MathVector.cpp" />
     <ClCompile Include="ScreenRenderer.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureArray.cpp" />

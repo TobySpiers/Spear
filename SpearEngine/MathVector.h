@@ -91,3 +91,6 @@ template <typename T> int Sign(T val)
 {
 	return (T(0) < val) - (val < T(0));
 }
+
+float Lerp(const float lerpKey, const Vector2f* keyValueArray, int arraySize);
+float Lerp(const float lerpKey, const Vector2f& keyValueA, const Vector2f& keyValueB);
