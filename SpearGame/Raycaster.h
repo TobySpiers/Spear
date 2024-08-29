@@ -14,7 +14,7 @@ struct RaycastWall
 
 struct RaycastParams
 {
-	float fieldOfView{ TO_RADIANS(75.f) };
+	float fieldOfView{ 75.f };
 	float farClip{50};
 	int xResolution{900}; // internal resolution for raycaster
 	int yResolution{600}; 
@@ -46,6 +46,8 @@ public:
 	//static void SubmitNewGrid(u8 width, u8 height, const s8* pWorldIds, const u8* pRoofIds);
 	static void Init(MapData& map);
 	static void ApplyConfig(const RaycastParams& config);
+	static void ApplyFovModifier(float newFov);
+	static Vector2i GetResolution();
 
 	static void Draw2DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
 	static void Draw3DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
@@ -86,8 +88,11 @@ private:
 
 		// although we have similar data for wall-rays, we need to know Fov distribution for floor-rays because
 		// rays sampled directly in front of us need to be bunched tightly together while distant rays are spread out
-		Vector2f	fovMinAngle;	// minimum ray angle based on fov (left edge of 'visual cone')
-		Vector2f	fovMaxAngle;	// maximum ray angle based on fov (right edge of 'visual cone')
+		Vector2f	fovMinAngle;		// minimum ray angle based on fov (left edge of 'visual cone')
+		Vector2f	fovMaxAngle;		// maximum ray angle based on fov (right edge of 'visual cone')
+
+		float		fov;				// actual fov (calculated as sum of fovBase + fovModifier)
+		float		fovWallMultiplier;	// height modifier applied to walls to prevent floor/roof separation when adjusting fov
 	};
 	static RaycastFrameData m_frame;
 };

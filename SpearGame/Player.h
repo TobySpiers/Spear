@@ -19,7 +19,7 @@ private:
 	float m_pitch{0.f}; // vertical look
 	float m_pitchLimit{ 0.5f };
 	float m_rotation{TO_RADIANS(-90.f)};
-	float m_turnSpeed{TO_RADIANS(5.f)};
+	float m_turnSpeed{TO_RADIANS(2.f)};
 	float m_collBox{ 0.12f }; // world-collisions only
 };
 

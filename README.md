@@ -2,7 +2,7 @@
 'Spear' is a C++ OpenGL game engine built from scratch using the SDL2.0 framework. Developed for fun in my spare time. Very much a WIP.
 
 # Current features:
-•  **3D Raycast Renderer** with full mouselook\
+•  **3D Raycast Renderer** with vertical/horizontal mouselook\
 •  **An explorable world** including multistory walls, cubes, fences, and bridges\
 •  **Built-in level editor** (WIP)
 
@@ -18,12 +18,11 @@
 • WASD: player movement\
 • Shift: sprint\
 • Mouse: horizontal/verical camera movement\
-• Left-Click/Right-Click: increase/decrease ray density (resolution)
 
 *Edit Mode*\
 • Ctrl+L: load existing map\
 • Ctrl+S: overwrite existing map\
-• Spacebar: toggle active edit mode\
+• Square Brackets: cycle active edit mode\
 • Left Click: select/apply tiles\
 • Right Click: delete/decrement tiles\
 • Q/E: zoom out/in\
