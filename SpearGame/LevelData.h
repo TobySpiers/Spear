@@ -31,9 +31,9 @@ enum eCollisionMask : u8
 
 struct GridNode
 {
-	int texIdRoof{ TEX_NONE };
+	int texIdRoof[2]{ TEX_NONE, TEX_NONE };
 	int texIdWall{ TEX_NONE };
-	int texIdFloor{ TEX_NONE };
+	int texIdFloor[2]{ TEX_NONE, TEX_NONE };
 	u8 drawFlags{ DRAW_DEFAULT };
 
 	int extendUp{ 0 };				// additional units for walls above... uses texIdRoof if set, otherwise uses texIdWall

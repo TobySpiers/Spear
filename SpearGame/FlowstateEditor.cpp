@@ -158,10 +158,16 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 						node.collisionMask = eCollisionMask::COLL_WALL;
 						break;
 					case MODE_FLOOR:
-						node.texIdFloor = m_curTex;
+						node.texIdFloor[0] = m_curTex;
+						break;
+					case MODE_FLOOR2:
+						node.texIdFloor[1] = m_curTex;
 						break;
 					case MODE_ROOF:
-						node.texIdRoof = m_curTex;
+						node.texIdRoof[0] = m_curTex;
+						break;
+					case MODE_ROOF2:
+						node.texIdRoof[1] = m_curTex;
 						break;
 					case MODE_RISE:
 						node.extendUp = m_clickCache;
@@ -183,10 +189,16 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 					node.collisionMask = eCollisionMask::COLL_NONE;
 					break;
 				case MODE_FLOOR:
-					node.texIdFloor = eLevelTextures::TEX_NONE;
+					node.texIdFloor[0] = eLevelTextures::TEX_NONE;
+					break;
+				case MODE_FLOOR2:
+					node.texIdFloor[1] = eLevelTextures::TEX_NONE;
 					break;
 				case MODE_ROOF:
-					node.texIdRoof = eLevelTextures::TEX_NONE;
+					node.texIdRoof[0] = eLevelTextures::TEX_NONE;
+					break;
+				case MODE_ROOF2:
+					node.texIdRoof[1] = eLevelTextures::TEX_NONE;
 					break;
 				case MODE_RISE:
 					node.extendUp = 0;
@@ -295,10 +307,14 @@ const char* FlowstateEditor::GetModeText()
 	{
 		case MODE_FLOOR:
 			return "Floor";
+		case MODE_FLOOR2:
+			return "Floor2";
 		case MODE_WALL:
 			return "Wall";
 		case MODE_ROOF:
 			return "Roof";
+		case MODE_ROOF2:
+			return "Roof2";
 		case MODE_RISE:
 			return "Rise";
 		case MODE_FALL:
@@ -407,13 +423,14 @@ void FlowstateEditor::StateRender()
 			}
 
 			// Roof Textures
-			if (node.texIdRoof != TEX_NONE && m_curMode == MODE_ROOF)
+			if ((m_curMode == MODE_ROOF && node.texIdRoof[0] != TEX_NONE)
+			|| (m_curMode == MODE_ROOF2 && node.texIdRoof[1] != TEX_NONE))
 			{
 				Spear::ScreenRenderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * MapSpacing();
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
-				sprite.texLayer = node.texIdRoof;
+				sprite.texLayer = node.texIdRoof[m_curMode == MODE_ROOF ? 0 : 1];
 				sprite.depth = roofDepth;
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
@@ -437,13 +454,14 @@ void FlowstateEditor::StateRender()
 			}
 
 			// Floor Textures
-			if (node.texIdFloor != TEX_NONE)
+			if ((m_curMode != MODE_FLOOR2 && node.texIdFloor[0] != TEX_NONE)
+			|| (m_curMode == MODE_FLOOR2 && node.texIdFloor[1] != TEX_NONE))
 			{
 				Spear::ScreenRenderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * MapSpacing();
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
-				sprite.texLayer = node.texIdFloor;
+				sprite.texLayer = node.texIdFloor[m_curMode == MODE_FLOOR ? 0 : 1];
 				sprite.depth = m_curMode == MODE_FLOOR ? roofDepth : floorDepth;
 
 				if (m_curMode != MODE_FLOOR)
