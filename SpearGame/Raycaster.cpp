@@ -496,6 +496,10 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 			const float stripDepthFloor = (rayEndFloor - rayStartFloor).Length() / m_mapMaxDepth;
 			const float stripDepthRoof = (rayEndRoof - rayStartRoof).Length() / m_mapMaxDepth;
 
+			// Indexes into texture/depth arrays for the start of the row equal to Y value
+			const int rowIndexFloor = (m_rayConfig.yResolution - (y + 1)) * m_rayConfig.xResolution;
+			const int rowIndexRoof = y * m_rayConfig.xResolution;
+
 			// Draw background texture
 			for (int x = 0; x < m_rayConfig.xResolution; ++x)
 			{
@@ -527,7 +531,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							Uint8 r, g, b, a;
 							SDL_GetRGBA(*pixel, pFloorTexture->format, &r, &g, &b, &a);
 
-							const int textureArrayIndex{ x + ((m_rayConfig.yResolution - (y + 1)) * m_rayConfig.xResolution) };
+							const int textureArrayIndex{ rowIndexFloor + x };
 							GLuint& colByte = m_bgTexRGBA[textureArrayIndex];
 							colByte |= (r << 0);
 							colByte |= (g << 8);
@@ -568,13 +572,14 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							Uint8 r, g, b, a;
 							SDL_GetRGBA(*pixel, pRoofTexture->format, &r, &g, &b, &a);
 
-							GLuint& colByte = m_bgTexRGBA[x + (y * m_rayConfig.xResolution)];
+							const int textureArrayIndex{ rowIndexRoof + x };
+							GLuint& colByte = m_bgTexRGBA[textureArrayIndex];
 							colByte |= (r << 0);
 							colByte |= (g << 8);
 							colByte |= (b << 16);
 							colByte |= (a << 24);
 
-							m_bgTexDepth[x + (y * m_rayConfig.xResolution)] = stripDepthRoof;
+							m_bgTexDepth[textureArrayIndex] = stripDepthRoof;
 						}
 					}
 					rayEndRoof += roofStep;
