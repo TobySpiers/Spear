@@ -109,9 +109,11 @@ bool MapData::CollisionSearchDDA(const Vector2f& start, const Vector2f& trajecto
 
 void GridNode::Reset()
 {
-	texIdRoof = eLevelTextures::TEX_NONE;
+	texIdRoof[0] = eLevelTextures::TEX_NONE;
+	texIdRoof[1] = eLevelTextures::TEX_NONE;
 	texIdWall = eLevelTextures::TEX_NONE;
-	texIdFloor = eLevelTextures::TEX_NONE;
+	texIdFloor[0] = eLevelTextures::TEX_NONE;
+	texIdFloor[1] = eLevelTextures::TEX_NONE;
 	extendUp = 0;
 	extendDown = 0;
 	collisionMask = 0;

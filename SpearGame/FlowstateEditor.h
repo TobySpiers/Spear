@@ -41,8 +41,10 @@ class FlowstateEditor : public Spear::Flowstate
 	enum EditorMode
 	{
 		MODE_FLOOR,
+		MODE_FLOOR2,
 		MODE_WALL,
 		MODE_ROOF,
+		MODE_ROOF2,
 		MODE_RISE,
 		MODE_FALL,
 		MODE_COLLISION,

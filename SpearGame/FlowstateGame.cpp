@@ -42,7 +42,7 @@ void FlowstateGame::StateEnter()
 	Raycaster::Init(m_gameState.mapData);
 
 	// Set darkness
-	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(6.f);
+	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(3.f);
 
 	// Trigger ambient audio loop
 	Spear::ServiceLocator::GetAudioManager().LoadMusic("../ASSETS/MUSIC/");
