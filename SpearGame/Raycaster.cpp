@@ -490,10 +490,11 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 			Vector2f rayEndFloor = m_frame.viewPos + rowDistanceFloor * m_frame.fovMinAngle;
 			Vector2f rayEndRoof = m_frame.viewPos + rowDistanceRoof * m_frame.fovMinAngle;
 
-			// startpoint of first ray in row
-			// update this with same floorSteps applied to floorXY, subtract value from floorXY to determine ray length while avoiding expensive Projection calculations
-			Vector2f rayStartFloor = m_frame.viewPos + Projection(rowDistanceFloor * m_frame.fovMinAngle, m_frame.viewForward.Normal());
-			Vector2f rayStartRoof = m_frame.viewPos + Projection(rowDistanceRoof * m_frame.fovMinAngle, m_frame.viewForward.Normal());
+			// calculate 'depth' for this strip of floor (same depth will be shared for all drawn pixels in one row of X)
+			const Vector2f rayStartFloor = m_frame.viewPos + Projection(rowDistanceFloor * m_frame.fovMinAngle, m_frame.viewForward.Normal());
+			const Vector2f rayStartRoof = m_frame.viewPos + Projection(rowDistanceRoof * m_frame.fovMinAngle, m_frame.viewForward.Normal());
+			const float stripDepthFloor = (rayEndFloor - rayStartFloor).Length() / m_mapMaxDepth;
+			const float stripDepthRoof = (rayEndRoof - rayStartRoof).Length() / m_mapMaxDepth;
 
 			// Draw background texture
 			for (int x = 0; x < m_rayConfig.xResolution; ++x)
@@ -507,10 +508,6 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 
 					if (const GridNode* floorNode = m_map->GetNode(floorCellX, floorCellY))
 					{
-						// Calculate floor depth 
-						float depth{ (rayEndFloor - rayStartFloor).Length()};
-						depth /= m_mapMaxDepth;
-
 						// Floor tex sampling
 						if (floorNode->texIdFloor != eLevelTextures::TEX_NONE)
 						{
@@ -537,11 +534,10 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							colByte |= (b << 16);
 							colByte |= (a << 24);
 
-							m_bgTexDepth[textureArrayIndex] = depth;
+							m_bgTexDepth[textureArrayIndex] = stripDepthFloor;
 						}
 					}
 					rayEndFloor += floorStep;
-					rayStartFloor += floorStep;
 				}
 
 				// Prevent drawing roof textures behind camera
@@ -553,10 +549,6 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 
 					if (const GridNode* roofNode = m_map->GetNode(roofCellX, roofCellY))
 					{
-						// Calculate roof depth
-						float depth{ (rayEndRoof - rayStartRoof).Length() };
-						depth /= m_mapMaxDepth;
-
 						// Roof tex sampling
 						if (roofNode->texIdRoof != eLevelTextures::TEX_NONE)
 						{
@@ -582,11 +574,10 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							colByte |= (b << 16);
 							colByte |= (a << 24);
 
-							m_bgTexDepth[x + (y * m_rayConfig.xResolution)] = depth;
+							m_bgTexDepth[x + (y * m_rayConfig.xResolution)] = stripDepthRoof;
 						}
 					}
 					rayEndRoof += roofStep;
-					rayStartRoof += roofStep;
 				}
 			}
 		}
