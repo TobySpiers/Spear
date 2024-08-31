@@ -153,6 +153,9 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 			{
 				switch (m_curMode)
 				{
+					case MODE_PLAYERSTART:
+						m_map.playerStart = gridIndex;
+						break;
 					case MODE_WALL:
 						node.texIdWall = m_curTex;
 						node.collisionMask = eCollisionMask::COLL_WALL;
@@ -305,6 +308,8 @@ const char* FlowstateEditor::GetModeText()
 {
 	switch (m_curMode)
 	{
+		case MODE_PLAYERSTART:
+			return "PlayerStart";
 		case MODE_FLOOR:
 			return "Floor";
 		case MODE_FLOOR2:
@@ -360,6 +365,13 @@ void FlowstateEditor::StateRender()
 		textSavePopup.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
 		Spear::ServiceLocator::GetScreenRenderer().AddText(textSavePopup);
 	}
+
+	// Draw PlayerStart
+	Spear::ScreenRenderer::TextData textStart;
+	textStart.text = "@";
+	textStart.pos = m_camOffset + (m_map.playerStart.ToFloat() * MapSpacing());
+	textStart.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
+	Spear::ServiceLocator::GetScreenRenderer().AddText(textStart);
 
 	// Draw Map Data
 	Vector2i mouseNode{MousePosToGridIndex()};

@@ -13,6 +13,8 @@ void LevelFileManager::EditorSaveLevel(const char* levelName, const EditorMapDat
 	file	<< rMapData.gridWidth << std::endl
 			<< rMapData.gridHeight << std::endl;
 
+	Serialize(rMapData.playerStart, file);
+
 	// Write grid to file
 	for (int x = 0; x < rMapData.gridWidth; x++)
 	{
@@ -35,6 +37,8 @@ void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMa
 	std::getline(file, height);
 	rMapData.gridWidth = std::stoi(width);
 	rMapData.gridHeight = std::stoi(height);
+
+	Deserialize(rMapData.playerStart, file);
 
 	// Read grid
 	std::string texFloor, texWall, texRoof, extendUp, extendDown, collMask;
@@ -61,6 +65,8 @@ void LevelFileManager::LoadLevel(const char* levelName, MapData& rMapData)
 	rMapData.gridWidth = std::stoi(fWidth);
 	rMapData.gridHeight = std::stoi(fHeight);
 	ASSERT(rMapData.gridWidth > 0 && rMapData.gridWidth <= MAP_WIDTH_MAX_SUPPORTED && rMapData.gridHeight > 0 && rMapData.gridHeight <= MAP_HEIGHT_MAX_SUPPORTED);
+
+	Deserialize(rMapData.playerStart, file);
 
 	// Allocate rMapData.pNodes to use appropriate size in reserved memory
 	rMapData.pNodes = new (m_reservedMapMemory) GridNode[rMapData.gridWidth * rMapData.gridHeight];
