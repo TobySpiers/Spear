@@ -46,6 +46,7 @@ struct GridNode
 
 struct EditorMapData
 {
+	Vector2i playerStart{ 5, 5 };
 	int gridWidth{ 10 };
 	int gridHeight{ 10 };
 	GridNode gridNodes[MAP_WIDTH_MAX_SUPPORTED * MAP_HEIGHT_MAX_SUPPORTED];
@@ -62,6 +63,7 @@ struct MapData
 
 	bool CollisionSearchDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos = nullptr, bool* out_bVerticalHit = nullptr);
 
+	Vector2i playerStart{ 5, 5 };
 	int gridWidth{10};
 	int gridHeight{10};
 	GridNode* pNodes{nullptr};

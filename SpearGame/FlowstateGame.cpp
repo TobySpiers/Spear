@@ -52,8 +52,8 @@ void FlowstateGame::StateEnter()
 	Spear::ServiceLocator::GetAudioManager().LoadSounds("../ASSETS/SFX/");
 	Spear::ServiceLocator::GetAudioManager().PlaySound(0);
 
-	// Position player in middle of grid
-	m_gameState.player.SetPos(Vector2f(5, 5));
+	// Position player at PlayerStart
+	m_gameState.player.SetPos(m_gameState.mapData.playerStart.ToFloat() + Vector2f(0.5f, 0.5f));
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
