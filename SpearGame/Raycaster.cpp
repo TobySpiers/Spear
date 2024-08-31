@@ -840,7 +840,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 						auto FixSeams = [&](int yStart, int yStep, const GLuint& correctivePixel)
 						{
 							yStart += yStep;
-							constexpr int seamCorrectionLimit{ 20 };
+							constexpr int seamCorrectionLimit{ 10 };
 							const int seamCorrectionEnd = yStart + (seamCorrectionLimit * yStep);
 
 							// Detect whether this strip is a seam or just the end of a wall
