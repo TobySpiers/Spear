@@ -44,13 +44,11 @@ void FlowstateGame::StateEnter()
 	// Set darkness
 	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(3.f);
 
-	// Trigger ambient audio loop
-	Spear::ServiceLocator::GetAudioManager().LoadMusic("../ASSETS/MUSIC/");
-	Spear::ServiceLocator::GetAudioManager().PlayMusic(0);
-
-	// Test CROW SFX
-	Spear::ServiceLocator::GetAudioManager().LoadSounds("../ASSETS/SFX/");
-	Spear::ServiceLocator::GetAudioManager().PlaySound(0);
+	// Audio setup
+	Spear::AudioManager& audio = Spear::AudioManager::Get();
+	audio.InitSoundsFromFolder("../ASSETS/SFX/");				// Load SFX from folder
+	audio.GlobalPlaySound(0);									// Test CROW sfx
+	audio.GlobalPlayStream("../ASSETS/MUSIC/Ambience1.mp3");	// Test file streaming
 
 	// Position player at PlayerStart
 	m_gameState.player.SetPos(m_gameState.mapData.playerStart.ToFloat() + Vector2f(0.5f, 0.5f));
@@ -113,7 +111,7 @@ void FlowstateGame::StateRender()
 
 void FlowstateGame::StateExit()
 {
-	Spear::ServiceLocator::GetAudioManager().StopMusic();
+	Spear::AudioManager::Get().StopAllAudio();
 
 	view3D = false;
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
