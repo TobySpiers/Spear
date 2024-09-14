@@ -69,6 +69,15 @@
     <ClCompile Include="MathVector.cpp">
       <Filter>Maths</Filter>
     </ClCompile>
+    <ClCompile Include="SoundSource.cpp">
+      <Filter>SpearAudio</Filter>
+    </ClCompile>
+    <ClCompile Include="StreamSource.cpp">
+      <Filter>SpearAudio</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioUtils.cpp">
+      <Filter>SpearAudio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -124,6 +133,15 @@
     </ClInclude>
     <ClInclude Include="AssetManifest.h">
       <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundSource.h">
+      <Filter>SpearAudio</Filter>
+    </ClInclude>
+    <ClInclude Include="StreamSource.h">
+      <Filter>SpearAudio</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioUtils.h">
+      <Filter>SpearAudio</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

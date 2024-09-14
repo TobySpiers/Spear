@@ -3,8 +3,8 @@
 #include "FlowstateManager.h"
 #include "InputManager.h"
 #include "WindowManager.h"
+#include "AudioManager.h"
 #include "SDL_Image.h"
-#include "SDL_mixer.h"
 
 #if _DEBUG
 #include "FrameProfiler.h"
@@ -49,11 +49,6 @@ namespace Spear
 			LOG("SDL_Image failed to initialise..");
 		}
 
-		if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
-		{
-			LOG(std::string("SDL_mixer failed to initialize. Error: ") + Mix_GetError());
-		}
-
 		// Specify our OpenGL version: version 4.1, profile mask = core profile (no backward compat)
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
@@ -67,6 +62,7 @@ namespace Spear
 	{		
 		InputManager& inputManager = ServiceLocator::GetInputManager();
 		FlowstateManager& stateManager = ServiceLocator::GetFlowstateManager();
+		AudioManager& audioManager = ServiceLocator::GetAudioManager();
 
 		#if _DEBUG
 		FrameProfiler::Initialise();
@@ -112,6 +108,9 @@ namespace Spear
 			// Update state
 			stateManager.Update(deltaTime);
 
+			// Update streaming audio
+			audioManager.UpdateStreamingSounds();
+
 			// Swap buffers
 			SDL_GL_SwapWindow(&ServiceLocator::GetWindowManager().GetWindow());
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -140,7 +139,6 @@ namespace Spear
 	{
 		// Shutdown SpearEngine services
 		ServiceLocator::Shutdown();
-		Mix_Quit();
 		IMG_Quit();
 		SDL_Quit();
 	}

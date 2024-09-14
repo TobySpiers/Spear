@@ -18,7 +18,7 @@
 #ifdef _DEBUG
 #define GLCheck(x) GLClearErrors(); x; GLPrintErrors(__FILE__, #x, __LINE__);
 #define GLDumpErrors(x) GLPrintErrors(__FILE__, x, 0);
-#define LOG(mssg) std::cout << mssg << std::endl;
+#define LOG(mssg) std::cout << "\n" << mssg << std::endl;
 #else
 #define GLCheck(x) x;
 #define GLDumpErrors(x)
