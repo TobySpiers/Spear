@@ -18,7 +18,7 @@ namespace Spear
 
 		bool SetStreamingFile(const char* filepath);
 
-		void PlayStream();
+		void PlayStream(bool bLooping = true);
 		void StopStream();
 
 		void OnFinished();
@@ -30,6 +30,7 @@ namespace Spear
 		// Returns true while playback is active
 		bool UpdateAudioStream();
 		bool bPlaybackActive{ false };
+		bool bLooping{ false };
 
 		// OpenAL
 		u32 m_source{ 0 };

@@ -58,13 +58,17 @@ void Spear::StreamSource::ReleaseStreamingFile()
 	}
 }
 
-void Spear::StreamSource::PlayStream()
+void Spear::StreamSource::PlayStream(bool in_bLooping)
 {
 	// ensure SetStreamingFile has been succesfully called 
 	ASSERT(m_sndfile);
 
+	// Position sndfile cursor at start of audio file
+	sf_seek(m_sndfile, 0, SEEK_SET);
+
 	// Reset playback
 	bPlaybackActive = true;
+	bLooping = in_bLooping;
 	alSourceRewind(m_source);
 	alSourcei(m_source, AL_BUFFER, 0); // reset active buffer
 
@@ -133,8 +137,15 @@ bool Spear::StreamSource::UpdateAudioStream()
 		if (!remainingQueue)
 		{
 			// If no queue remaining, sound is finished
-			OnFinished();
-			return false;
+			if (bLooping)
+			{
+				PlayStream(bLooping);
+			}
+			else
+			{
+				OnFinished();
+				return false;
+			}
 		}
 		else
 		{

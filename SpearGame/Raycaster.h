@@ -28,7 +28,7 @@ struct RaycastParams
 
 	// Debug settings
 	bool highlightCorrectivePixels{ false };		// whether to render corrective pixels as BrightRed instead of using pixel-cloning
-	float correctivePixelDepthTolerance{ 0.005f };	// depth tolerance for considering other pixels when stitching seams together
+	float correctivePixelDepthTolerance{ 0.01f };	// depth tolerance for considering other pixels when stitching seams together
 };
 
 // class to cast and render rays
