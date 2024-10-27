@@ -135,7 +135,7 @@ void Raycaster::Draw2DLooseWalls(const Vector2f& pos, const float angle, Raycast
 
 			// Check for an intersect...
 			Vector2f result;
-			if (VectorIntersection(pos, ray, wall.origin, wall.vec, result))
+			if (VectorIntersection2D(pos, ray, wall.origin, wall.vec, result))
 			{
 				// Check if it was nearer than any previous discovered intersect...
 				float distance{ Vector2f(pos - result).LengthSqr()};
@@ -192,7 +192,7 @@ void Raycaster::Draw3DLooseWalls(const Vector2f& pos, const float angle, Raycast
 
 			// Check for an intersect...
 			Vector2f result;
-			if (VectorIntersection(pos, ray, wall.origin, wall.vec, result))
+			if (VectorIntersection2D(pos, ray, wall.origin, wall.vec, result))
 			{
 				// If it was nearer than previous intersect...
 				float newLength{ Vector2f(pos - result).Length() };

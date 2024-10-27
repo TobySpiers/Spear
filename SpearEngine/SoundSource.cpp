@@ -3,16 +3,61 @@
 #include "AudioManager.h"
 #include "al.h"
 
-Spear::SoundSource::SoundSource()
+void Spear::SoundSource::Init()
 {
 	alGenSources(1, &m_source);
 	alSourcef(m_source, AL_PITCH, m_pitch);
 	alSourcef(m_source, AL_GAIN, m_gain);
-	alSource3f(m_source, AL_POSITION, m_position[0], m_position[1], m_position[2]);
-	alSource3f(m_source, AL_VELOCITY, m_velocity[0], m_velocity[1], m_velocity[2]);
 	alSourcei(m_source, AL_LOOPING, m_looping);
 	alSourcei(m_source, AL_BUFFER, 0);
 	ASSERT(!alGetError());
+
+	if (m_curSoundId != -1)
+	{
+		static AudioManager& audio = ServiceLocator::GetAudioManager();
+		alSourcei(m_source, AL_BUFFER, audio.GetBufferForId(m_curSoundId));
+	}
+}
+
+void Spear::SoundSource::SetPitch(float pitch)
+{
+	m_pitch = pitch;
+	alSourcef(m_source, AL_PITCH, m_pitch);
+}
+
+void Spear::SoundSource::SetGain(float gain)
+{
+	m_gain = gain;
+	alSourcef(m_source, AL_GAIN, m_gain);
+}
+
+void Spear::SoundSource::SetPosition(const Vector3f& position)
+{
+	alSource3f(m_source, AL_POSITION, position.x, position.y, position.z);
+}
+
+void Spear::SoundSource::SetVelocity(const Vector3f& velocity)
+{
+	alSource3f(m_source, AL_VELOCITY, velocity.x, velocity.y, velocity.z);
+}
+
+void Spear::SoundSource::SetLooping(bool looping)
+{
+	m_looping = looping;
+	alSourcei(m_source, AL_LOOPING, m_looping);
+}
+
+void Spear::SoundSource::SetSound(int soundId)
+{
+	// If new sound, update OpenAL buffer
+	ASSERT(m_source != -1);
+	if (m_curSoundId != soundId)
+	{
+		static AudioManager& audio = ServiceLocator::GetAudioManager();
+		alSourcei(m_source, AL_BUFFER, audio.GetBufferForId(soundId));
+		m_curSoundId = soundId;
+		ASSERT(!alGetError());
+	}
 }
 
 Spear::SoundSource::~SoundSource()
@@ -21,21 +66,13 @@ Spear::SoundSource::~SoundSource()
 	ASSERT(!alGetError());
 }
 
-void Spear::SoundSource::PlaySound(int soundId)
+void Spear::SoundSource::PlaySound()
 {
-	// If sound has changed, updated buffer registered with source
-	if (soundId != -1 && m_curSoundId != soundId)
+	if (m_curSoundId >= 0)
 	{
-		static AudioManager& audio = ServiceLocator::GetAudioManager();
-		alSourcei(m_source, AL_BUFFER, audio.GetBufferForId(soundId));
-		m_curSoundId = soundId;
-		ASSERT(!alGetError());
+		ASSERT(m_source != -1);
+		alSourcePlay(m_source);
 	}
-
-	// Validate and play sound
-	ASSERT(m_curSoundId != -1); // no sound was ever assigned!
-	ASSERT(m_pitch > 0);
-	alSourcePlay(m_source);
 }
 
 void Spear::SoundSource::StopSound()

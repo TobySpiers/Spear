@@ -7,11 +7,18 @@ namespace Spear
 	class SoundSource
 	{
 	public:
-		SoundSource();
 		~SoundSource();
 
+		void Init();
+		void SetPitch(float pitch);
+		void SetGain(float gain);
+		void SetPosition(const Vector3f& position);
+		void SetVelocity(const Vector3f& velocity);
+		void SetLooping(bool looping);
+		void SetSound(int soundId);
+
 		// Plays sound at associated slot. Default arg '-1' will play last assigned slot.
-		void PlaySound(int soundId = -1);
+		void PlaySound();
 		void StopSound();
 
 	private:
@@ -19,11 +26,9 @@ namespace Spear
 		u32 m_source{ 0 };
 		int m_curSoundId{ -1 };
 
-		// Source data
+		// Audio Settings
 		float m_pitch{ 1.f };
 		float m_gain{ 1.f };
-		float m_position[3] = {0, 0, 0};
-		float m_velocity[3] = {0, 0, 0};
 		bool m_looping{ false };
 	};
 }

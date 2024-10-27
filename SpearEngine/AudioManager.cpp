@@ -37,6 +37,7 @@ namespace Spear
 
 		ASSERT(!m_pGlobalSoundSource);
 		m_pGlobalSoundSource = new SoundSource;
+		m_pGlobalSoundSource->Init();
 		ASSERT(!m_pGlobalStreamSource);
 		m_pGlobalStreamSource = new StreamSource;
 	}
@@ -149,7 +150,8 @@ namespace Spear
 
 	void AudioManager::GlobalPlaySound(int slot)
 	{
-		m_pGlobalSoundSource->PlaySound(slot);
+		m_pGlobalSoundSource->SetSound(slot);
+		m_pGlobalSoundSource->PlaySound();
 	}
 
 	void AudioManager::GlobalStopSound()

@@ -3,6 +3,8 @@
 #include "SpearEngine/InputManager.h"
 #include "SpearEngine/ScreenRenderer.h"
 #include "SpearEngine/AudioManager.h"
+#include "SpearEngine/GameObject.h"
+#include "SpearEngine/AudioEmitter.h"
 
 #include "Raycaster.h"
 #include "eFlowstate.h"
@@ -33,6 +35,12 @@ void FlowstateGame::StateEnter()
 	// Set background colour
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 
+	// Audio setup
+	Spear::AudioManager& audio = Spear::AudioManager::Get();
+	audio.InitSoundsFromFolder("../ASSETS/SFX/");				// Load SFX from folder
+	audio.GlobalPlaySound(0);									// Test CROW sfx
+	audio.GlobalPlayStream("../ASSETS/MUSIC/Ambience1.mp3");	// Test file streaming
+
 	// Load world textures
 	m_worldTextures.InitialiseFromDirectory("../Assets/TILESETS/64");
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_worldTextures, 500);
@@ -44,15 +52,12 @@ void FlowstateGame::StateEnter()
 	// Set darkness
 	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(3.f);
 
-	// Audio setup
-	Spear::AudioManager& audio = Spear::AudioManager::Get();
-	audio.InitSoundsFromFolder("../ASSETS/SFX/");				// Load SFX from folder
-	audio.GlobalPlaySound(0);									// Test CROW sfx
-	audio.GlobalPlayStream("../ASSETS/MUSIC/Ambience1.mp3");	// Test file streaming
-
 	// Position player at PlayerStart
 	m_gameState.player.SetPos(m_gameState.mapData.playerStart.ToFloat() + Vector2f(0.5f, 0.5f));
 	SDL_SetRelativeMouseMode(SDL_TRUE);
+
+	AudioEmitter* audioEmitter = GameObject::Create<AudioEmitter>();
+	GameObject::GlobalDeserialize("../Assets/MAPS/test.objects");
 }
 
 bool view3D{false};

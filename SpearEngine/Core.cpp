@@ -4,6 +4,7 @@
 #include "InputManager.h"
 #include "WindowManager.h"
 #include "AudioManager.h"
+#include "GameObject.h"
 #include "SDL_Image.h"
 
 #if _DEBUG
@@ -105,11 +106,20 @@ namespace Spear
 			// Refresh input data
 			inputManager.RefreshInput(mousewheelInput);
 
-			// Update state
+			// State: update
 			stateManager.Update(deltaTime);
 
-			// Update streaming audio
+			// GameObjects: update
+			GameObject::GlobalTick(deltaTime);
+
+			// Audio: update
 			audioManager.UpdateStreamingSounds();
+
+			// GameObjects: render
+			GameObject::GlobalDraw();
+
+			// State: render
+			stateManager.Render();
 
 			// Swap buffers
 			SDL_GL_SwapWindow(&ServiceLocator::GetWindowManager().GetWindow());
@@ -138,6 +148,7 @@ namespace Spear
 	void Core::Cleanup()
 	{
 		// Shutdown SpearEngine services
+		GameObject::GlobalDestroy();
 		ServiceLocator::Shutdown();
 		IMG_Quit();
 		SDL_Quit();

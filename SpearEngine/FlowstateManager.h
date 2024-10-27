@@ -39,6 +39,7 @@ namespace Spear
 		void DeregisterState(u32 slot);
 		void SetInitialState(u32 slot);
 		void Update(float deltaTime);
+		void Render();
 
 	private:
 		std::unordered_map<u32, Flowstate*> m_registeredStates;

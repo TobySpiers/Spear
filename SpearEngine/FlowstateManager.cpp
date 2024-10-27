@@ -51,10 +51,6 @@ namespace Spear
 		}
 		END_PROFILE("Flowstate Update");
 
-		START_PROFILE("Flowstate Render");
-		m_pCurState->StateRender();
-		END_PROFILE("Flowstate Render");
-
 		START_PROFILE("Flowstate Change");
 		if (pNextState)
 		{
@@ -63,5 +59,12 @@ namespace Spear
 			m_pCurState->StateEnter();
 		}
 		END_PROFILE("Flowstate Change");
+	}
+
+	void FlowstateManager::Render()
+	{
+		START_PROFILE("Flowstate Render");
+		m_pCurState->StateRender();
+		END_PROFILE("Flowstate Render");
 	}
 }

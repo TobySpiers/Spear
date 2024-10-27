@@ -16,6 +16,9 @@
     <Filter Include="SpearAudio">
       <UniqueIdentifier>{a54f4a36-cd60-44a2-846e-5fbf63c2a9a1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GameObject">
+      <UniqueIdentifier>{70268e2a-1733-4620-9c46-fc25838fb9c4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ServiceLocator.cpp">
@@ -77,6 +80,12 @@
     </ClCompile>
     <ClCompile Include="AudioUtils.cpp">
       <Filter>SpearAudio</Filter>
+    </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioEmitter.cpp">
+      <Filter>GameObject</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -142,6 +151,15 @@
     </ClInclude>
     <ClInclude Include="AudioUtils.h">
       <Filter>SpearAudio</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObject.h">
+      <Filter>GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioEmitter.h">
+      <Filter>GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObjectUtil.h">
+      <Filter>GameObject</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
