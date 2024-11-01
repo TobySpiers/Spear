@@ -5,6 +5,14 @@
 
 // CAUTION: Linker>UseLibraryDependencyInputs must be TRUE for any project using this class. Object self-registration may otherwise break.
 // Note: built-in serialization does not currently support pointers. If needed, this must be handled manually via OnSerialize overrides.
+
+enum class eGameObjectTickState
+{
+	TickEnabled,
+	TickPendingDisable,
+	TickDisabled,
+};
+
 class GameObject
 {
 public:
@@ -57,9 +65,9 @@ private:
 	static std::vector<GameObject*> s_tickList;
 	static std::vector<GameObject*> s_drawList;
 	static std::vector<GameObject*> s_destroyList;
+	eGameObjectTickState tickState{ eGameObjectTickState::TickDisabled };
+	eGameObjectTickState drawState{ eGameObjectTickState::TickDisabled };
 	bool bPendingDestroy{ false };
-	bool bTickEnabled{ false };
-	bool bDrawEnabled{ false };
 };
 
 template<typename T>
@@ -86,9 +94,9 @@ void GameObject::DeserializeInternal(std::ifstream& is)
 {
 	static_assert(std::is_base_of<GameObject, T>::value, "Requested class must derive from GameObject!");
 	T* obj = new T();
-	T serializedData;
 	const int newId = s_allocatedObjects.size();
 	s_allocatedObjects.push_back(obj);
+	T serializedData;
 	is.read(reinterpret_cast<char*>(&serializedData), sizeof(T));
 	// deserializing entire objects breaks derived class vtables
 	// not the most elegant workaround, but copying the deserialized object here to a fresh object avoids the issue:

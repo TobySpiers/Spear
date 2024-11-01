@@ -17,6 +17,7 @@ void GameObject::GlobalTick(float deltaTime)
 		{
 			std::iter_swap(s_tickList.begin() + i, s_tickList.end());
 			s_tickList.pop_back();
+			obj->tickState = eGameObjectTickState::TickDisabled;
 			if (obj->IsPendingDestroy() && obj->IsSafeToDestroy())
 			{
 				s_destroyList.push_back(obj);
@@ -50,6 +51,7 @@ void GameObject::GlobalDraw()
 		{
 			std::iter_swap(s_drawList.begin() + i, s_drawList.end());
 			s_drawList.pop_back();
+			obj->drawState = eGameObjectTickState::TickDisabled;
 			if (obj->IsPendingDestroy() && obj->IsSafeToDestroy())
 			{
 				s_destroyList.push_back(obj);
@@ -115,36 +117,50 @@ void GameObject::SetTickEnabled(bool bShouldTick)
 {
 	ASSERT(!IsPendingDestroy());
 
-	if (bShouldTick != bTickEnabled)
+	if (bShouldTick)
 	{
-		if (bShouldTick)
+		if (tickState == eGameObjectTickState::TickDisabled)
 		{
 			s_tickList.push_back(this);
 		}
-		bTickEnabled = bShouldTick;
+		tickState = eGameObjectTickState::TickEnabled;
+	}
+	else
+	{
+		if (tickState == eGameObjectTickState::TickEnabled)
+		{
+			tickState = eGameObjectTickState::TickPendingDisable;
+		}
 	}
 }
 bool GameObject::IsTickEnabled() const
 {
-	return bTickEnabled;
+	return tickState == eGameObjectTickState::TickEnabled;
 }
 
 void GameObject::SetDrawEnabled(bool bShouldDraw)
 {
 	ASSERT(!IsPendingDestroy());
 
-	if (bShouldDraw != bDrawEnabled)
+	if (bShouldDraw)
 	{
-		if (bShouldDraw)
+		if (drawState == eGameObjectTickState::TickDisabled)
 		{
 			s_drawList.push_back(this);
 		}
-		bDrawEnabled = bShouldDraw;
+		drawState = eGameObjectTickState::TickEnabled;
+	}
+	else
+	{
+		if (drawState == eGameObjectTickState::TickEnabled)
+		{
+			drawState = eGameObjectTickState::TickPendingDisable;
+		}
 	}
 }
 bool GameObject::IsDrawEnabled() const
 {
-	return bDrawEnabled;
+	return drawState == eGameObjectTickState::TickEnabled;
 }
 
 void GameObject::Destroy()
@@ -171,7 +187,7 @@ bool GameObject::IsPendingDestroy() const
 
 bool GameObject::IsSafeToDestroy() const
 {
-	return !IsTickEnabled() && !IsDrawEnabled();
+	return tickState == eGameObjectTickState::TickDisabled && drawState == eGameObjectTickState::TickDisabled;
 }
 
 bool GameObject::RegisterClassType(size_t hashcode, DeserializeFuncPtr func)

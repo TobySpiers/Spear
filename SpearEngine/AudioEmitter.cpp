@@ -11,6 +11,4 @@ void AudioEmitter::OnCreated()
 	{
 		m_soundSource.PlaySound();
 	}
-
-	AudioEmitter* thisObj = dynamic_cast<AudioEmitter*>(this);
 }
