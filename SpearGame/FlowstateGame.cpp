@@ -116,6 +116,8 @@ void FlowstateGame::StateRender()
 
 void FlowstateGame::StateExit()
 {
+	GameObject::GlobalDestroy();
+
 	Spear::AudioManager::Get().StopAllAudio();
 
 	view3D = false;
