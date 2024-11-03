@@ -7,9 +7,9 @@ namespace Spear
 	class SoundSource
 	{
 	public:
-		~SoundSource();
-
 		void Init();
+		void Destroy();
+
 		void SetPitch(float pitch);
 		void SetGain(float gain);
 		void SetPosition(const Vector3f& position);

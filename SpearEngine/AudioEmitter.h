@@ -7,6 +7,7 @@ class AudioEmitter : public GameObject
 	GAMEOBJECT_CLASS(AudioEmitter)
 public:
 	virtual void OnCreated() override;
+	virtual void OnDestroy() override;
 
 	Vector3f m_position{};
 	Vector3f m_velocity{};

@@ -13,6 +13,8 @@ enum class eGameObjectTickState
 	TickDisabled,
 };
 
+// Base class for any type of GameObject. Must use included GAMEOBJECT_CLASS and GAMEOBJECT_REGISTER macros to enable serialization.
+// Prefer using OnCreated/OnDestroy where possible. Constructors/destructors are both called during deserialization which can cause issues.
 class GameObject
 {
 public:
@@ -93,21 +95,20 @@ template<typename T>
 void GameObject::DeserializeInternal(std::ifstream& is)
 {
 	static_assert(std::is_base_of<GameObject, T>::value, "Requested class must derive from GameObject!");
-	T* obj = new T();
-	const int newId = s_allocatedObjects.size();
-	s_allocatedObjects.push_back(obj);
-	T serializedData;
-	is.read(reinterpret_cast<char*>(&serializedData), sizeof(T));
-	// deserializing entire objects breaks derived class vtables
-	// not the most elegant workaround, but copying the deserialized object here to a fresh object avoids the issue:
-	*obj = serializedData;
-	if (obj->IsPendingDestroy())
+	T* tempData = new T();
+	is.read(reinterpret_cast<char*>(tempData), sizeof(T));
+	if (tempData->IsPendingDestroy())
 	{
-		delete obj;
-		s_allocatedObjects.pop_back();
+		delete tempData;
 		return;
 	}
-	obj->internalId = newId;
+	T* obj = new T();
+	// deserializing entire objects breaks derived class vtables
+	// not the most elegant workaround, but copying the deserialized object here to a fresh object avoids the issue:
+	*obj = *tempData;
+	delete tempData;
+	obj->internalId = s_allocatedObjects.size();
+	s_allocatedObjects.push_back(obj);
 	if (obj->IsTickEnabled())
 	{
 		s_tickList.push_back(obj);

@@ -38,7 +38,6 @@ void FlowstateGame::StateEnter()
 	// Audio setup
 	Spear::AudioManager& audio = Spear::AudioManager::Get();
 	audio.InitSoundsFromFolder("../ASSETS/SFX/");				// Load SFX from folder
-	audio.GlobalPlaySound(0);									// Test CROW sfx
 	audio.GlobalPlayStream("../ASSETS/MUSIC/Ambience1.mp3");	// Test file streaming
 
 	// Load world textures
@@ -56,8 +55,9 @@ void FlowstateGame::StateEnter()
 	m_gameState.player.SetPos(m_gameState.mapData.playerStart.ToFloat() + Vector2f(0.5f, 0.5f));
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 
-	AudioEmitter* audioEmitter = GameObject::Create<AudioEmitter>();
+	// Load deserialized GameObject (currently, this will be a single AudioEmitter playing the oneshot crow.mp3 SFX)
 	GameObject::GlobalDeserialize("../Assets/MAPS/test.objects");
+
 }
 
 bool view3D{false};

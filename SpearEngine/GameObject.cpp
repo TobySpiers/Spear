@@ -35,8 +35,9 @@ void GameObject::GlobalTick(float deltaTime)
 		ASSERT(obj->IsSafeToDestroy());
 		const int cachedInternalId = obj->internalId;
 		obj->OnDestroy();
-		std::iter_swap(s_allocatedObjects.begin() + cachedInternalId, s_allocatedObjects.end());
+		std::iter_swap(s_allocatedObjects.begin() + cachedInternalId, s_allocatedObjects.end() - 1);
 		s_allocatedObjects[cachedInternalId]->internalId = cachedInternalId;
+		s_allocatedObjects.pop_back();
 		delete obj;
 		s_destroyList.pop_back();
 	}
@@ -93,7 +94,6 @@ void GameObject::GlobalSerialize(const char* filename)
 
 void GameObject::GlobalDeserialize(const char* filename)
 {
-	GlobalDestroy();
 	std::ifstream file(filename);
 
 	// Load in num objects to expect

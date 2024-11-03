@@ -44,6 +44,7 @@ namespace Spear
 
 	AudioManager::~AudioManager()
 	{
+		m_pGlobalSoundSource->Destroy();
 		delete m_pGlobalSoundSource;
 		m_pGlobalSoundSource = nullptr;
 		delete m_pGlobalStreamSource;

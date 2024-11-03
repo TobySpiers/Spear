@@ -16,6 +16,16 @@ void Spear::SoundSource::Init()
 	{
 		static AudioManager& audio = ServiceLocator::GetAudioManager();
 		alSourcei(m_source, AL_BUFFER, audio.GetBufferForId(m_curSoundId));
+		ASSERT(!alGetError());
+	}
+}
+
+void Spear::SoundSource::Destroy()
+{
+	if (m_source != 0)
+	{
+		alDeleteSources(1, &m_source);
+		ASSERT(!alGetError());
 	}
 }
 
@@ -58,12 +68,6 @@ void Spear::SoundSource::SetSound(int soundId)
 		m_curSoundId = soundId;
 		ASSERT(!alGetError());
 	}
-}
-
-Spear::SoundSource::~SoundSource()
-{
-	alDeleteSources(1, &m_source);
-	ASSERT(!alGetError());
 }
 
 void Spear::SoundSource::PlaySound()

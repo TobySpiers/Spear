@@ -12,3 +12,8 @@ void AudioEmitter::OnCreated()
 		m_soundSource.PlaySound();
 	}
 }
+
+void AudioEmitter::OnDestroy()
+{
+	m_soundSource.Destroy();
+}
