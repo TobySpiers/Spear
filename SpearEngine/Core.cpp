@@ -113,7 +113,7 @@ namespace Spear
 			GameObject::GlobalTick(deltaTime);
 
 			// Audio: update
-			audioManager.UpdateStreamingSounds();
+			audioManager.UpdatePlayingStreams();
 
 			// GameObjects: render
 			GameObject::GlobalDraw();

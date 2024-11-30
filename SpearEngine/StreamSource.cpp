@@ -2,20 +2,10 @@
 #include "AudioManager.h"
 #include "AudioUtils.h"
 
-Spear::StreamSource::StreamSource()
+Spear::StreamSource::StreamSource() : AudioSourceBase()
 {
-	// Configure source
-	alGenSources(1, &m_source);
-	alSourcef(m_source, AL_PITCH, m_pitch);
-	alSourcef(m_source, AL_GAIN, m_gain);
-	alSource3f(m_source, AL_POSITION, m_position[0], m_position[1], m_position[2]);
-	alSource3f(m_source, AL_VELOCITY, m_velocity[0], m_velocity[1], m_velocity[2]);
-	alSourcei(m_source, AL_LOOPING, m_looping);
-	alSourcei(m_source, AL_BUFFER, 0);
-
 	// Init multiple buffers for streaming/juggling data
 	alGenBuffers(NUM_BUFFERS, m_buffers);
-
 	m_streambuffer = new short[STREAMBUFFER_SIZE];
 }
 
@@ -26,14 +16,32 @@ Spear::StreamSource::~StreamSource()
 
 	ReleaseStreamingFile();
 
+	Stop();
 	alDeleteBuffers(NUM_BUFFERS, m_buffers);
-	alDeleteSources(1, &m_source);
+
+	AL_CATCH_ERROR();
+}
+
+void Spear::StreamSource::PostDeserialize()
+{
+	RefreshSourceSettings();
+
+	if (!m_streamingFilepath.empty())
+	{
+		SetStreamingFile(m_streamingFilepath.c_str());
+
+		if (m_playing)
+		{
+			Play();
+		}
+	}
 }
 
 bool Spear::StreamSource::SetStreamingFile(const char* filepath)
 {
 	// Clear any existing file
 	ReleaseStreamingFile();
+	m_streamingFilepath = filepath;
 
 	// Open new file and assert success
 	m_sndfile = sf_open(filepath, SFM_READ, &m_sndfileInfo);
@@ -56,9 +64,11 @@ void Spear::StreamSource::ReleaseStreamingFile()
 		sf_close(m_sndfile);
 		m_sndfile = nullptr;
 	}
+	m_streamingFilepath.clear();
 }
 
-void Spear::StreamSource::PlayStream(bool in_bLooping)
+
+void Spear::StreamSource::Play()
 {
 	// ensure SetStreamingFile has been succesfully called 
 	ASSERT(m_sndfile);
@@ -67,10 +77,10 @@ void Spear::StreamSource::PlayStream(bool in_bLooping)
 	sf_seek(m_sndfile, 0, SEEK_SET);
 
 	// Reset playback
-	bPlaybackActive = true;
-	bLooping = in_bLooping;
+	m_playing = true;
 	alSourceRewind(m_source);
 	alSourcei(m_source, AL_BUFFER, 0); // reset active buffer
+	AL_CATCH_ERROR();
 
 	// Load up initial buffers from file start
 	for (int i = 0; i < NUM_BUFFERS; i++)
@@ -86,20 +96,19 @@ void Spear::StreamSource::PlayStream(bool in_bLooping)
 		ALsizei totalBytes = (numLoadedFrames * m_sndfileInfo.channels) * sizeof(short);
 		alBufferData(m_buffers[i], m_format, m_streambuffer, totalBytes, m_sndfileInfo.samplerate);
 	}
-	ASSERT(!alGetError());
 
 	// Queue buffers and begin playback
 	alSourceQueueBuffers(m_source, NUM_BUFFERS, m_buffers);
 	alSourcePlay(m_source);
-	ASSERT(!alGetError());
+	AL_CATCH_ERROR();
 
-	// Register active stream with AudioManager for automatic updates/controls
-	AudioManager::Get().RegisterActiveStream(*this);
+	// Register active stream with AudioManager for ticking updates
+	AudioManager::Get().AddToPlayingStreams(*this);
 }
 
 bool Spear::StreamSource::UpdateAudioStream()
 {
-	if (!bPlaybackActive)
+	if (!m_playing)
 	{
 		return false;
 	}
@@ -136,35 +145,38 @@ bool Spear::StreamSource::UpdateAudioStream()
 		alGetSourcei(m_source, AL_BUFFERS_QUEUED, &remainingQueue);
 		if (!remainingQueue)
 		{
-			// If no queue remaining, sound is finished
-			if (bLooping)
-			{
-				PlayStream(bLooping);
-			}
-			else
-			{
-				OnFinished();
-				return false;
-			}
+			// If no queue remaining, sound is finished. OnFinished will return false if we should not loop.
+			return OnFinished();
 		}
 		else
 		{
 			// If queue remains, must have previously ran out of buffer. Resume playback
 			alSourcePlay(m_source);
-			ASSERT(!alGetError());
+			AL_CATCH_ERROR();
 		}
 	}
-}
-
-// Sound was manually stopped
-void Spear::StreamSource::StopStream()
-{
-	alSourceStop(m_source);
-	bPlaybackActive = false;
+	return true;
 }
 
 // Sound reached end organically
-void Spear::StreamSource::OnFinished()
+bool Spear::StreamSource::OnFinished()
 {
-	bPlaybackActive = false;
+	if (m_looping)
+	{
+		Play();
+		return true;
+	}
+	else
+	{
+		m_playing = false;
+		return false;
+	}
+}
+
+// Sound stopped by code
+void Spear::StreamSource::Stop()
+{
+	alSourceStop(m_source);
+	alSourcei(m_source, AL_BUFFER, 0); // unqueue the buffer so it is no longer in use, this avoids errors if we try to delete this later
+	m_playing = false;
 }

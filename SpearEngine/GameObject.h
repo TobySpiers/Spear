@@ -1,7 +1,11 @@
 #pragma once
 #include "Core.h"
+#include "GameObjectPtr.h"
 #include "GameObjectUtil.h"
 #include <fstream>
+#include <new>
+#include <unordered_set>
+#include <cstdint>
 
 // CAUTION: Linker>UseLibraryDependencyInputs must be TRUE for any project using this class. Object self-registration may otherwise break.
 // Note: built-in serialization does not currently support pointers. If needed, this must be handled manually via OnSerialize overrides.
@@ -13,21 +17,27 @@ enum class eGameObjectTickState
 	TickDisabled,
 };
 
-// Base class for any type of GameObject. Must use included GAMEOBJECT_CLASS and GAMEOBJECT_REGISTER macros to enable serialization.
-// Prefer using OnCreated/OnDestroy where possible. Constructors/destructors are both called during deserialization which can cause issues.
+// Base class for any type of GameObject. Derived classes must use included GAMEOBJECT_SERIALIZABLE and GAMEOBJECT_REGISTER macros.
+// Constructors/destructors CAN be used to configure initial data - this will not interfere with serialization/deserialization.
+// Constructors/destructors MUST NOT be used to create/destroy GameObjects - this should be performed inside OnCreated/OnDestroy functions.
 class GameObject
 {
+	friend class GameObjectPtrBase;
+	template <typename T> friend class GameObjectPtr;
+
 public:
 	template<typename T> static T* Create();
 
 	// Implementable ---
 
-	// Fires when first created (for saved objects, this will trigger post-deserialization)
+	// Order of operations when deserializing: DefaultConstructor -> Variable Assignment From File -> OnDeserialize -> OnCreated
 	virtual void OnCreated() {};
 	virtual void OnTick(float deltaTime) {};
 	virtual void OnDraw() const {};
 	virtual void OnDestroy() {};
-	virtual void OnSerialize() {};
+	virtual void OnPreSerialize() {};
+	virtual void OnPostSerialize() {};
+	virtual void OnDeserialize() {};
 
 	// Native ---
 
@@ -37,6 +47,7 @@ public:
 	static void GlobalTick(float deltaTime);
 	static void GlobalDraw();
 	static void GlobalDestroy();
+
 
 	void SetTickEnabled(bool bShouldTick);
 	bool IsTickEnabled() const;
@@ -51,22 +62,31 @@ public:
 protected:
 	
 	GameObject() {};
-	virtual void Serialize(std::ofstream& os) const = 0;
-	template<typename T> static void SerializeInternal(const T& data, std::ofstream& os);
-	template<typename T> static void DeserializeInternal(std::ifstream& is);
+	virtual ~GameObject();
 
-	using DeserializeFuncPtr = void(*)(std::ifstream& is);
-	static bool RegisterClassType(size_t hashcode, DeserializeFuncPtr func);
+	virtual void Serialize(std::ofstream& os) const = 0;
+	static bool bDeserializing;
+
+	using DeserializeFuncPtr = GameObject*(*)(std::ifstream& is);
+	static bool RegisterClassDeserializer(size_t hashcode, DeserializeFuncPtr func);
 
 	int internalId{ -1 };
 
 private:
+	static void RegisterTickingObject(GameObject* obj);
+	static void RegisterDrawingObject(GameObject* obj);
+
+	void RegisterPtr(GameObjectPtrBase* ptr);
+	void DeregisterPtr(GameObjectPtrBase* ptr);
+	std::unordered_set<GameObjectPtrBase*> trackedPtrs;
+
 	static std::unordered_map<size_t, DeserializeFuncPtr>* ObjectDeserializers();
 	static std::unordered_map<size_t, DeserializeFuncPtr>* s_objectDeserializers;
 	static std::vector<GameObject*> s_allocatedObjects;
 	static std::vector<GameObject*> s_tickList;
 	static std::vector<GameObject*> s_drawList;
 	static std::vector<GameObject*> s_destroyList;
+
 	eGameObjectTickState tickState{ eGameObjectTickState::TickDisabled };
 	eGameObjectTickState drawState{ eGameObjectTickState::TickDisabled };
 	bool bPendingDestroy{ false };
@@ -76,46 +96,10 @@ template<typename T>
 T* GameObject::Create()
 {
 	static_assert(std::is_base_of<GameObject, T>::value, "Requested class must derive from GameObject!");
+	ASSERT(!bDeserializing);
 	T* obj = new T();
 	obj->internalId = s_allocatedObjects.size();
 	s_allocatedObjects.push_back(obj);
 	obj->OnCreated();
 	return obj;
-}
-
-template<typename T>
-void GameObject::SerializeInternal(const T& data, std::ofstream& os)
-{
-	static_assert(std::is_base_of<GameObject, T>::value, "Requested class must derive from GameObject!");
-	os << typeid(T).hash_code() << std::endl;
-	os.write(reinterpret_cast<const char*>(&data), sizeof(T));
-}
-
-template<typename T>
-void GameObject::DeserializeInternal(std::ifstream& is)
-{
-	static_assert(std::is_base_of<GameObject, T>::value, "Requested class must derive from GameObject!");
-	T* tempData = new T();
-	is.read(reinterpret_cast<char*>(tempData), sizeof(T));
-	if (tempData->IsPendingDestroy())
-	{
-		delete tempData;
-		return;
-	}
-	T* obj = new T();
-	// deserializing entire objects breaks derived class vtables
-	// not the most elegant workaround, but copying the deserialized object here to a fresh object avoids the issue:
-	*obj = *tempData;
-	delete tempData;
-	obj->internalId = s_allocatedObjects.size();
-	s_allocatedObjects.push_back(obj);
-	if (obj->IsTickEnabled())
-	{
-		s_tickList.push_back(obj);
-	}
-	if (obj->IsDrawEnabled())
-	{
-		s_drawList.push_back(obj);
-	}
-	obj->OnCreated();
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <fstream>
 
 template <typename T>
 struct Vector2
@@ -8,6 +9,18 @@ struct Vector2
 				|| std::is_same<T, float>::value
 				|| std::is_same<T, double>::value,
 				"Vector2 only supports the following types: int, float, double");
+
+	friend std::ofstream& operator<<(std::ofstream& stream, const Vector2<T>& obj)
+	{
+		stream << obj.x << obj.y;
+		return stream;
+	}
+	friend std::ifstream& operator>>(std::ifstream& stream, Vector2<T>& obj)
+	{
+		stream >> obj.x;
+		stream >> obj.y;
+		return stream;
+	};
 
 	Vector2(){};
 	Vector2(T inVal) : x{ inVal }, y{ inVal }{};
@@ -47,6 +60,19 @@ struct Vector3
 		|| std::is_same<T, float>::value
 		|| std::is_same<T, double>::value,
 		"Vector3 only supports the following types: int, float, double");
+
+	friend std::ofstream& operator<<(std::ofstream& stream, const Vector3<T>& obj)
+	{
+		stream << obj.x << obj.y << obj.z;
+		return stream;
+	}
+	friend std::ifstream& operator>>(std::ifstream& stream, Vector3<T>& obj)
+	{
+		stream >> obj.x;
+		stream >> obj.y;
+		stream >> obj.z;
+		return stream;
+	};
 
 	Vector3() {};
 	Vector3(T inVal) : x{ inVal }, y{ inVal }, z{ inVal } {};

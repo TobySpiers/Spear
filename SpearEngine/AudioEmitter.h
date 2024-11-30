@@ -4,13 +4,11 @@
 
 class AudioEmitter : public GameObject
 {
-	GAMEOBJECT_CLASS(AudioEmitter)
+	GAMEOBJECT_SERIALISABLE(AudioEmitter, m_bPlayOnStart, m_soundSource)
+
 public:
 	virtual void OnCreated() override;
-	virtual void OnDestroy() override;
 
-	Vector3f m_position{};
-	Vector3f m_velocity{};
 	bool m_bPlayOnStart{ false };
 	Spear::SoundSource m_soundSource;
 };

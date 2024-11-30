@@ -7,6 +7,7 @@ std::vector<GameObject*> GameObject::s_tickList;
 std::vector<GameObject*> GameObject::s_drawList;
 std::vector<GameObject*> GameObject::s_destroyList;
 std::unordered_map<size_t, GameObject::DeserializeFuncPtr>* GameObject::s_objectDeserializers = nullptr;
+bool GameObject::bDeserializing = false;
 
 void GameObject::GlobalTick(float deltaTime)
 {	
@@ -35,8 +36,13 @@ void GameObject::GlobalTick(float deltaTime)
 		ASSERT(obj->IsSafeToDestroy());
 		const int cachedInternalId = obj->internalId;
 		obj->OnDestroy();
+		for (GameObjectPtrBase* ptr : obj->trackedPtrs)
+		{
+			ptr->Invalidate();
+		}
 		std::iter_swap(s_allocatedObjects.begin() + cachedInternalId, s_allocatedObjects.end() - 1);
-		s_allocatedObjects[cachedInternalId]->internalId = cachedInternalId;
+		GameObject* swappedObj = s_allocatedObjects[cachedInternalId];
+		swappedObj->internalId = cachedInternalId;
 		s_allocatedObjects.pop_back();
 		delete obj;
 		s_destroyList.pop_back();
@@ -79,16 +85,57 @@ void GameObject::GlobalDestroy()
 	}
 }
 
+void GameObject::RegisterTickingObject(GameObject* obj)
+{
+	// make sure nothing is trying to add duplicates to the ticklist
+	// this check isn't very performant but will be stripped out in Release builds
+	ASSERT(std::find(s_tickList.begin(), s_tickList.end(), obj) == s_tickList.end()); 
+	s_tickList.push_back(obj);
+}
+
+void GameObject::RegisterDrawingObject(GameObject* obj)
+{
+	// make sure nothing is trying to add duplicates to the ticklist
+	// this check isn't very performant but will be stripped out in Release builds
+	ASSERT(std::find(s_drawList.begin(), s_drawList.end(), obj) == s_drawList.end());
+	s_drawList.push_back(obj);
+}
+
+void GameObject::RegisterPtr(GameObjectPtrBase* ptr)
+{
+	ASSERT(ptr);
+	trackedPtrs.insert(ptr);
+}
+
+void GameObject::DeregisterPtr(GameObjectPtrBase* ptr)
+{
+	ASSERT(ptr);
+	trackedPtrs.erase(ptr);
+}
+
 void GameObject::GlobalSerialize(const char* filename)
 {
 	std::ofstream file(filename);
+
 	// Save out num objects to expect on deserialization
 	file << s_allocatedObjects.size() << std::endl;
+
+	// Prep all GameObjects
+	for (GameObject* obj : s_allocatedObjects)
+	{
+		obj->OnPreSerialize();
+	}
 
 	// Serialize each object
 	for (const GameObject* obj : s_allocatedObjects)
 	{
 		obj->Serialize(file);
+	}
+
+	// Restore any GameObjects
+	for (GameObject* obj : s_allocatedObjects)
+	{
+		obj->OnPostSerialize();
 	}
 }
 
@@ -107,21 +154,34 @@ void GameObject::GlobalDeserialize(const char* filename)
 	{
 		typeHashStr = "";
 		std::getline(file, typeHashStr);
-		size_t typeHash = std::stoll(typeHashStr);
+		size_t typeHash = std::stoll(typeHashStr); // size_t == long long, hence std::string -> long long
 		DeserializeFuncPtr deserializeType = ObjectDeserializers()->at(typeHash);
-		deserializeType(file);
+
+		GameObject* obj = deserializeType(file);
+		obj->internalId = s_allocatedObjects.size();
+		s_allocatedObjects.push_back(obj);
+		if (obj->IsTickEnabled())
+		{
+			RegisterTickingObject(obj);
+		}
+		if (obj->IsDrawEnabled())
+		{
+			RegisterDrawingObject(obj);
+		}
+		obj->OnDeserialize();
+		obj->OnCreated();
 	}
 }
 
 void GameObject::SetTickEnabled(bool bShouldTick)
 {
 	ASSERT(!IsPendingDestroy());
-
+	
 	if (bShouldTick)
 	{
 		if (tickState == eGameObjectTickState::TickDisabled)
 		{
-			s_tickList.push_back(this);
+			RegisterTickingObject(this);
 		}
 		tickState = eGameObjectTickState::TickEnabled;
 	}
@@ -141,12 +201,12 @@ bool GameObject::IsTickEnabled() const
 void GameObject::SetDrawEnabled(bool bShouldDraw)
 {
 	ASSERT(!IsPendingDestroy());
-
+	
 	if (bShouldDraw)
 	{
 		if (drawState == eGameObjectTickState::TickDisabled)
 		{
-			s_drawList.push_back(this);
+			RegisterDrawingObject(this);
 		}
 		drawState = eGameObjectTickState::TickEnabled;
 	}
@@ -190,7 +250,16 @@ bool GameObject::IsSafeToDestroy() const
 	return tickState == eGameObjectTickState::TickDisabled && drawState == eGameObjectTickState::TickDisabled;
 }
 
-bool GameObject::RegisterClassType(size_t hashcode, DeserializeFuncPtr func)
+GameObject::~GameObject()
+{
+	// Invalidate any GameObjectPtrs referencing this object
+	for (GameObjectPtrBase* ptr : trackedPtrs)
+	{
+		ptr->Invalidate();
+	}
+}
+
+bool GameObject::RegisterClassDeserializer(size_t hashcode, DeserializeFuncPtr func)
 {
 	ObjectDeserializers()->insert({hashcode, func});
 	return true;

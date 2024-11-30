@@ -6,6 +6,7 @@
 #include "alc.h"
 #include "alext.h"
 #include "sndfile.hh"
+#include <algorithm>
 
 namespace Spear
 {
@@ -35,20 +36,22 @@ namespace Spear
 		}
 		LOG(printf("OpenAL initialised with %s", name));
 
-		ASSERT(!m_pGlobalSoundSource);
-		m_pGlobalSoundSource = new SoundSource;
-		m_pGlobalSoundSource->Init();
-		ASSERT(!m_pGlobalStreamSource);
-		m_pGlobalStreamSource = new StreamSource;
+	}
+
+	void AudioManager::OnCreated()
+	{
+		m_soundSource = new SoundSource;
+		m_streamSource = new StreamSource;
 	}
 
 	AudioManager::~AudioManager()
 	{
-		m_pGlobalSoundSource->Destroy();
-		delete m_pGlobalSoundSource;
-		m_pGlobalSoundSource = nullptr;
-		delete m_pGlobalStreamSource;
-		m_pGlobalStreamSource = nullptr;
+		StopAllAudio();
+
+		delete m_soundSource;
+		delete m_streamSource;
+		m_soundSource = nullptr;
+		m_streamSource = nullptr;
 
 		ReleaseSounds();
 
@@ -57,9 +60,22 @@ namespace Spear
 		alcCloseDevice(m_device);
 	}
 
+
 	AudioManager& AudioManager::Get()
 	{
 		return ServiceLocator::GetAudioManager();
+	}
+
+	void AudioManager::RegisterAudioSource(AudioSourceBase* audioSource)
+	{
+		ASSERT(!m_audioSources.contains(audioSource));
+		m_audioSources.insert(audioSource);
+	}
+
+	void AudioManager::DeregisterAudioSource(AudioSourceBase* audioSource)
+	{
+		ASSERT(m_audioSources.contains(audioSource));
+		m_audioSources.erase(audioSource);
 	}
 
 	void AudioManager::InitSoundsFromFolder(const char* dir)
@@ -151,62 +167,57 @@ namespace Spear
 
 	void AudioManager::GlobalPlaySound(int slot)
 	{
-		m_pGlobalSoundSource->SetSound(slot);
-		m_pGlobalSoundSource->PlaySound();
+		m_soundSource->SetSound(slot);
+		m_soundSource->Play();
 	}
 
 	void AudioManager::GlobalStopSound()
 	{
-		m_pGlobalSoundSource->StopSound();
+		m_soundSource->Stop();
 	}
 
 	void AudioManager::GlobalPlayStream(const char* filepath)
 	{
-		m_pGlobalStreamSource->SetStreamingFile(filepath);
-		m_pGlobalStreamSource->PlayStream();
+		m_streamSource->SetStreamingFile(filepath);
+		m_streamSource->Play();
 	}
 
 	void AudioManager::GlobalStopStream()
 	{
-		m_pGlobalStreamSource->StopStream();
+		m_streamSource->Stop();
 	}
 
 	void AudioManager::StopAllAudio()
 	{
-		m_pGlobalSoundSource->StopSound();
-		for (StreamSource* stream : m_activeStreams)
+		for (AudioSourceBase* source : m_audioSources)
 		{
-			stream->StopStream();
+			source->Stop();
 		}
-		m_activeStreams.clear();
+		m_playingStreams.clear();
 	}
 
-	u32 AudioManager::GetBufferForId(int soundId) const
+	u32 AudioManager::GetBufferForSoundId(int soundId) const
 	{
 		ASSERT(m_audioBufferSlots.contains(soundId));
 		return m_audioBufferSlots.at(soundId);
 	}
 
-	void AudioManager::RegisterActiveStream(StreamSource& stream)
+	void AudioManager::AddToPlayingStreams(StreamSource& stream)
 	{
-		m_activeStreams.insert(&stream);
+		m_playingStreams.push_back(&stream);
 	}
 
-	void AudioManager::UpdateStreamingSounds()
+	void AudioManager::UpdatePlayingStreams()
 	{
 		std::vector<StreamSource*> finishedStreams;
-		for (StreamSource* stream : m_activeStreams)
+		for (int i = m_playingStreams.size() - 1; i >= 0; i--)
 		{
+			StreamSource* stream = m_playingStreams[i];
 			if (!stream->UpdateAudioStream())
 			{
-				finishedStreams.push_back(stream);
+				std::iter_swap(m_playingStreams.begin() + i, m_playingStreams.end() - 1);
+				m_playingStreams.pop_back();
 			}
-		}
-
-		while (finishedStreams.size())
-		{
-			m_activeStreams.erase(finishedStreams.back());
-			finishedStreams.pop_back();
 		}
 	}
 	

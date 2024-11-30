@@ -13,46 +13,50 @@ namespace Spear
 	{
 		NO_COPY(AudioManager);
 		friend Core;
+		friend AudioSourceBase;
 		friend StreamSource;
 		friend SoundSource;
 
 	public:
 		AudioManager();
 		~AudioManager();
+		void OnCreated();
 
 		static AudioManager& Get();
 
+		// Loads sounds associated with SoundIDs (streaming files are NOT loaded here)
 		void InitSoundsFromFolder(const char* dir);
-		void ReleaseSounds();
 
-		// TOOD: Extend to support multiple simultaneous global sounds/streams
 		// Global sound effects (non-positional)
 		void GlobalPlaySound(int soundId);
 		void GlobalStopSound();
+
 		// Global sound streaming (non-positional)
 		void GlobalPlayStream(const char* filepath);
 		void GlobalStopStream();
 
-		// Stops global SoundSource and all StreamSources
-		// TODO: Does not stop non-global SoundSources, need to register these (similar to StreamSource setup) and include global controls such as stop/volume/pitch/etc.
+		// Stops all AudioSources from playing
 		void StopAllAudio();
 
 	private:
-		void RegisterActiveStream(StreamSource& stream);
-		void UpdateStreamingSounds();
+		void RegisterAudioSource(AudioSourceBase* audioSource);
+		void DeregisterAudioSource(AudioSourceBase* audioSource);
+
+		void AddToPlayingStreams(StreamSource& stream);
+		void UpdatePlayingStreams();
+		std::vector<StreamSource*> m_playingStreams;
 
 		bool LoadSound(const char* filepath, int slot);
-		u32 GetBufferForId(int soundId) const;
+		u32 GetBufferForSoundId(int soundId) const;
+		void ReleaseSounds();
+
+		// For tracking & updating sources
+		SoundSource* m_soundSource = nullptr;
+		StreamSource* m_streamSource = nullptr;
+		std::unordered_set<AudioSourceBase*> m_audioSources;
 
 		ALCdevice* m_device{ nullptr };
 		ALCcontext* m_context{ nullptr };
 		std::unordered_map<int, u32> m_audioBufferSlots;
-
-		// Dynamically allocated - self needs to be constructed (openAL initialised) prior to constructing sources
-		SoundSource* m_pGlobalSoundSource{ nullptr };
-		StreamSource* m_pGlobalStreamSource{ nullptr };
-
-		// For tracking & updating active audio streams
-		std::unordered_set<StreamSource*> m_activeStreams;
 	};
 }

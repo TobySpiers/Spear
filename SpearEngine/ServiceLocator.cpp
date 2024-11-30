@@ -47,6 +47,7 @@ namespace Spear
 		if (!s_pAudioManager)
 		{
 			s_pAudioManager = new AudioManager;
+			s_pAudioManager->OnCreated();
 		}
 	}
 

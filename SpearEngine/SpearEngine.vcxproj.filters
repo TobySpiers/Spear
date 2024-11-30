@@ -87,6 +87,18 @@
     <ClCompile Include="AudioEmitter.cpp">
       <Filter>GameObject</Filter>
     </ClCompile>
+    <ClCompile Include="GameComponent.cpp">
+      <Filter>GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Serializer.cpp">
+      <Filter>Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="GameObjectPtr.cpp">
+      <Filter>GameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioSourceBase.cpp">
+      <Filter>SpearAudio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.h">
@@ -161,5 +173,20 @@
     <ClInclude Include="GameObjectUtil.h">
       <Filter>GameObject</Filter>
     </ClInclude>
+    <ClInclude Include="GameComponent.h">
+      <Filter>GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Serializer.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObjectPtr.h">
+      <Filter>GameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioSourceBase.h">
+      <Filter>SpearAudio</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

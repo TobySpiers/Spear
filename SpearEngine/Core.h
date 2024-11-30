@@ -48,6 +48,20 @@ if (!(x))					\
 #define ASSERT(x)
 #endif
 
+#ifdef _DEBUG
+#define AL_CATCH_ERROR()\
+{\
+const ALenum alError = alGetError();\
+if(alError)\
+{\
+	std::cout << alError << std::endl;\
+	__debugbreak();\
+}\
+}
+#else
+#define AL_CATCH_ERROR()
+#endif
+
 #define PI 3.1415927f
 #define TO_RADIANS(x) ((x) * (PI / 180))
 

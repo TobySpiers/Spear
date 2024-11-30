@@ -21,7 +21,11 @@
   <ItemGroup>
     <ClInclude Include="AudioEmitter.h" />
     <ClInclude Include="AudioManager.h" />
+    <ClInclude Include="AudioSourceBase.h" />
+    <ClInclude Include="GameComponent.h" />
+    <ClInclude Include="GameObjectPtr.h" />
     <ClInclude Include="GameObjectUtil.h" />
+    <ClInclude Include="Serializer.h" />
     <ClInclude Include="SoundSource.h" />
     <ClInclude Include="StreamSource.h" />
     <ClInclude Include="AudioUtils.h" />
@@ -48,6 +52,10 @@
     <ClCompile Include="..\thirdparty\glad\src\glad.c" />
     <ClCompile Include="AudioEmitter.cpp" />
     <ClCompile Include="AudioManager.cpp" />
+    <ClCompile Include="AudioSourceBase.cpp" />
+    <ClCompile Include="GameComponent.cpp" />
+    <ClCompile Include="GameObjectPtr.cpp" />
+    <ClCompile Include="Serializer.cpp" />
     <ClCompile Include="SoundSource.cpp" />
     <ClCompile Include="StreamSource.cpp" />
     <ClCompile Include="AudioUtils.cpp" />
@@ -67,6 +75,9 @@
     <ClCompile Include="WindowManager.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />
     <ClCompile Include="ShaderCompiler.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

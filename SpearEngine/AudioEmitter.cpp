@@ -1,19 +1,13 @@
 #include "AudioEmitter.h"
+#include "ServiceLocator.h"
+#include "AudioManager.h"
 
 GAMEOBJECT_REGISTER(AudioEmitter)
 
 void AudioEmitter::OnCreated()
 {
-	m_soundSource.Init();
-	m_soundSource.SetPosition(m_position);
-	m_soundSource.SetVelocity(m_velocity);
 	if (m_bPlayOnStart)
 	{
-		m_soundSource.PlaySound();
+		m_soundSource.Play();
 	}
-}
-
-void AudioEmitter::OnDestroy()
-{
-	m_soundSource.Destroy();
 }
