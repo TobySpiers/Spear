@@ -7,10 +7,8 @@
 •  **Built-in level editor** with simple save/load support
 
 # Setup
-• Open solution using latest Visual Studio\
-• Set solution platform to x64\
-• Ensure SpearGame is set as the startup project\
-• Run the program
+• In the root directory, run 'ProjectSetup.bat' to create local visual studio project files\
+• Open the newly created 'Spear.sln' file using Visual Studio 2022 and run the program
 
 # Controls
 *Play Mode*\
