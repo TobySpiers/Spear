@@ -15,8 +15,9 @@ int main(int argc, char* argv[])
 	params.fullscreen = false;
 	params.xpos = SDL_WINDOWPOS_CENTERED;
 	params.ypos = SDL_WINDOWPOS_CENTERED;
-	params.width = 1200;	// windowed resolution
-	params.height = 800;	// windowed resolution
+	params.width = 1920;	// windowed resolution
+	params.height = 1200;	// windowed resolution
+	params.scale = 1.f;
 	Spear::Core::Initialise(params);
 
 	// Setup states

@@ -1,35 +1,8 @@
 #pragma once
 #include "LevelData.h"
+#include "PanelRaycaster.h"
 
-// a loose 2D wall
-// Pros: freely positionable, any angle, supports dynamic movement/rotation
-// Cons: much slower
-// Note: potential for ray-reflections/mirrors...?
-struct RaycastWall
-{
-	Colour4f colour;
-	Vector2f origin;
-	Vector2f vec;
-};
-
-struct RaycastParams
-{
-	float fieldOfView{ 75.f };
-	float farClip{50};
-	int xResolution{900}; // internal resolution for raycaster
-	int yResolution{600}; 
-	int threads{15};
-	int rayEncounterLimit{20}; // how many 'wall encounters' to allow per ray (used for rendering tall walls behind shorter walls)
-	int XResolutionPerThread() { return xResolution / threads; }; // intentional integer division
-	int YResolutionPerThread() { return yResolution / threads; };
-
-	// Used only for 2D top-down rendering. Scale 1 = 1 tile : 1 pixel.
-	float scale2D{ 75.f };
-
-	// Debug settings
-	bool highlightCorrectivePixels{ false };		// whether to render corrective pixels as BrightRed instead of using pixel-cloning
-	float correctivePixelDepthTolerance{ 0.01f };	// depth tolerance for considering other pixels when stitching seams together
-};
+struct RaycasterConfig;
 
 // class to cast and render rays
 class Raycaster
@@ -46,12 +19,10 @@ class Raycaster
 public:
 	//static void SubmitNewGrid(u8 width, u8 height, const s8* pWorldIds, const u8* pRoofIds);
 	static void Init(MapData& map);
-	static void ApplyConfig(const RaycastParams& config);
+	static RaycasterConfig GetConfigCopy();
+	static void ApplyConfig(const RaycasterConfig& config);
 	static void ApplyFovModifier(float newFov);
 	static Vector2i GetResolution();
-
-	static void Draw2DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
-	static void Draw3DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount);
 
 	static void Draw2DGrid(const Vector2f& pos, const float angle);
 	static void Draw3DGrid(const Vector2f& pos, float pitch, const float angle);
@@ -60,8 +31,11 @@ private:
 	static void RecreateBackgroundArrays(int width, int height);
 	static void ClearBackgroundArrays();
 
+	// ImGui Panel
+	static PanelRaycaster debugPanel;
+
 	// Raycast Data
-	static RaycastParams m_rayConfig;
+	static RaycasterConfig m_rayConfig;
 	static MapData* m_map;
 
 	// Background Floor/Ceiling Render

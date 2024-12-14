@@ -5,120 +5,59 @@
 #include <fstream>
 #include <iomanip>
 #include <cstdio>
+#include "Panels/PanelFrameProfiler.h"
 
-static constexpr const char* TEMP_FILENAME{"temp.csv"};
+static PanelFrameProfiler debugPanel;
 
-using TimingData = std::pair<u64, float>;
-
-static std::vector<const char*> s_vCategoryEntries;
-static std::unordered_map<const char*, TimingData> s_timingData;
-static std::fstream s_tempFile;
-static u64 s_frameStart{0};
-
-static bool s_writeHeader{0};
-
-void FrameProfiler::Initialise()
-{
-	s_writeHeader = true;
-
-	// must create file via ofstream before opening via read/write stream
-	std::ofstream createdFile(TEMP_FILENAME);
-	ASSERT(createdFile.is_open());
-	createdFile.close();
-
-	s_tempFile.open(TEMP_FILENAME, std::ios::out | std::ios::in);
-	ASSERT(s_tempFile.is_open())
-
-	s_tempFile << std::fixed << std::setprecision(10);
-}
+std::vector<ProfileCategory> FrameProfiler::s_categoryTrees;
+ProfileCategory* FrameProfiler::s_activeCategory{ nullptr };
+u64 FrameProfiler::s_frameStart{0};
 
 void FrameProfiler::StartFrame(u64 curTime)
 {
+	ASSERT(!s_activeCategory);
 	s_frameStart = curTime;
+	s_categoryTrees.clear();
 }
 
-void FrameProfiler::StartCategory(const char* catName)
+void FrameProfiler::StartCategory(const char* newCategoryName)
 {
-	// Create new entry if new category, otherwise update existing category
-	if(s_timingData.count(catName) == 0)
+	ProfileCategory* newCategory{ nullptr };
+	if (!s_activeCategory)
 	{
-		s_timingData.insert(std::pair<const char*, TimingData>(
-			catName,
-			TimingData(SDL_GetPerformanceCounter(), 0.f)
-		));
-
-		s_vCategoryEntries.push_back(catName);
+		s_categoryTrees.emplace_back();
+		newCategory = &s_categoryTrees.back();
 	}
 	else
 	{
-		s_timingData.at(catName) = TimingData(SDL_GetPerformanceCounter(), 0.f);
+		s_activeCategory->childCategories.emplace_back();
+		newCategory = &s_activeCategory->childCategories.back();
+		newCategory->parentCategory = s_activeCategory;
 	}
+
+	s_activeCategory = newCategory;
+	newCategory->categoryName = newCategoryName;
+	newCategory->startTimestamp = SDL_GetPerformanceCounter();
 }
 
-void FrameProfiler::EndCategory(const char* catName)
+void FrameProfiler::EndCategory(const char* categoryName)
 {
-	ASSERT(s_timingData.count(catName) == 1 && s_timingData.at(catName).first != 0);
-
-	// Calculate and store ms since category began
-	s_timingData.at(catName).second = static_cast<float>(SDL_GetPerformanceCounter() - s_timingData.at(catName).first) / SDL_GetPerformanceFrequency();
+	// Forbid nested categories from lasting longer than their parent category
+	// This makes it easy to sum overall frame contributions and spot missing time
+	ASSERT(s_activeCategory->categoryName == categoryName);
+	s_activeCategory->durationMs = static_cast<float>(SDL_GetPerformanceCounter() - s_activeCategory->startTimestamp) / SDL_GetPerformanceFrequency();
+	s_activeCategory->durationMs *= 1000;
+	s_activeCategory = s_activeCategory->parentCategory;
 }
 
-void FrameProfiler::EndFrame(u64 curTime)
+const std::vector<ProfileCategory>& FrameProfiler::GetData()
 {
-	ASSERT(s_tempFile.is_open());
-
-	// Write values for this frame to TEMP_FILE in order categories have been first created, zeroing out as we go
-	s_tempFile << static_cast<float>(curTime - s_frameStart) / SDL_GetPerformanceFrequency() << ",";
-	for (const char* category : s_vCategoryEntries)
-	{
-		TimingData& td = s_timingData.at(category);
-		s_tempFile << td.second << ",";
-		td = TimingData(0, 0.f);
-	}
-
-	s_tempFile << "\n";
+	return s_categoryTrees;
 }
 
-
-void FrameProfiler::SaveProfile(const char* outputFilename)
+float FrameProfiler::GetCurrentFrameMs()
 {
-	LOG(std::string("\nSaving profiling data to ") + outputFilename);
-
-	std::string filepath = "../";
-	std::ofstream saveFile(filepath + outputFilename);
-	ASSERT(saveFile.is_open());
-
-	saveFile << std::fixed << std::setprecision(10);
-	
-	// Write category headers into top of SaveFile
-	saveFile << "Frame Total" << ",";
-	for (const char* category : s_vCategoryEntries)
-	{
-		saveFile << category << ",";
-	}
-	saveFile << "\n";
-
-	// Copy temp data into SaveFile with corrected row widths
-	std::string line;
-	s_tempFile.seekg(0, std::ios::beg);
-	while (std::getline(s_tempFile, line))
-	{
-		saveFile << line;
-		
-		int values = std::count(line.begin(), line.end(), ',');
-		while (values < s_timingData.size() + 1) // plus 1 for Frame Total category
-		{
-			saveFile << 0.f << ',';
-			values++;
-		}
-		saveFile << '\n';
-	}
-
-	saveFile.close();
-	s_tempFile.close();
-	ASSERT(std::remove(TEMP_FILENAME) == 0); // ensure temp file is deleted
-
-	LOG("...Profiling data succesfully saved");
+	return 1000 * (static_cast<float>(SDL_GetPerformanceCounter() - s_frameStart) / SDL_GetPerformanceFrequency());
 }
 
 #endif

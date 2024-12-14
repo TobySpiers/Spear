@@ -2,6 +2,8 @@
 #include <cmath>
 #include <fstream>
 
+struct ImVec2;
+
 template <typename T>
 struct Vector2
 {
@@ -51,6 +53,9 @@ struct Vector2
 	Vector2<int> ToInt() const {return Vector2<int>(static_cast<int>(x), static_cast<int>(y)); };
 	Vector2<float> ToFloat() const {return Vector2<float>(static_cast<float>(x), static_cast<float>(y)); };
 	Vector2<double> ToDouble() const {return Vector2<double>(static_cast<double>(x), static_cast<double>(y)); };
+
+	// Implicit Conversions for ImGui
+	operator ImVec2() const;
 };
 
 template <typename T>
@@ -86,21 +91,21 @@ struct Vector3
 	float LengthSqr() const { return (x * x) + (y * y) + (z * z); };
 
 	// scalar operators
-	Vector3<T> operator*(const float& scalar) const { return Vector2<T>(x * scalar, y * scalar, z * scalar); };
+	Vector3<T> operator*(const float& scalar) const { return Vector3<T>(x * scalar, y * scalar, z * scalar); };
 	Vector3<T> operator*=(const float& scalar) { *this = *this * scalar; return *this; };
-	Vector3<T> operator/(const float& scalar) const { return Vector2<T>(x / scalar, y / scalar, z / scalar); };
+	Vector3<T> operator/(const float& scalar) const { return Vector3<T>(x / scalar, y / scalar, z / scalar); };
 	Vector3<T> operator/=(const float& scalar) { *this = *this / scalar; return *this; };
 
 	// vector operators
-	Vector3<T> operator+(const Vector2<T>& other) const { return Vector2<T>(x + other.x, y + other.y, z + other.z); };
-	Vector3<T> operator+=(const Vector2<T>& other) { *this = *this + other; return *this; };
-	Vector3<T> operator-(const Vector2<T>& other) const { return Vector2<T>(x - other.x, y - other.y, z - other.z); };
-	Vector3<T> operator-=(const Vector2<T>& other) { *this = *this - other; return *this; };
+	Vector3<T> operator+(const Vector3<T>& other) const { return Vector3<T>(x + other.x, y + other.y, z + other.z); };
+	Vector3<T> operator+=(const Vector3<T>& other) { *this = *this + other; return *this; };
+	Vector3<T> operator-(const Vector3<T>& other) const { return Vector3<T>(x - other.x, y - other.y, z - other.z); };
+	Vector3<T> operator-=(const Vector3<T>& other) { *this = *this - other; return *this; };
 
 	// Explicit Conversions Only
-	Vector3<int> ToInt() const { return Vector2<int>(static_cast<int>(x), static_cast<int>(y), static_cast<int>(z)); };
-	Vector3<float> ToFloat() const { return Vector2<float>(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)); };
-	Vector3<double> ToDouble() const { return Vector2<double>(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z)); };
+	Vector3<int> ToInt() const { return Vector3<int>(static_cast<int>(x), static_cast<int>(y), static_cast<int>(z)); };
+	Vector3<float> ToFloat() const { return Vector3<float>(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)); };
+	Vector3<double> ToDouble() const { return Vector3<double>(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z)); };
 };
 
 template <typename T>

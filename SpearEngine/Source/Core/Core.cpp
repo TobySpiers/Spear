@@ -4,6 +4,7 @@
 #include "InputManager.h"
 #include "WindowManager.h"
 #include "Audio/AudioManager.h"
+#include "ImguiManager.h"
 #include "GameObject/GameObject.h"
 #include "SDL_Image.h"
 #include "imgui.h"
@@ -54,41 +55,12 @@ namespace Spear
 		}
 
 		// Specify our OpenGL version: version 4.1, profile mask = core profile (no backward compat)
-		const char* glsl_version = "#version 410";
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 		// Initialise all services
 		ServiceLocator::Initialise(params);
-
-		// ImGui Setup - pulled from ImGui sample project: example_sdl2_opengl3
-		{
-			IMGUI_CHECKVERSION();
-			ImGui::CreateContext();
-			ImGuiIO& io = ImGui::GetIO(); (void)io; // TS - what is this cast achieving?
-			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-			io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-			io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-			io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
-
-			ImGui::StyleColorsDark();
-			//ImGui::StyleColorsLight();
-
-			// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-			ImGuiStyle& style = ImGui::GetStyle();
-			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-			{
-				style.WindowRounding = 0.0f;
-				style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-			}
-
-			// Setup Platform/Renderer backends
-			WindowManager& windowManager = ServiceLocator::GetWindowManager();
-			ImGui_ImplSDL2_InitForOpenGL(&windowManager.GetWindow(), &windowManager.GetContext());
-			ImGui_ImplOpenGL3_Init(glsl_version);
-		}
-
 	}
 
 	void Core::RunGameloop(int targetFPS)
@@ -96,14 +68,13 @@ namespace Spear
 		InputManager& inputManager = ServiceLocator::GetInputManager();
 		FlowstateManager& stateManager = ServiceLocator::GetFlowstateManager();
 		AudioManager& audioManager = ServiceLocator::GetAudioManager();
-
-		#if _DEBUG
-		FrameProfiler::Initialise();
-		#endif
+		ImguiManager& imguiManager = ServiceLocator::GetImguiManager();
 
 		u64 frameStart;
 		float deltaTime{1.f / targetFPS };
 		const u64 targetFrequency = SDL_GetPerformanceFrequency()/targetFPS;
+
+		ImGuiIO& imguiIO = ImGui::GetIO();
 		while (!m_shutdown)
 		{
 			frameStart = SDL_GetPerformanceCounter();
@@ -133,13 +104,7 @@ namespace Spear
 				}
 			}
 
-			// Start the Dear ImGui frame
-			ImGui_ImplOpenGL3_NewFrame();
-			ImGui_ImplSDL2_NewFrame();
-			ImGui::NewFrame();
-
-			ImGui::ShowDemoWindow();
-
+			START_PROFILE("UPDATE");
 			// Refresh input data
 			inputManager.RefreshInput(mousewheelInput);
 
@@ -151,45 +116,28 @@ namespace Spear
 
 			// Audio: update
 			audioManager.UpdatePlayingStreams();
+			END_PROFILE("UPDATE");
 
+			START_PROFILE("DRAW");
 			// GameObjects: render
 			GameObject::GlobalDraw();
 
 			// State: render
 			stateManager.Render();
+			END_PROFILE("DRAW");
 
-			ImGui::Render();
-			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-			// Update and Render additional Platform Windows
-			// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-			//  For this specific demo app we could also call SDL_GL_MakeCurrent(window, gl_context) directly)
-			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-			{
-				SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
-				SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
-				ImGui::UpdatePlatformWindows();
-				ImGui::RenderPlatformWindowsDefault();
-				SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
-			}
+			// ImGui: update & render
+			imguiManager.MakePanels();
 
 			// Swap buffers
 			SDL_GL_SwapWindow(&ServiceLocator::GetWindowManager().GetWindow());
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
-			#if _DEBUG
-			FrameProfiler::EndFrame(SDL_GetPerformanceCounter());
-			#endif
 
 			// spinlock to keep thread active while waiting
 			while(SDL_GetPerformanceCounter() - frameStart < targetFrequency)
 			{}
 			deltaTime = static_cast<float>(SDL_GetPerformanceCounter() - frameStart) / SDL_GetPerformanceFrequency();
 		}
-
-		#if _DEBUG
-		FrameProfiler::SaveProfile("profile.csv");
-		#endif
 	}
 
 	void Core::SignalShutdown()

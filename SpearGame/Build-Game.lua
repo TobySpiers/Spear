@@ -52,6 +52,7 @@ project "SpearGame"
 	filter "system:windows"
 		systemversion "latest"
 		defines { "WINDOWS" }
+		files {"SpearGame.manifest"}
 
 	filter "configurations:Debug"
 		defines { "DEBUG" }

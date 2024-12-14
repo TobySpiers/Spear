@@ -49,16 +49,14 @@ namespace Spear
 		{
 			pNextState = m_registeredStates.at(nextStateId);
 		}
-		END_PROFILE("Flowstate Update");
 
-		START_PROFILE("Flowstate Change");
 		if (pNextState)
 		{
 			m_pCurState->StateExit();
 			m_pCurState = pNextState;
 			m_pCurState->StateEnter();
 		}
-		END_PROFILE("Flowstate Change");
+		END_PROFILE("Flowstate Update");
 	}
 
 	void FlowstateManager::Render()

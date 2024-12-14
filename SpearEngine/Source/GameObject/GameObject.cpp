@@ -1,5 +1,6 @@
 #include "GameObject.h"
 #include <algorithm>
+#include <Core/FrameProfiler.h>
 
 // Tracking
 std::vector<GameObject*> GameObject::s_allocatedObjects;
@@ -11,6 +12,7 @@ bool GameObject::bDeserializing = false;
 
 void GameObject::GlobalTick(float deltaTime)
 {	
+	START_PROFILE("GameObject Update");
 	for (int i = s_tickList.size() - 1; i >= 0; i--)
 	{
 		GameObject* obj = s_tickList[i];
@@ -47,10 +49,12 @@ void GameObject::GlobalTick(float deltaTime)
 		delete obj;
 		s_destroyList.pop_back();
 	}
+	END_PROFILE("GameObject Update");
 }
 
 void GameObject::GlobalDraw()
 {
+	START_PROFILE("GameObject Draw");
 	for (int i = s_drawList.size() - 1; i >= 0; i--)
 	{
 		GameObject* obj = s_drawList[i];
@@ -69,6 +73,7 @@ void GameObject::GlobalDraw()
 			obj->OnDraw();
 		}
 	}
+	END_PROFILE("GameObject Draw");
 }
 
 void GameObject::GlobalDestroy()

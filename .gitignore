@@ -8,3 +8,8 @@ SpearGame/x64/
 profile.csv
 *.bak
 Binaries/
+*.sln
+*.vcxproj
+*.user
+*.filters
+SpearGame/imgui.ini

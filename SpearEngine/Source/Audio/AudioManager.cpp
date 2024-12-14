@@ -7,6 +7,7 @@
 #include "alext.h"
 #include "sndfile.hh"
 #include <algorithm>
+#include "Core/FrameProfiler.h"
 
 namespace Spear
 {
@@ -209,6 +210,7 @@ namespace Spear
 
 	void AudioManager::UpdatePlayingStreams()
 	{
+		START_PROFILE("Audio Update");
 		std::vector<StreamSource*> finishedStreams;
 		for (int i = m_playingStreams.size() - 1; i >= 0; i--)
 		{
@@ -219,6 +221,7 @@ namespace Spear
 				m_playingStreams.pop_back();
 			}
 		}
+		END_PROFILE("Audio Update");
 	}
 	
 	void AudioManager::ReleaseSounds()

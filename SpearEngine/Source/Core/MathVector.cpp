@@ -1,4 +1,19 @@
 #include "MathVector.h"
+#include "imgui.h"
+
+// Explicit instantiations
+template struct Vector2<int>;
+template struct Vector2<float>;
+template struct Vector2<double>;
+template struct Vector3<int>;
+template struct Vector3<float>;
+template struct Vector3<double>;
+
+template <typename T> 
+Vector2<T>::operator ImVec2() const
+{
+	return ImVec2(static_cast<float>(x), static_cast<float>(y));
+}
 
 float Lerp(const float lerpKey, const Vector2f* keyValueArray, int arraySize)
 {

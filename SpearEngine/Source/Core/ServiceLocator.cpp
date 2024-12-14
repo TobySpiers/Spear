@@ -3,6 +3,7 @@
 #include "WindowManager.h"
 #include "InputManager.h"
 #include "ThreadManager.h"
+#include "ImguiManager.h"
 #include "Graphics/ScreenRenderer.h"
 #include "Audio/AudioManager.h"
 
@@ -16,17 +17,23 @@ namespace Spear
 	static ScreenRenderer* s_pScreenRenderer{nullptr};
 	static ThreadManager* s_pThreadManager{nullptr};
 	static AudioManager* s_pAudioManager{nullptr};
+	static ImguiManager* s_pImguiManager{ nullptr };
 
 	void ServiceLocator::Initialise(const WindowParams& params)
 	{
-		if (!s_pFlowstateManager)
-		{
-			s_pFlowstateManager = new FlowstateManager;
-		}
-
 		if (!s_pWindowManager)
 		{
 			s_pWindowManager = new WindowManager(params);
+		}
+
+		if (!s_pImguiManager)
+		{
+			s_pImguiManager = new ImguiManager;
+		}
+
+		if (!s_pFlowstateManager)
+		{
+			s_pFlowstateManager = new FlowstateManager;
 		}
 
 		if (!s_pInputManager)
@@ -70,6 +77,9 @@ namespace Spear
 
 		delete s_pAudioManager;
 		s_pAudioManager = nullptr;
+
+		delete s_pImguiManager;
+		s_pImguiManager = nullptr;
 	}
 
 	FlowstateManager& ServiceLocator::GetFlowstateManager()
@@ -106,5 +116,10 @@ namespace Spear
 	{
 		ASSERT(s_pAudioManager);
 		return *s_pAudioManager;
+	}
+	ImguiManager& ServiceLocator::GetImguiManager()
+	{
+		ASSERT(s_pImguiManager);
+		return *s_pImguiManager;
 	}
 }

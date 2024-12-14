@@ -5,7 +5,7 @@
 #include "Audio/AudioManager.h"
 #include "GameObject/AudioEmitter.h"
 
-#include "Raycaster.h"
+#include "Raycaster/Raycaster.h"
 #include "eFlowstate.h"
 #include "Player.h"
 #include "FlowstateGame.h"
@@ -102,12 +102,6 @@ int FlowstateGame::StateUpdate(float deltaTime)
 	}
 
 	m_gameState.player.Update(deltaTime);
-
-	Spear::ScreenRenderer::TextData fpsText;
-	fpsText.text = std::to_string(deltaTime);
-	fpsText.pos = Vector2f(Spear::Core::GetWindowSize().x / 2, 20.f);
-	fpsText.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
-	Spear::ServiceLocator::GetScreenRenderer().AddText(fpsText);
 
 	return static_cast<int>(eFlowstate::STATE_THIS);
 }

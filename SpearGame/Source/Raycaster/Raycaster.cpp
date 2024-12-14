@@ -6,13 +6,16 @@
 #include "Graphics/TextureArray.h"
 
 #include "Raycaster.h"
+#include "RaycasterConfig.h"
 #include "LevelFileManager.h"
 #include <algorithm>
+
+PanelRaycaster Raycaster::debugPanel;
 
 GLuint* Raycaster::m_bgTexRGBA{nullptr};
 GLfloat* Raycaster::m_bgTexDepth{nullptr};
 MapData* Raycaster::m_map{ nullptr };
-RaycastParams Raycaster::m_rayConfig;
+RaycasterConfig Raycaster::m_rayConfig;
 GLfloat Raycaster::m_mapMaxDepth{FLT_MAX};
 Raycaster::RaycastFrameData Raycaster::m_frame;
 
@@ -49,7 +52,12 @@ void Raycaster::Init(MapData& map)
 	ApplyConfig(m_rayConfig);
 }
 
-void Raycaster::ApplyConfig(const RaycastParams& config)
+RaycasterConfig Raycaster::GetConfigCopy()
+{
+	return m_rayConfig;
+}
+
+void Raycaster::ApplyConfig(const RaycasterConfig& config)
 { 
 	if (config.xResolution != m_rayConfig.xResolution || config.yResolution != m_rayConfig.yResolution)
 	{
@@ -94,134 +102,6 @@ void Raycaster::ApplyFovModifier(float fovModifier)
 Vector2i Raycaster::GetResolution()
 {
 	return Vector2i(m_rayConfig.xResolution, m_rayConfig.yResolution);
-}
-
-void Raycaster::Draw2DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
-{
-	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
-
-	// Define the 'screen'
-	const float halfFov{ m_frame.fov / 2 };
-	const Vector2f forward{ Normalize(Vector2f(cos(angle), sin(angle))) };
-	const Vector2f screenPlaneL{ pos + (Vector2f(cos(angle + halfFov), sin(angle + halfFov)) * m_rayConfig.farClip) };
-	const Vector2f screenPlaneR{ pos + (Vector2f(cos(angle - halfFov), sin(angle - halfFov)) * m_rayConfig.farClip) };
-	const Vector2f screenVector{ screenPlaneR - screenPlaneL };
-	// Define the 'rays'
-	const Vector2f raySpacingDir{ forward.Normal() * -1 };
-	const float raySpacingLength{ screenVector.Length() / m_rayConfig.xResolution };
-
-	// Draw each wall
-	for (int i = 0; i < wallCount; i++)
-	{
-		Spear::ScreenRenderer::LineData line;
-		line.start = pWalls[i].origin;
-		line.end = pWalls[i].origin + pWalls[i].vec;
-		line.colour = pWalls[i].colour;
-		rend.AddLine(line);
-	}
-
-	// Draw each ray
-	for (int i = 0; i < m_rayConfig.xResolution; i++)
-	{
-		Vector2f rayEndPoint{screenPlaneL + (raySpacingDir * raySpacingLength * i)};
-		Vector2f ray{rayEndPoint - pos};
-
-		// Check each wall...
-		Vector2f intersect;
-		bool foundIntersect{ false };
-		for (int w = 0; w < wallCount; w++)
-		{
-			RaycastWall& wall = pWalls[w];
-
-			// Check for an intersect...
-			Vector2f result;
-			if (VectorIntersection2D(pos, ray, wall.origin, wall.vec, result))
-			{
-				// Check if it was nearer than any previous discovered intersect...
-				float distance{ Vector2f(pos - result).LengthSqr()};
-				float existingDistance{ Vector2f(pos - intersect).LengthSqr() };
-				if (!foundIntersect || distance < existingDistance)
-				{
-					// Store result
-					intersect = result;
-					foundIntersect = true;
-				}
-			}
-		}
-
-		Spear::ScreenRenderer::LineData line;
-		line.start = pos;
-		line.end = foundIntersect? intersect : rayEndPoint;
-		rend.AddLine(line);
-	}
-}
-
-void Raycaster::Draw3DLooseWalls(const Vector2f& pos, const float angle, RaycastWall* pWalls, int wallCount)
-{
-	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
-	int lineWidth{ static_cast<int>(Spear::Core::GetWindowSize().x) / m_rayConfig.xResolution };
-
-	// Define a flat 'screen plane' to evenly distribute rays onto
-	// This distribution ensures objects do not squash/stretch as they traverse the screen
-	// If we don't do this, radial-distribution results in larger gaps between rays at further edges of flat surfaces
-	const float halfFov{ m_frame.fov / 2 };
-	const Vector2f forward{ Normalize(Vector2f(cos(angle), sin(angle))) };
-	const Vector2f screenPlaneL{ pos + (Vector2f(cos(angle - halfFov), sin(angle - halfFov)) * m_rayConfig.farClip) };
-	const Vector2f screenPlaneR{ pos + (Vector2f(cos(angle + halfFov), sin(angle + halfFov)) * m_rayConfig.farClip) };
-	const Vector2f screenVector{ screenPlaneR - screenPlaneL };
-
-	// Define ray spacing
-	const Vector2f raySpacingDir{ forward.Normal() * -1 };
-	const float raySpacingLength{ screenVector.Length() / m_rayConfig.xResolution };
-
-	// For each ray...
-	for (int screenX = 0; screenX < m_rayConfig.xResolution; screenX++)
-	{
-		Vector2f rayEndPoint{ screenPlaneL - (raySpacingDir * raySpacingLength * screenX) };
-		Vector2f ray{ rayEndPoint - pos };
-
-		// Initial ray data
-		float nearestLength{ m_rayConfig.farClip };
-		Colour4f rayColour = Colour4f::Invisible();
-		Vector2f intersection{0.f, 0.f};
-
-		// Check each wall...
-		for (int w = 0; w < wallCount; w++)
-		{
-			RaycastWall& wall = pWalls[w];
-
-			// Check for an intersect...
-			Vector2f result;
-			if (VectorIntersection2D(pos, ray, wall.origin, wall.vec, result))
-			{
-				// If it was nearer than previous intersect...
-				float newLength{ Vector2f(pos - result).Length() };
-				if (newLength < nearestLength)
-				{
-					// Update ray data
-					nearestLength = newLength;
-					rayColour = wall.colour;
-					intersection = result;
-				}
-			}
-		}
-
-		if (rayColour.a != 0)
-		{
-			// Project THIS RAY onto the FORWARD VECTOR of the camera to get distance from camera with no fisheye distortion
-			float depth{ Projection(intersection - pos, forward * m_rayConfig.farClip).Length() };
-			rayColour.a = (1.f / (depth / 4));
-
-			float height{ (Spear::Core::GetWindowSize().y / 2.0f) / depth };
-			float mid{ Spear::Core::GetWindowSize().y / 2.0f };
-
-			Spear::ScreenRenderer::LineData line;
-			line.start = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid - height);
-			line.end = Vector2f((screenX * lineWidth) + (lineWidth / 2), mid + height);
-			line.colour = rayColour;
-			rend.AddLine(line);
-		}
-	}
 }
 
 void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)

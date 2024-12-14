@@ -47,4 +47,14 @@ namespace Spear
 		ASSERT(m_context);
 		return m_context;
 	}
+
+	void WindowManager::SetWindowSize(float x, float y)
+	{
+		SDL_SetWindowSize(m_window, x, y);
+	}
+
+	void WindowManager::SetWindowFullscreenMode(eFullscreenMode mode)
+	{
+		SDL_SetWindowFullscreen(m_window, static_cast<Uint32>(mode));
+	}
 }
