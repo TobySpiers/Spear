@@ -5,11 +5,13 @@
 #include "WindowManager.h"
 #include "ServiceLocator.h"
 #include "Panels/PanelImguiSettings.h"
+#include "Core/FrameProfiler.h"
 #include <algorithm>
+#include <sstream>
+#include <iomanip>
 
 namespace Spear
 {
-	//std::vector<ImguiPanelBase*> ImguiManager::m_panels;
 	static PanelImguiSettings imguiSettingsPanel;
 
 	ImguiPanelBase::ImguiPanelBase()
@@ -62,9 +64,19 @@ namespace Spear
 		return ServiceLocator::GetImguiManager();
 	}
 
-	void ImguiManager::SetPanelsEnabled(bool bEnabled)
+	bool ImguiManager::IsImguiEnabled()
+	{
+		return bImguiEnabled;
+	}
+
+	void ImguiManager::SetImguiEnabled(bool bEnabled)
 	{
 		bImguiEnabled = bEnabled;
+	}
+
+	void ImguiManager::SetMenuBarLabel(const char* newLabel)
+	{
+		menuLabel = newLabel;
 	}
 
 	void ImguiManager::MakePanels()
@@ -116,6 +128,33 @@ namespace Spear
 					ImGui::EndMenu();
 				}
 			}
+
+			// Dev Info
+			{
+				const float frameMs = FrameProfiler::GetCurrentFrameMs();
+				std::string stringMs(std::to_string(frameMs) + "ms");
+				std::string stringFps("FPS: " + std::to_string(std::min(999, static_cast<int>(1000 / frameMs))));
+
+				const float widthFps = ImGui::CalcTextSize("FPS: 000").x;
+				const float widthMs = ImGui::CalcTextSize("00.000000ms").x;
+				const float widthTotal = widthFps + widthMs;
+
+				ImGui::SameLine((ImGui::GetWindowWidth() / 2) - (widthTotal / 2) - 10);
+				ImGui::TextColored(ImVec4(0.f, 0.8f, 0.f, 1.f), stringMs.c_str());
+				ImGui::SameLine((ImGui::GetWindowWidth() / 2) + 10);
+				ImGui::TextColored(ImVec4(0.f, 0.8f, 0.f, 1.f), stringFps.c_str());
+
+				// User label
+				if (menuLabel != nullptr)
+				{
+					ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::CalcTextSize(menuLabel).x - 10);
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+					ImGui::Text(menuLabel);
+					ImGui::PopStyleColor();
+				}
+			}
+
+			
 			ImGui::EndMainMenuBar();
 		}
 
@@ -130,7 +169,7 @@ namespace Spear
 		{
 			if (panel->bIsOpen)
 			{
-				//ImGui::SetNextWindowSize(panel->DefaultPanelSize(), ImGuiCond_FirstUseEver);
+				ImGui::SetNextWindowSize(panel->DefaultPanelSize(), ImGuiCond_Once);
 				ImGui::Begin(panel->PanelName(), &panel->bIsOpen);
 				panel->MakePanel();
 				ImGui::End();

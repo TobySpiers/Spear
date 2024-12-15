@@ -10,8 +10,10 @@ namespace Spear
 		InputManager(){};
 		~InputManager(){};
 
-		void ConfigureInputs(int* bindings, int totalBindings);
+		void ConfigureInputBindings(int* bindings, int totalBindings);
 		void RefreshInput(int mousewheelInput);
+		void ClearMouseInput();
+		void ClearKeyInput();
 
 		bool InputStart(int key);
 		bool InputHold(int key);
@@ -40,7 +42,9 @@ namespace Spear
 			INPUT_INACTIVE,
 			INPUT_START,
 			INPUT_ACTIVE,
-			INPUT_RELEASED
+			INPUT_RELEASED,
+
+			INPUT_IGNORED
 		};
 
 		static const int KEYBINDINGS_LIMIT{ 20 };

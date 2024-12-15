@@ -3,7 +3,6 @@
 #include "Graphics/TextureArray.h"
 #include "GameState.h"
 
-
 class FlowstateGame : public Spear::Flowstate
 {
 public:
@@ -28,24 +27,34 @@ public:
 private:
 	Spear::TextureArray m_worldTextures;
 	GameState m_gameState;
+
+	enum DebugInputModes
+	{
+		DEBUGINPUT_DISABLED,
+		DEBUGINPUT_KEYBOARD,
+		DEBUGINPUT_FULL,
+
+		DEBUGINPUT_COUNT
+	};
+	DebugInputModes debugInputMode{ DEBUGINPUT_KEYBOARD };
+	const char* GetDebugInputModeText();
 };
 
 enum InputActions
 {
-	INPUT_TOGGLE,
-
 	INPUT_FORWARD,
 	INPUT_BACKWARD,
 	INPUT_STRAFE_RIGHT,
 	INPUT_STRAFE_LEFT,
 	INPUT_ROTATE_LEFT,
 	INPUT_ROTATE_RIGHT,
-
 	INPUT_SPRINT,
-
 	INPUT_SHOOT,
 	INPUT_ALTSHOOT,
 
+	INPUT_TOGGLE_RAYCASTER,
+	INPUT_TOGGLE_IMGUI,
+	INPUT_TOGGLE_IMGUI_INPUT,
 	INPUT_QUIT,
 
 	INPUT_COUNT

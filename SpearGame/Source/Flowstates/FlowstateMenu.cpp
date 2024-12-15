@@ -1,6 +1,7 @@
 #include "Core/Core.h"
 #include "Core/ServiceLocator.h"
 #include "Core/InputManager.h"
+#include "Core/ImguiManager.h"
 #include "Graphics/ScreenRenderer.h"
 #include "UiButton.h"
 
@@ -13,7 +14,7 @@ void FlowstateMenu::StateEnter()
 	int config[INPUT_COUNT];
 	config[INPUT_SELECT] = SDL_BUTTON_LEFT;
 	config[INPUT_QUIT] = SDL_SCANCODE_ESCAPE;
-	Spear::ServiceLocator::GetInputManager().ConfigureInputs(config, INPUT_COUNT);
+	Spear::ServiceLocator::GetInputManager().ConfigureInputBindings(config, INPUT_COUNT);
 
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
@@ -40,6 +41,9 @@ void FlowstateMenu::StateEnter()
 	m_buttons[1].m_sprite.pos = Vector2f((Spear::Core::GetWindowSize().x / 2) + 250, Spear::Core::GetWindowSize().y / 2);
 	m_buttons[1].m_sprite.size = Vector2f(2.5f, 2.5f);
 	m_buttons[1].m_sprite.opacity = 0.75;
+
+	Spear::ImguiManager::Get().SetImguiEnabled(true);
+	Spear::ImguiManager::Get().SetMenuBarLabel("F1 to Toggle In-Game");
 }
 
 int FlowstateMenu::StateUpdate(float deltaTime)
@@ -82,4 +86,7 @@ void FlowstateMenu::StateRender()
 void FlowstateMenu::StateExit()
 {
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
+
+	Spear::ImguiManager::Get().SetImguiEnabled(false);
+	Spear::ImguiManager::Get().SetMenuBarLabel(nullptr);
 }

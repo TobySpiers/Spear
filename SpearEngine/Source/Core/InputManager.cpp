@@ -3,7 +3,7 @@
 
 namespace Spear
 {
-	void InputManager::ConfigureInputs(int* bindings, int totalBindings)
+	void InputManager::ConfigureInputBindings(int* bindings, int totalBindings)
 	{
 		m_bindingsSize = totalBindings;
 		for (int i = 0; i < m_bindingsSize; i++)
@@ -39,6 +39,26 @@ namespace Spear
 		}
 	}
 
+	void InputManager::ClearMouseInput()
+	{
+		m_mouseAxis = Vector2i(0, 0);
+		m_mousePos = Vector2i(0, 0);
+		m_clickLeft = INPUT_INACTIVE;
+		m_clickRight = INPUT_INACTIVE;
+		m_mousewheelState = 0;
+	}
+
+	void InputManager::ClearKeyInput()
+	{
+		for (int i = 0; i < m_bindingsSize; i++)
+		{
+			if (m_inputStates[i] != INPUT_INACTIVE)
+			{
+				m_inputStates[i] = INPUT_IGNORED;
+			} 
+		}
+	}
+
 	void InputManager::UpdateInputState(bool isActive, int* state)
 	{
 		ASSERT(state != nullptr);
@@ -65,6 +85,7 @@ namespace Spear
 				break;
 
 				case INPUT_RELEASED:
+				case INPUT_IGNORED:
 				*state = INPUT_INACTIVE;
 				break;
 			}

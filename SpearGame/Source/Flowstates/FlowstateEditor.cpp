@@ -1,6 +1,7 @@
 #include "Core/Core.h"
 #include "Core/ServiceLocator.h"
 #include "Core/InputManager.h"
+#include "Core/ImguiManager.h"
 #include "Graphics/ScreenRenderer.h"
 #include "UiButton.h"
 
@@ -41,7 +42,7 @@ void FlowstateEditor::StateEnter()
 	config[INPUT_SAVE] = SDL_SCANCODE_S;
 	config[INPUT_LOAD] = SDL_SCANCODE_L;
 
-	Spear::ServiceLocator::GetInputManager().ConfigureInputs(config, INPUT_COUNT);
+	Spear::ServiceLocator::GetInputManager().ConfigureInputBindings(config, INPUT_COUNT);
 
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
@@ -65,6 +66,9 @@ void FlowstateEditor::StateEnter()
 		m_textureButtons.back().m_sprite.pos = Vector2f(50.f, 100.f + (i * 75.f));
 		m_textureButtons.back().m_sprite.depth = 0.f;
 	}
+
+	// Enable ImGui for editor functionality
+	Spear::ImguiManager::Get().SetImguiEnabled(true);
 }
 
 int FlowstateEditor::StateUpdate(float deltaTime)
@@ -505,6 +509,8 @@ void FlowstateEditor::StateRender()
 void FlowstateEditor::StateExit()
 {
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
+
+	Spear::ImguiManager::Get().SetImguiEnabled(false);
 }
 
 void FlowstateEditor::SaveLevel()

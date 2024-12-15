@@ -14,7 +14,7 @@ namespace Spear
 		virtual const char* PanelName() const = 0;
 		virtual void MakePanel() = 0;
 
-		virtual const Vector2i DefaultPanelSize() { return { 300, 600 }; };
+		virtual const Vector2i DefaultPanelSize() { return { 600, 300 }; };
 
 	protected:
 		friend class ImguiManager;
@@ -31,7 +31,9 @@ namespace Spear
 
 		static ImguiManager& Get();
 
-		void SetPanelsEnabled(bool bEnabled);
+		bool IsImguiEnabled();
+		void SetImguiEnabled(bool bEnabled);
+		void SetMenuBarLabel(const char* newLabel);
 
 		// Register a panel against an associated user-defined category ID
 		static void RegisterPanel(ImguiPanelBase* panel);
@@ -45,10 +47,9 @@ namespace Spear
 		void MakePanels();
 		static std::vector<ImguiPanelBase*>& GetPanelList();
 
-		bool bImguiEnabled = true;
-		bool bImguiDemoEnabled = false;
+		const char* menuLabel{ nullptr };
 
-		bool bConsumeMouse = true;
-		bool bConsumeKeyboard = true;
+		bool bImguiEnabled = false;
+		bool bImguiDemoEnabled = false;
 	};
 }
