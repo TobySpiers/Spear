@@ -18,7 +18,7 @@ namespace Spear
 
 		// TextureBase Overrides
 		void FreeTexture() override;
-		GLuint GetTextureId() const override { return m_textureId; };
+		GLuint GetGpuTextureId() const override { return m_textureId; };
 		GLuint GetWidth() const override { return m_textureWidth; };
 		GLuint GetHeight() const override { return m_textureHeight; };
 		GLuint GetDepth() const override { return m_textureDepth; };

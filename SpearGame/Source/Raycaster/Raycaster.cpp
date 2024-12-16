@@ -4,6 +4,7 @@
 #include "Core/FrameProfiler.h"
 #include "Graphics/ScreenRenderer.h"
 #include "Graphics/TextureArray.h"
+#include "Graphics/ShaderCompiler.h"
 
 #include "Raycaster.h"
 #include "RaycasterConfig.h"
@@ -18,6 +19,7 @@ MapData* Raycaster::m_map{ nullptr };
 RaycasterConfig Raycaster::m_rayConfig;
 GLfloat Raycaster::m_mapMaxDepth{FLT_MAX};
 Raycaster::RaycastFrameData Raycaster::m_frame;
+Raycaster::RaycastComputeShader Raycaster::m_computeShader;
 
 constexpr float FOV_MIN{ 35.f };
 constexpr float FOV_MAX{ 95.f };
@@ -106,7 +108,7 @@ Vector2i Raycaster::GetResolution()
 
 void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 {
-	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
+	Spear::Renderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 	ClearBackgroundArrays();
 	rend.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
 
@@ -116,7 +118,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	constexpr float depthPlayer = 0.25f;
 
 	// Draw player
-	Spear::ScreenRenderer::LinePolyData playerPoly;
+	Spear::Renderer::LinePolyData playerPoly;
 	playerPoly.colour = Colour4f::Red();
 	playerPoly.radius = 0.2f * m_rayConfig.scale2D;
 	playerPoly.segments = 3;
@@ -139,7 +141,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 			int texId = bWallTexture ? node.texIdWall : node.texIdFloor[0];
 			if (texId != TEX_NONE)
 			{
-				Spear::ScreenRenderer::SpriteData sprite;
+				Spear::Renderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * m_rayConfig.scale2D;
 				sprite.pos += (Vector2f(m_rayConfig.scale2D, m_rayConfig.scale2D) / 2) + camOffset;
 				sprite.size *= 1.2f;
@@ -258,7 +260,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 		// ====================================
 		// RENDER
 		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-		Spear::ScreenRenderer::LineData line;
+		Spear::Renderer::LineData line;
 		if (tileFound)
 		{
 			rayEnd = rayStart + rayDir * distance;
@@ -301,7 +303,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 			int cellY = (int)(floorRayEnd.y);
 
 			// If we render floorX and floorY to the screen, we can view the positions on the 2D grid each floor pixel samples its texture from!
-			//ScreenRenderer::LinePolyData marker;
+			//Renderer::LinePolyData marker;
 			//marker.colour = Colour4f::Red();
 			//marker.radius = 5.f;
 			//marker.pos = Vector2f(floorX, floorY) * m_rayConfig.scale2D;
@@ -315,7 +317,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 
 void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float angle)
 {
-	Spear::ScreenRenderer& renderer = Spear::ServiceLocator::GetScreenRenderer();
+	Spear::Renderer& renderer = Spear::ServiceLocator::GetScreenRenderer();
 	Spear::ThreadManager& threader = Spear::ServiceLocator::GetThreadManager();
 
 	// Calculate const data for this frame
@@ -865,6 +867,118 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 	END_PROFILE("Raycast Walls")
 
 	// Upload Raycast image for this frame
-	renderer.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
+	//renderer.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
 	ClearBackgroundArrays();
+
+	Draw3DGridCompute(inPos, inPitch, angle);
+}
+
+void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle)
+{
+	Spear::Renderer& renderer = Spear::ServiceLocator::GetScreenRenderer();
+
+	if(!m_computeShader.isInitialised)
+	{
+		m_computeShader.isInitialised = true;
+
+		// Create program for WALL shader
+		m_computeShader.computeProgram = Spear::ShaderCompiler::CreateShaderProgram("../Shaders/RaycastWallsCS.glsl");
+		glUseProgram(m_computeShader.computeProgram);
+
+		// GridNodes Binding SSBO (Shader Storage Buffer Object)
+		glGenBuffers(1, &m_computeShader.gridnodesSSBO);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.gridnodesSSBO);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, m_map->TotalNodes() * sizeof(GridNode), m_map->pNodes, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_computeShader.gridnodesSSBO); // bind slot 2
+
+		// RayConfig Binding UBO (Uniform Buffer Object)
+		glGenBuffers(1, &m_computeShader.rayconfigUBO);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.rayconfigUBO);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(RaycasterConfig), &m_rayConfig, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_computeShader.rayconfigUBO); // bind slot 3
+		GLuint configBlockIndex = glGetUniformBlockIndex(m_computeShader.computeProgram, "raycasterConfig");
+		glUniformBlockBinding(m_computeShader.computeProgram, configBlockIndex, 3);  // binding point 3
+
+		// FrameData Binding UBO
+		glGenBuffers(1, &m_computeShader.framedataUBO);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.framedataUBO);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(RaycastFrameData), &m_frame, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 4, m_computeShader.framedataUBO); // bind slot 4
+		GLuint framedataBlockIndex = glGetUniformBlockIndex(m_computeShader.computeProgram, "frameData");
+		glUniformBlockBinding(m_computeShader.computeProgram, framedataBlockIndex, 4);  // binding point 4
+
+		// Store uniform locations
+		//m_computeShader.textureArrayLoc = glGetUniformLocation(m_computeShader.computeProgram, "textureArray");
+		m_computeShader.outputTexSizeLoc = glGetUniformLocation(m_computeShader.computeProgram, "texResolution");
+		m_computeShader.gridDimensionsLoc = glGetUniformLocation(m_computeShader.computeProgram, "gridDimensions");
+
+	}
+	else
+	{
+		// If buffers already exist, just update the data
+		glUseProgram(m_computeShader.computeProgram);
+
+		// Upload GridNode data
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.gridnodesSSBO);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, m_map->TotalNodes() * sizeof(GridNode), m_map->pNodes);
+
+		// Upload RayConfig
+		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.rayconfigUBO);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(RaycasterConfig), &m_rayConfig);
+
+		// Upload FrameData
+		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.framedataUBO);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(RaycastFrameData), &m_frame);
+
+	}
+
+	// Upload wall/floor textures
+	//const Spear::TextureBase* pMapTextures = renderer.GetBatchTextures(0);
+	//GLuint textureArrayId = pMapTextures->GetGpuTextureId();
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D_ARRAY, textureArrayId);
+	//glUniform1i(m_computeShader.textureArrayLoc, 0); // set texture as TEXTURE0 (set above)
+
+	// Format & Bind screen texture
+	Spear::Texture& screenTexture = renderer.GetBackgroundTextureForNextFrame();
+	screenTexture.ClearAndResize(m_rayConfig.xResolution, m_rayConfig.yResolution);
+	glBindImageTexture(0, screenTexture.GetGpuTextureId(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
+
+	// Format & Bind depth buffer
+	GLuint depthTexture = renderer.GetBackgroundDepthBufferForNextFrame();
+	glBindTexture(GL_TEXTURE_2D, depthTexture);
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_R8,
+		m_rayConfig.xResolution,
+		m_rayConfig.yResolution,
+		0,
+		GL_RED,
+		GL_FLOAT,
+		NULL
+	);
+	glBindImageTexture(1, depthTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
+
+	// Upload uniform data
+	glUniform2i(m_computeShader.outputTexSizeLoc, screenTexture.GetWidth(), screenTexture.GetHeight());
+	glUniform2i(m_computeShader.gridDimensionsLoc, m_map->gridWidth, m_map->gridHeight);
+
+	// Dispatch Compute shader
+	glDispatchCompute(screenTexture.GetWidth(), 1, 1);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	// Unbind wall/floor textures
+	//glBindTexture(GL_TEXTURE_2D_ARRAY, NULL);
+
+
+
+
+	// TEMP FOR CATCHING NEW ISSUES
+	while (GLenum error = glGetError())
+	{
+		std::cout << "OpenGL Error:"
+			<< "\n\tError Code: " << error
+			<< std::endl;
+	}
 }

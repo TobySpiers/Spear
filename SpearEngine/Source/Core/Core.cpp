@@ -54,9 +54,9 @@ namespace Spear
 			LOG("SDL_Image failed to initialise..");
 		}
 
-		// Specify our OpenGL version: version 4.1, profile mask = core profile (no backward compat)
+		// Specify our OpenGL version: version 4.3 for compute shader support, profile mask = core profile (no backward compat)
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 		// Initialise all services

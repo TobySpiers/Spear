@@ -34,6 +34,30 @@ namespace Spear
 		return shaderProgram;
 	}
 
+	GLuint ShaderCompiler::CreateShaderProgram(const std::string& csFilename)
+	{
+		GLuint computeProgram = glCreateProgram();
+
+		std::string computeShaderSource = ShaderCompiler::LoadShaderAsString(csFilename);
+
+		GLuint computeShader = CompileShader(GL_COMPUTE_SHADER, computeShaderSource);
+
+		if (!computeShader)
+		{
+			LOG(std::string("File: ") + csFilename);
+		}
+
+		glAttachShader(computeProgram, computeShader);
+		glLinkProgram(computeProgram);
+
+		// validate
+		glValidateProgram(computeProgram);
+
+		return computeProgram;
+	}
+
+
+
 	std::string ShaderCompiler::LoadShaderAsString(const std::string& filename)
 	{
 		std::string result = "";
@@ -58,13 +82,19 @@ namespace Spear
 	{
 		GLuint shaderObject{0};
 
-		if (type == GL_VERTEX_SHADER)
+		switch (type)
 		{
+		case GL_VERTEX_SHADER:
 			shaderObject = glCreateShader(GL_VERTEX_SHADER);
-		}
-		else if (type == GL_FRAGMENT_SHADER)
-		{
+			break;
+		case GL_FRAGMENT_SHADER:
 			shaderObject = glCreateShader(GL_FRAGMENT_SHADER);
+			break;
+		case GL_COMPUTE_SHADER:
+			shaderObject = glCreateShader(GL_COMPUTE_SHADER);
+			break;
+		default:
+			ASSERT(false);
 		}
 
 		const char* src = source.c_str();
@@ -81,16 +111,22 @@ namespace Spear
 			char* errorMessages = new char[length];
 			glGetShaderInfoLog(shaderObject, length, &length, errorMessages);
 
-			if (type == GL_VERTEX_SHADER)
+			switch (type)
 			{
+			case GL_VERTEX_SHADER:
 				LOG("\n----------------------------------------------\nERROR: GL_VERTEX_SHADER compilation failed...\n----------------------------------------------");
-				LOG(errorMessages);
-			}
-			else if (type == GL_FRAGMENT_SHADER)
-			{
+				break;
+			case GL_FRAGMENT_SHADER:
 				LOG("\n----------------------------------------------\nERROR: GL_FRAGMENT_SHADER compilation failed...\n----------------------------------------------");
-				LOG(errorMessages);
+				break;
+			case GL_COMPUTE_SHADER:
+				LOG("\n----------------------------------------------\nERROR: GL_COMPUTE_SHADER compilation failed...\n----------------------------------------------");
+				break;
+			default:
+				LOG("\n----------------------------------------------\nERROR: SHADER compilation failed...\n----------------------------------------------");
+				break;
 			}
+			LOG(errorMessages);
 			delete[] errorMessages;
 			glDeleteShader(shaderObject);
 			return 0;

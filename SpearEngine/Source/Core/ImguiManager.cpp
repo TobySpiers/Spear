@@ -46,7 +46,7 @@ namespace Spear
 		}
 
 		// Setup Platform/Renderer backends
-		const char* glsl_version = "#version 410";
+		const char* glsl_version = "#version 430";
 		WindowManager& windowManager = ServiceLocator::GetWindowManager();
 		ImGui_ImplSDL2_InitForOpenGL(&windowManager.GetWindow(), &windowManager.GetContext());
 		ImGui_ImplOpenGL3_Init(glsl_version);

@@ -1,11 +1,16 @@
 #include "LevelData.h"
 
-const GridNode* MapData::GetNode(Vector2i index)
+const int MapData::TotalNodes() const
+{
+	return gridWidth * gridHeight;
+}
+
+const GridNode* MapData::GetNode(Vector2i index) const
 {
 	return GetNode(index.x, index.y);
 }
 
-const GridNode* MapData::GetNode(int x, int y)
+const GridNode* MapData::GetNode(int x, int y) const
 {
 	if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight)
 	{
@@ -14,7 +19,7 @@ const GridNode* MapData::GetNode(int x, int y)
 	return nullptr;
 }
 
-bool MapData::CollisionSearchDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos, bool* out_bVerticalHit)
+bool MapData::CollisionSearchDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos, bool* out_bVerticalHit) const
 {
 	if (out_hitPos)
 	{

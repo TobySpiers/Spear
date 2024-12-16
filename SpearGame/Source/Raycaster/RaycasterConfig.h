@@ -2,6 +2,8 @@
 
 struct RaycasterConfig
 {
+	// CAUTION - CHANGES MADE TO THIS STRUCT MUST BE REFLECTED IN RAYCASTER COMPUTE SHADER FILES
+
 	float fieldOfView{ 75.f };
 	float farClip{ 50 };
 	int xResolution{ 900 }; // internal resolution for raycaster

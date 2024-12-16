@@ -79,6 +79,31 @@ namespace Spear
 		return true;
 	}
 
+	void Texture::ClearAndResize(int width, int height)
+	{
+		// bind THIS texture
+		glBindTexture(GL_TEXTURE_2D, m_textureId);
+
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,									// mip map level
+			GL_RGBA8,
+			width,
+			height,
+			0,									// texture border width
+			GL_RGBA,							// format of the data BEING assigned
+			GL_UNSIGNED_INT_8_8_8_8_REV,		// data type of the pixel data being assigned
+			NULL
+		);
+
+		// unbind texture
+		glBindTexture(GL_TEXTURE_2D, NULL);
+
+		// update local info
+		m_textureWidth = width;
+		m_textureHeight = height;
+	}
+
 	void Texture::FreeTexture()
 	{
 		if (m_textureId != 0)

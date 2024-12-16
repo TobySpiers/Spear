@@ -20,7 +20,7 @@ namespace Spear
 		void Update();
 		void Draw(int batchId);
 		
-		ScreenRenderer::SpriteData m_sprite;
+		Renderer::SpriteData m_sprite;
 
 	private:
 		Vector2f m_widthHeight{1.f, 1.f};

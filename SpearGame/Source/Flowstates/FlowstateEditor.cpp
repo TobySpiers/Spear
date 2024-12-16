@@ -338,42 +338,42 @@ const char* FlowstateEditor::GetModeText()
 
 void FlowstateEditor::StateRender()
 {
-	Spear::ScreenRenderer& rend = Spear::ServiceLocator::GetScreenRenderer();
+	Spear::Renderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 
 	// Draw Editor HUD
-	Spear::ScreenRenderer::TextData textMode;
+	Spear::Renderer::TextData textMode;
 	textMode.text = std::string("MODE: ") + GetModeText();
 	textMode.pos = Vector2f(20.f, 20.f);
-	textMode.alignment = Spear::ScreenRenderer::TEXT_ALIGN_LEFT;
+	textMode.alignment = Spear::Renderer::TEXT_ALIGN_LEFT;
 	Spear::ServiceLocator::GetScreenRenderer().AddText(textMode);
 
-	Spear::ScreenRenderer::TextData textLevel;
+	Spear::Renderer::TextData textLevel;
 	textLevel.text = "Level 0";
 	textLevel.pos = Vector2f(Spear::Core::GetWindowSize().x / 2, 20.f);
-	textLevel.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
+	textLevel.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 	Spear::ServiceLocator::GetScreenRenderer().AddText(textLevel);
 
-	Spear::ScreenRenderer::TextData textResolution;
+	Spear::Renderer::TextData textResolution;
 	textResolution.text = std::to_string(m_map.gridWidth) + " x " + std::to_string(m_map.gridHeight);
 	textResolution.pos = Vector2f(Spear::Core::GetWindowSize().x - 20.f, 20.f);
-	textResolution.alignment = Spear::ScreenRenderer::TEXT_ALIGN_RIGHT;
+	textResolution.alignment = Spear::Renderer::TEXT_ALIGN_RIGHT;
 	Spear::ServiceLocator::GetScreenRenderer().AddText(textResolution);
 
 	// Draw save popup if cooldown active
 	if(m_saveCooldown > 0.f)
 	{
-		Spear::ScreenRenderer::TextData textSavePopup;
+		Spear::Renderer::TextData textSavePopup;
 		textSavePopup.text = "Level saved...";
 		textSavePopup.pos = Vector2f(Spear::Core::GetWindowSize().x / 2, Spear::Core::GetWindowSize().y - 20.f);
-		textSavePopup.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
+		textSavePopup.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 		Spear::ServiceLocator::GetScreenRenderer().AddText(textSavePopup);
 	}
 
 	// Draw PlayerStart
-	Spear::ScreenRenderer::TextData textStart;
+	Spear::Renderer::TextData textStart;
 	textStart.text = "@";
 	textStart.pos = m_camOffset + (m_map.playerStart.ToFloat() * MapSpacing());
-	textStart.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
+	textStart.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 	Spear::ServiceLocator::GetScreenRenderer().AddText(textStart);
 
 	// Draw Map Data
@@ -390,7 +390,7 @@ void FlowstateEditor::StateRender()
 			GridNode& node{ m_map.GetNode(x, y) };
 
 			// Tile Outlines
-			Spear::ScreenRenderer::LinePolyData square;
+			Spear::Renderer::LinePolyData square;
 			square.segments = 4;
 			square.colour = (node.collisionMask > 0 ? Colour4f::Red() : Colour4f::White());
 			square.pos = Vector2f(x, y) * MapSpacing();
@@ -409,23 +409,23 @@ void FlowstateEditor::StateRender()
 			// Height info
 			if (m_curMode == MODE_RISE && node.extendUp)
 			{
-				Spear::ScreenRenderer::TextData textRise;
+				Spear::Renderer::TextData textRise;
 				textRise.text = std::to_string(node.extendUp);
 				textRise.pos = square.pos;
-				textRise.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
+				textRise.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise);
 			}
 			else if (m_curMode == MODE_FALL && node.extendDown)
 			{
-				Spear::ScreenRenderer::TextData textRise;
+				Spear::Renderer::TextData textRise;
 				textRise.text = std::to_string(node.extendDown);
 				textRise.pos = square.pos;
-				textRise.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
+				textRise.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise);
 			}
 			else if (m_curMode == MODE_DRAW_DIRECTION)
 			{
-				Spear::ScreenRenderer::TextData textDraw;
+				Spear::Renderer::TextData textDraw;
 				std::string textFlags{ "" };
 				if (node.drawFlags & DRAW_N) textFlags += "N";
 				if (node.drawFlags & DRAW_E) textFlags += "E";
@@ -433,7 +433,7 @@ void FlowstateEditor::StateRender()
 				if (node.drawFlags & DRAW_W) textFlags += "W";
 				textDraw.text = textFlags;
 				textDraw.pos = square.pos;
-				textDraw.alignment = Spear::ScreenRenderer::TEXT_ALIGN_MIDDLE;
+				textDraw.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 				Spear::ServiceLocator::GetScreenRenderer().AddText(textDraw);
 			}
 
@@ -441,7 +441,7 @@ void FlowstateEditor::StateRender()
 			if ((m_curMode == MODE_ROOF && node.texIdRoof[0] != TEX_NONE)
 			|| (m_curMode == MODE_ROOF2 && node.texIdRoof[1] != TEX_NONE))
 			{
-				Spear::ScreenRenderer::SpriteData sprite;
+				Spear::Renderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * MapSpacing();
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
@@ -453,7 +453,7 @@ void FlowstateEditor::StateRender()
 			// Wall Textures
 			if (node.texIdWall != TEX_NONE)
 			{
-				Spear::ScreenRenderer::SpriteData sprite;
+				Spear::Renderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * MapSpacing();
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
@@ -472,7 +472,7 @@ void FlowstateEditor::StateRender()
 			if ((m_curMode != MODE_FLOOR2 && node.texIdFloor[0] != TEX_NONE)
 			|| (m_curMode == MODE_FLOOR2 && node.texIdFloor[1] != TEX_NONE))
 			{
-				Spear::ScreenRenderer::SpriteData sprite;
+				Spear::Renderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * MapSpacing();
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
@@ -495,7 +495,7 @@ void FlowstateEditor::StateRender()
 		m_textureButtons[i].Draw(BATCH_MAP);
 	}
 	// Active Button Highlight 
-	Spear::ScreenRenderer::LinePolyData activeTexButton;
+	Spear::Renderer::LinePolyData activeTexButton;
 	activeTexButton.segments = 4;
 	activeTexButton.colour = Colour4f::Blue();
 	activeTexButton.pos = m_textureButtons[m_curTex].m_sprite.pos;

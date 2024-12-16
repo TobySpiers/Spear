@@ -26,6 +26,7 @@ public:
 
 	static void Draw2DGrid(const Vector2f& pos, const float angle);
 	static void Draw3DGrid(const Vector2f& pos, float pitch, const float angle);
+	static void Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle);
 
 private:
 	static void RecreateBackgroundArrays(int width, int height);
@@ -34,15 +35,15 @@ private:
 	// ImGui Panel
 	static PanelRaycaster debugPanel;
 
-	// Raycast Data
+	// (INPUT) Raycast Data
 	static RaycasterConfig m_rayConfig;
 	static MapData* m_map;
 
-	// Background Floor/Ceiling Render
+	// (OUTPUT) Depth/Texture Data
 	static GLfloat* m_bgTexDepth;
 	static GLuint* m_bgTexRGBA;
 
-	// Depth
+	// (SETTING) Depth
 	static GLfloat m_mapMaxDepth;
 
 	// For storing internal per-frame data
@@ -70,4 +71,20 @@ private:
 		float		fovWallMultiplier;	// height modifier applied to walls to prevent floor/roof separation when adjusting fov
 	};
 	static RaycastFrameData m_frame;
+
+	struct RaycastComputeShader
+	{
+		bool isInitialised{ false };
+
+		GLuint computeProgram{ 0 };
+		GLuint gridnodesSSBO{ 0 }; // SSBO - Shader Storage Buffer Object
+		GLuint rayconfigUBO{ 0 }; // UBO - Uniform Buffer Object
+		GLuint framedataUBO{0};
+
+		GLint gridDimensionsLoc{-1};
+		GLuint textureArrayLoc{0};
+		GLuint outputTexSizeLoc{0};
+		GLuint rayconfigLoc{0};
+	};
+	static RaycastComputeShader m_computeShader;
 };

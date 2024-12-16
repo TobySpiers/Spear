@@ -21,7 +21,7 @@ enum eDrawFlags : u8
 	DRAW_W = 1 << 3,
 };
 
-enum eCollisionMask : u8
+enum eCollisionMask : int
 {
 	COLL_NONE = 0,
 
@@ -31,10 +31,11 @@ enum eCollisionMask : u8
 
 struct GridNode
 {
+	// CAUTION - CHANGES MADE TO THIS STRUCT MUST BE REFLECTED IN RAYCASTER COMPUTE SHADER FILES
 	int texIdRoof[2]{ TEX_NONE, TEX_NONE };
 	int texIdWall{ TEX_NONE };
 	int texIdFloor[2]{ TEX_NONE, TEX_NONE };
-	u8 drawFlags{ DRAW_DEFAULT };
+	int drawFlags{ DRAW_DEFAULT };
 
 	int extendUp{ 0 };				// additional units for walls above... uses texIdRoof if set, otherwise uses texIdWall
 	int extendDown{ 0 };			// additional units for walls below... uses texIdFloor if set, otherwise uses texIdWall
@@ -58,10 +59,10 @@ struct EditorMapData
 
 struct MapData
 {
-	const GridNode* GetNode(Vector2i index);
-	const GridNode* GetNode(int x, int y);
-
-	bool CollisionSearchDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos = nullptr, bool* out_bVerticalHit = nullptr);
+	const int TotalNodes() const;
+	const GridNode* GetNode(Vector2i index) const;
+	const GridNode* GetNode(int x, int y) const;
+	bool CollisionSearchDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos = nullptr, bool* out_bVerticalHit = nullptr) const;
 
 	Vector2i playerStart{ 5, 5 };
 	int gridWidth{10};

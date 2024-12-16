@@ -4,7 +4,7 @@ namespace Spear
 	class FlowstateManager;
 	class WindowManager;
 	class InputManager;
-	class ScreenRenderer;
+	class Renderer;
 	class ThreadManager;
 	class AudioManager;
 	class ImguiManager;
@@ -21,7 +21,7 @@ namespace Spear
 		static FlowstateManager& GetFlowstateManager();
 		static WindowManager& GetWindowManager();
 		static InputManager& GetInputManager();
-		static ScreenRenderer& GetScreenRenderer();
+		static Renderer& GetScreenRenderer();
 		static ThreadManager& GetThreadManager();
 		static AudioManager& GetAudioManager();
 		static ImguiManager& GetImguiManager();

@@ -14,7 +14,7 @@ namespace Spear
 	static FlowstateManager* s_pFlowstateManager{nullptr};
 	static WindowManager* s_pWindowManager{nullptr};
 	static InputManager* s_pInputManager{nullptr};
-	static ScreenRenderer* s_pScreenRenderer{nullptr};
+	static Renderer* s_pScreenRenderer{nullptr};
 	static ThreadManager* s_pThreadManager{nullptr};
 	static AudioManager* s_pAudioManager{nullptr};
 	static ImguiManager* s_pImguiManager{ nullptr };
@@ -43,7 +43,7 @@ namespace Spear
 
 		if (!s_pScreenRenderer)
 		{
-			s_pScreenRenderer = new ScreenRenderer;
+			s_pScreenRenderer = new Renderer;
 		}
 
 		if (!s_pThreadManager)
@@ -100,7 +100,7 @@ namespace Spear
 		return *s_pInputManager;
 	}
 
-	ScreenRenderer& ServiceLocator::GetScreenRenderer()
+	Renderer& ServiceLocator::GetScreenRenderer()
 	{
 		ASSERT(s_pScreenRenderer);
 		return *s_pScreenRenderer;

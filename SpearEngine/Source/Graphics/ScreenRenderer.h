@@ -29,9 +29,9 @@ namespace Spear
 	constexpr int LINE_COL_MAXBYTES{ LINE_FLOATS_PER_COLOR * LINE_MAX };
 
 	// System for rendering 2D images to the screen
-	class ScreenRenderer
+	class Renderer
 	{
-		NO_COPY(ScreenRenderer);
+		NO_COPY(Renderer);
 	public:
 		
 		enum TextAlign
@@ -77,8 +77,8 @@ namespace Spear
 			int segments{ 3 };
 		};
 
-		ScreenRenderer();
-		~ScreenRenderer();
+		Renderer();
+		~Renderer();
 
 		// General
 		void SetInternalResolution(int width, int height);
@@ -102,6 +102,8 @@ namespace Spear
 		void AddLinePoly(const LinePolyData& circle);
 
 		// Background
+		Texture& GetBackgroundTextureForNextFrame();
+		GLuint GetBackgroundDepthBufferForNextFrame();
 		void SetBackgroundDepthFalloff(float falloff);
 		void SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height);
 		void EraseBackgroundTextureData();

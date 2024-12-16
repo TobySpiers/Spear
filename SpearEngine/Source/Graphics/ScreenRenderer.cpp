@@ -7,7 +7,7 @@
 namespace Spear
 {
 
-	ScreenRenderer::ScreenRenderer()
+	Renderer::Renderer()
 	{
 		// Create necessary buffers/vaos
 		InitialiseBackgroundBuffers();
@@ -32,7 +32,7 @@ namespace Spear
 		glUseProgram(NULL);
 	}
 
-	ScreenRenderer::~ScreenRenderer()
+	Renderer::~Renderer()
 	{
 		ReleaseAll();
 		glDeleteFramebuffers(1, &m_fbo);
@@ -41,7 +41,7 @@ namespace Spear
 		glDeleteTextures(1, &m_fboDepthTexture);
 	}
 
-	void ScreenRenderer::InitialiseFrameBufferObject()
+	void Renderer::InitialiseFrameBufferObject()
 	{
 		// Create fbo
 		glGenFramebuffers(1, &m_fbo);
@@ -61,7 +61,7 @@ namespace Spear
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void ScreenRenderer::SetInternalResolution(int width, int height)
+	void Renderer::SetInternalResolution(int width, int height)
 	{
 		// Initialise render texture 0
 		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[0]);
@@ -114,12 +114,12 @@ namespace Spear
 		m_fboResolution = Vector2i(width, height);
 	}
 
-	void ScreenRenderer::InitialiseBackgroundBuffers()
+	void Renderer::InitialiseBackgroundBuffers()
 	{
 		glGenTextures(1, &m_backgroundDepthBuffer);
 	}
 
-	void ScreenRenderer::InitialiseLineBuffers()
+	void Renderer::InitialiseLineBuffers()
 	{
 		// CREATE VAO
 		glGenVertexArrays(1, &m_lineVAO);
@@ -192,7 +192,7 @@ namespace Spear
 		glVertexAttribDivisor(2, 1);
 	}
 
-	void ScreenRenderer::InitialiseSpriteBuffers()
+	void Renderer::InitialiseSpriteBuffers()
 	{
 		// CREATE VAO
 		glGenVertexArrays(1, &m_spriteVAO);
@@ -243,7 +243,7 @@ namespace Spear
 		glVertexAttribDivisor(1, 1);
 	}
 
-	void ScreenRenderer::InitialiseTextBuffers()
+	void Renderer::InitialiseTextBuffers()
 	{
 		// CREATE VAO
 		glGenVertexArrays(1, &m_textVAO);
@@ -298,7 +298,7 @@ namespace Spear
 		CreateTextBatch(m_defaultFont, 300);
 	}
 
-	int ScreenRenderer::CreateSpriteBatch(const TextureBase& batchTexture, int capacity)
+	int Renderer::CreateSpriteBatch(const TextureBase& batchTexture, int capacity)
 	{
 		ASSERT(m_spriteBatchCount < SPRITE_BATCH_MAX);
 
@@ -322,12 +322,12 @@ namespace Spear
 		ASSERT(newBatch.indexOffset + capacity < SPRITE_MAX);
 		return m_spriteBatchCount++;
 	}
-	void ScreenRenderer::ClearSpriteBatches()
+	void Renderer::ClearSpriteBatches()
 	{
 		m_spriteBatchCount = 0;
 	}
 
-	const TextureBase* ScreenRenderer::GetBatchTextures(int batchId)
+	const TextureBase* Renderer::GetBatchTextures(int batchId)
 	{
 		ASSERT(batchId >= 0 && batchId < m_spriteBatchCount);
 		TextureBatch& batch = m_spriteBatches[batchId];
@@ -336,7 +336,7 @@ namespace Spear
 		return batch.pTexture;
 	}
 
-	int ScreenRenderer::CreateTextBatch(const TextureBase& fontTexture, int capacity)
+	int Renderer::CreateTextBatch(const TextureBase& fontTexture, int capacity)
 	{
 		ASSERT(m_textBatchCount < TEXT_BATCH_MAX);
 
@@ -360,17 +360,27 @@ namespace Spear
 		ASSERT(newBatch.indexOffset + capacity < TEXT_CHAR_MAX);
 		return m_textBatchCount++;
 	}
-	void ScreenRenderer::ClearTextBatches()
+	void Renderer::ClearTextBatches()
 	{
 		m_textBatchCount = 1; // batch 0 is always reserved for default font
 	}
 
-	void ScreenRenderer::SetBackgroundDepthFalloff(float falloff)
+	Texture& Renderer::GetBackgroundTextureForNextFrame()
+	{
+		return m_backgroundTexture[m_backgroundTextureActive];
+	}
+
+	GLuint Renderer::GetBackgroundDepthBufferForNextFrame()
+	{
+		return m_backgroundDepthBuffer;
+	}
+
+	void Renderer::SetBackgroundDepthFalloff(float falloff)
 	{
 		m_backgroundDepthFalloff = falloff;
 	}
 
-	void ScreenRenderer::SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height)
+	void Renderer::SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height)
 	{
 		START_PROFILE("Upload Background Array");
 		m_backgroundTexture[m_backgroundTextureActive].SetDataFromArrayRGBA(pDataRGBA, width, height);
@@ -395,14 +405,14 @@ namespace Spear
 		END_PROFILE("Upload Depth Array");
 	}
 
-	void ScreenRenderer::EraseBackgroundTextureData()
+	void Renderer::EraseBackgroundTextureData()
 	{
 		m_backgroundTexture[0].FreeTexture();
 		m_backgroundTexture[1].FreeTexture();
 		m_backgroundTextureActive = 0;
 	}
 
-	void ScreenRenderer::AddLine(const LineData& line)
+	void Renderer::AddLine(const LineData& line)
 	{
 		ASSERT(m_lineCount < LINE_MAX);
 
@@ -426,7 +436,7 @@ namespace Spear
 		m_lineCount++;
 	}
 
-	void ScreenRenderer::AddLinePoly(const LinePolyData& poly)
+	void Renderer::AddLinePoly(const LinePolyData& poly)
 	{
 		// line, triangle, square, or bigger
 		ASSERT(poly.segments > 1);
@@ -449,7 +459,7 @@ namespace Spear
 		}
 	}
 
-	void ScreenRenderer::AddSprite(const SpriteData& sprite, int batchId)
+	void Renderer::AddSprite(const SpriteData& sprite, int batchId)
 	{
 		ASSERT(batchId >= 0 && batchId < m_spriteBatchCount);
 		TextureBatch& batch = m_spriteBatches[batchId];
@@ -473,7 +483,7 @@ namespace Spear
 		batch.count++;
 	}
 
-	void ScreenRenderer::AddText(const TextData& textObj, int fontBatchId)
+	void Renderer::AddText(const TextData& textObj, int fontBatchId)
 	{
 		ASSERT(fontBatchId < m_textBatchCount);
 
@@ -522,7 +532,7 @@ namespace Spear
 		}
 	}
 
-	void ScreenRenderer::Render()
+	void Renderer::Render()
 	{
 		START_PROFILE("ScreenRenderer_Total");
 
@@ -560,7 +570,7 @@ namespace Spear
 		END_PROFILE("ScreenRenderer_Total");
 	}
 
-	void ScreenRenderer::RenderBackground()
+	void Renderer::RenderBackground()
 	{
 		START_PROFILE("ScreenRenderer_Background");
 		if (m_backgroundTexture[m_backgroundTextureActive].Exists())
@@ -568,7 +578,7 @@ namespace Spear
 			glUseProgram(m_backgroundShader);
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, m_backgroundTexture[m_backgroundTextureActive].GetTextureId());
+			glBindTexture(GL_TEXTURE_2D, m_backgroundTexture[m_backgroundTextureActive].GetGpuTextureId());
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, m_backgroundDepthBuffer);
@@ -589,7 +599,7 @@ namespace Spear
 		END_PROFILE("ScreenRenderer_Background");
 	}
 
-	void ScreenRenderer::RenderLines()
+	void Renderer::RenderLines()
 	{
 		START_PROFILE("ScreenRenderer_Lines");
 
@@ -634,7 +644,7 @@ namespace Spear
 		END_PROFILE("ScreenRenderer_Lines");
 	}
 
-	void ScreenRenderer::RenderSprites()
+	void Renderer::RenderSprites()
 	{
 		START_PROFILE("ScreenRenderer_Sprites");
 
@@ -668,7 +678,7 @@ namespace Spear
 			);
 
 			// texture
-			glBindTexture(batch.pTexture->IsArray() ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D, batch.pTexture->GetTextureId());
+			glBindTexture(batch.pTexture->IsArray() ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D, batch.pTexture->GetGpuTextureId());
 
 			// const uniform data
 			GLint sizeLoc = glGetUniformLocation(m_spriteShader, "spriteSize");
@@ -686,7 +696,7 @@ namespace Spear
 		END_PROFILE("ScreenRenderer_Sprites");
 	}
 
-	void ScreenRenderer::RenderText()
+	void Renderer::RenderText()
 	{
 		START_PROFILE("ScreenRenderer_Text");
 
@@ -720,7 +730,7 @@ namespace Spear
 			);
 
 			// texture
-			glBindTexture(batch.pTexture->IsArray() ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D, batch.pTexture->GetTextureId());
+			glBindTexture(batch.pTexture->IsArray() ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D, batch.pTexture->GetGpuTextureId());
 
 			// const uniform data
 			GLint sizeLoc = glGetUniformLocation(m_spriteShader, "spriteSize");
@@ -738,7 +748,7 @@ namespace Spear
 		END_PROFILE("ScreenRenderer_Text");
 	}
 
-	void ScreenRenderer::ReleaseAll()
+	void Renderer::ReleaseAll()
 	{
 		ClearSpriteBatches();
 		ClearTextBatches();
