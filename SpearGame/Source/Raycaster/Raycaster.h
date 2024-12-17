@@ -51,6 +51,9 @@ private:
 	{
 		float		viewPitch;		// 'slope' used for rays sampling floor/ceiling
 		float		viewHeight;		// vertical position of camera
+		float		fov;				// actual fov (calculated as sum of fovBase + fovModifier)
+		float		fovWallMultiplier;	// height modifier applied to walls to prevent floor/roof separation when adjusting fov
+
 		Vector2f	viewPos;		// 2D position of camera (XY)
 		Vector2f	viewForward;	// forward vector for camera view
 		
@@ -66,9 +69,6 @@ private:
 		// rays sampled directly in front of us need to be bunched tightly together while distant rays are spread out
 		Vector2f	fovMinAngle;		// minimum ray angle based on fov (left edge of 'visual cone')
 		Vector2f	fovMaxAngle;		// maximum ray angle based on fov (right edge of 'visual cone')
-
-		float		fov;				// actual fov (calculated as sum of fovBase + fovModifier)
-		float		fovWallMultiplier;	// height modifier applied to walls to prevent floor/roof separation when adjusting fov
 	};
 	static RaycastFrameData m_frame;
 
@@ -82,7 +82,8 @@ private:
 		GLuint framedataUBO{0};
 
 		GLint gridDimensionsLoc{-1};
-		GLuint textureArrayLoc{0};
+		GLuint worldTexturesLoc{0};
+		GLuint worldTexturesSizeLoc{0};
 		GLuint outputTexSizeLoc{0};
 		GLuint rayconfigLoc{0};
 	};

@@ -343,6 +343,9 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		m_frame.fovMaxAngle = Vector2f(cos(angle + halfFov), sin(angle + halfFov));		
 	}
 
+	Draw3DGridCompute(inPos, inPitch, angle);
+	return;
+
 	// Floor/Ceiling Casting
 	auto RaycastPlanesTask = [](int taskId)
 	{
@@ -867,10 +870,8 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 	END_PROFILE("Raycast Walls")
 
 	// Upload Raycast image for this frame
-	//renderer.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
+	renderer.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
 	ClearBackgroundArrays();
-
-	Draw3DGridCompute(inPos, inPitch, angle);
 }
 
 void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle)
@@ -908,7 +909,8 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		glUniformBlockBinding(m_computeShader.computeProgram, framedataBlockIndex, 4);  // binding point 4
 
 		// Store uniform locations
-		//m_computeShader.textureArrayLoc = glGetUniformLocation(m_computeShader.computeProgram, "textureArray");
+		m_computeShader.worldTexturesLoc = glGetUniformLocation(m_computeShader.computeProgram, "worldTextures");
+		m_computeShader.worldTexturesSizeLoc = glGetUniformLocation(m_computeShader.computeProgram, "worldTexturesSize");
 		m_computeShader.outputTexSizeLoc = glGetUniformLocation(m_computeShader.computeProgram, "texResolution");
 		m_computeShader.gridDimensionsLoc = glGetUniformLocation(m_computeShader.computeProgram, "gridDimensions");
 
@@ -932,13 +934,6 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 
 	}
 
-	// Upload wall/floor textures
-	//const Spear::TextureBase* pMapTextures = renderer.GetBatchTextures(0);
-	//GLuint textureArrayId = pMapTextures->GetGpuTextureId();
-	//glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D_ARRAY, textureArrayId);
-	//glUniform1i(m_computeShader.textureArrayLoc, 0); // set texture as TEXTURE0 (set above)
-
 	// Format & Bind screen texture
 	Spear::Texture& screenTexture = renderer.GetBackgroundTextureForNextFrame();
 	screenTexture.ClearAndResize(m_rayConfig.xResolution, m_rayConfig.yResolution);
@@ -960,16 +955,24 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 	);
 	glBindImageTexture(1, depthTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
 
+	// Pass in TextureArray for world textures
+	const Spear::TextureBase* worldTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, worldTextures->GetGpuTextureId());
+	glUniform1i(m_computeShader.worldTexturesLoc, 0); // set sampler to read from GL_TEXTURE 0
+
 	// Upload uniform data
 	glUniform2i(m_computeShader.outputTexSizeLoc, screenTexture.GetWidth(), screenTexture.GetHeight());
 	glUniform2i(m_computeShader.gridDimensionsLoc, m_map->gridWidth, m_map->gridHeight);
+	glUniform3i(m_computeShader.worldTexturesSizeLoc, worldTextures->GetWidth(), worldTextures->GetHeight(), worldTextures->GetDepth());
 
-	// Dispatch Compute shader
+	// Dispatch Compute shader - 1 invocation per vertical pixel column
 	glDispatchCompute(screenTexture.GetWidth(), 1, 1);
+	//glDispatchCompute(1, 1, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	// Unbind wall/floor textures
-	//glBindTexture(GL_TEXTURE_2D_ARRAY, NULL);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, NULL);
 
 
 
