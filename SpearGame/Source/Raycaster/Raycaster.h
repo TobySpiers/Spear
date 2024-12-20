@@ -30,7 +30,7 @@ public:
 
 private:
 	static void RecreateBackgroundArrays(int width, int height);
-	static void ClearBackgroundArrays();
+	static void ClearRaycasterArrays();
 
 	// ImGui Panel
 	static PanelRaycaster debugPanel;
@@ -42,9 +42,6 @@ private:
 	// (OUTPUT) Depth/Texture Data
 	static GLfloat* m_bgTexDepth;
 	static GLuint* m_bgTexRGBA;
-
-	// (SETTING) Depth
-	static GLfloat m_mapMaxDepth;
 
 	// For storing internal per-frame data
 	struct RaycastFrameData

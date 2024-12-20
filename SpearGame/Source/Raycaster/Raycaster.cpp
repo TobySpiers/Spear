@@ -17,7 +17,6 @@ GLuint* Raycaster::m_bgTexRGBA{nullptr};
 GLfloat* Raycaster::m_bgTexDepth{nullptr};
 MapData* Raycaster::m_map{ nullptr };
 RaycasterConfig Raycaster::m_rayConfig;
-GLfloat Raycaster::m_mapMaxDepth{FLT_MAX};
 Raycaster::RaycastFrameData Raycaster::m_frame;
 Raycaster::RaycastComputeShader Raycaster::m_computeShader;
 
@@ -32,13 +31,13 @@ void Raycaster::RecreateBackgroundArrays(int width, int height)
 
 	delete[] m_bgTexDepth;
 	m_bgTexDepth = new GLfloat[width * height];
-	std::fill(m_bgTexDepth, m_bgTexDepth + (width * height), GLfloat(m_mapMaxDepth));
+	std::fill(m_bgTexDepth, m_bgTexDepth + (width * height), GLfloat(m_rayConfig.farClip));
 }
 
-void Raycaster::ClearBackgroundArrays()
+void Raycaster::ClearRaycasterArrays()
 {
 	std::fill(m_bgTexRGBA, m_bgTexRGBA + (m_rayConfig.xResolution * m_rayConfig.yResolution), GLuint(0));
-	std::fill(m_bgTexDepth, m_bgTexDepth + (m_rayConfig.xResolution * m_rayConfig.yResolution), GLfloat(m_mapMaxDepth));
+	std::fill(m_bgTexDepth, m_bgTexDepth + (m_rayConfig.xResolution * m_rayConfig.yResolution), GLfloat(m_rayConfig.farClip));
 }
 
 void Raycaster::Init(MapData& map)
@@ -47,8 +46,6 @@ void Raycaster::Init(MapData& map)
 	{
 		RecreateBackgroundArrays(m_rayConfig.xResolution, m_rayConfig.yResolution);
 	}
-	m_mapMaxDepth = sqrt(pow(map.gridWidth, 2) + pow(map.gridHeight, 2));
-
 	m_map = &map;
 
 	ApplyConfig(m_rayConfig);
@@ -109,7 +106,7 @@ Vector2i Raycaster::GetResolution()
 void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 {
 	Spear::Renderer& rend = Spear::ServiceLocator::GetScreenRenderer();
-	ClearBackgroundArrays();
+	ClearRaycasterArrays();
 	rend.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
 
 	constexpr float opacityFloor = 0.5f;
@@ -356,151 +353,96 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 
 		for (int y = yLowerBound; y < yUpperBound; y++) // for the chunk of Y pixels allocated to this thread...
 		{
+			bool bIsFloor = y < (static_cast<float>(m_rayConfig.yResolution) / 2) + m_frame.viewPitch;
+
 			// Current y position compared to the center of the screen (the horizon)
-			// Starts at 1, increases to HalfHeight
-			const int rayPitchFloor = (y - (m_rayConfig.yResolution / 2)) + m_frame.viewPitch;
-			const int rayPitchRoof = (y - (m_rayConfig.yResolution / 2)) - m_frame.viewPitch;
+			int rayPitch;
+			if (bIsFloor)
+			{
+				rayPitch = ((m_rayConfig.yResolution - y - 1) - (m_rayConfig.yResolution / 2)) + m_frame.viewPitch;
+			}
+			else
+			{
+				rayPitch = (y - (m_rayConfig.yResolution / 2)) - m_frame.viewPitch;
+			}
 
 			// Horizontal distance from the camera to the floor for the current row.
 			// 0.5 is the z position exactly in the middle between floor and ceiling.
-			const float rowDistanceFloor = m_frame.viewHeight / rayPitchFloor;
-			const float rowDistanceFloorDouble = rowDistanceFloor * 2;
-			const float rowDistanceRoof = m_frame.viewHeight / rayPitchRoof;
-			const float rowDistanceRoofDouble = rowDistanceRoof * 2;
+			float rowDistance[2];
+			rowDistance[0] = m_frame.viewHeight / rayPitch;
+			rowDistance[1] = rowDistance[0] * 2;
 
-			// vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' horizontally by 1 ray)
-			Vector2f floorStep[2];
-			floorStep[0] = rowDistanceFloor * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
-			floorStep[1] = floorStep[0] * 2;
-			Vector2f roofStep[2];
-			roofStep[0] = rowDistanceRoof * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
-			roofStep[1] = roofStep[0] * 2;
+			// Vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' horizontally by 1 ray)
+			Vector2f rayStep[2];
+			rayStep[0] = rowDistance[0] * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
+			rayStep[1] = rayStep[0] * 2;
 
 			// endpoint of first ray in row (left)
 			// essentially the 'left-most ray' along a length (depth) of rowDistance
-			Vector2f rayEndFloor[2];
-			rayEndFloor[0] = m_frame.viewPos + rowDistanceFloor * m_frame.fovMinAngle;
-			rayEndFloor[1] = m_frame.viewPos + rowDistanceFloorDouble * m_frame.fovMinAngle;
-			Vector2f rayEndRoof[2];
-			rayEndRoof[0] = m_frame.viewPos + rowDistanceRoof * m_frame.fovMinAngle;
-			rayEndRoof[1] = m_frame.viewPos + rowDistanceRoofDouble * m_frame.fovMinAngle;
+			Vector2f rayEnd[2];
+			rayEnd[0] = m_frame.viewPos + rowDistance[0] * m_frame.fovMinAngle;
+			rayEnd[1] = m_frame.viewPos + rowDistance[1] * m_frame.fovMinAngle;
 
 			// calculate 'depth' for this strip of floor (same depth will be shared for all drawn pixels in one row of X)
-			Vector2f rayStartFloor[2];
-			rayStartFloor[0] = m_frame.viewPos + Projection(rowDistanceFloor * m_frame.fovMinAngle, m_frame.viewForward.Normal());
-			rayStartFloor[1] = m_frame.viewPos + Projection(rowDistanceFloorDouble * m_frame.fovMinAngle, m_frame.viewForward.Normal());
-			Vector2f rayStartRoof[2];
-			rayStartRoof[0] = m_frame.viewPos + Projection(rowDistanceRoof * m_frame.fovMinAngle, m_frame.viewForward.Normal());
-			rayStartRoof[1] = m_frame.viewPos + Projection(rowDistanceRoofDouble * m_frame.fovMinAngle, m_frame.viewForward.Normal());
-
-			float stripDepthFloor[2];
-			stripDepthFloor[0] = (rayEndFloor[0] - rayStartFloor[0]).Length() / m_mapMaxDepth;
-			stripDepthFloor[1] = (rayEndFloor[1] - rayStartFloor[1]).Length() / m_mapMaxDepth;
-			float stripDepthRoof[2];
-			stripDepthRoof[0] = (rayEndRoof[0] - rayStartRoof[0]).Length() / m_mapMaxDepth;
-			stripDepthRoof[1] = (rayEndRoof[1] - rayStartRoof[1]).Length() / m_mapMaxDepth;
+			Vector2f rayStart[2];
+			float rayDepth[2];
+			rayStart[0] = m_frame.viewPos + Projection(rowDistance[0] * m_frame.fovMinAngle, m_frame.viewForward.Normal());
+			rayStart[1] = m_frame.viewPos + Projection(rowDistance[1] * m_frame.fovMinAngle, m_frame.viewForward.Normal());
+			rayDepth[0] = (rayEnd[0] - rayStart[0]).Length() / m_rayConfig.farClip;
+			rayDepth[1] = (rayEnd[1] - rayStart[1]).Length() / m_rayConfig.farClip;
 
 			// Indexes into texture/depth arrays for the start of the row equal to Y value
-			const int rowIndexFloor = (m_rayConfig.yResolution - (y + 1)) * m_rayConfig.xResolution;
-			const int rowIndexRoof = y * m_rayConfig.xResolution;
+			const int rowIndex = y * m_rayConfig.xResolution;
 
 			// Draw background texture
 			for (int x = 0; x < m_rayConfig.xResolution; ++x)
 			{
 				// Prevent drawing floor textures behind camera
-				if (rowDistanceFloor > 0)
+				if (rowDistance[0] > 0)
 				{
 					for (int layer = 0; layer < 2; layer++)
 					{
 						// Render floor
-						const int floorCellX = (int)(rayEndFloor[layer].x);
-						const int floorCellY = (int)(rayEndFloor[layer].y);
+						const int mapCellX = (int)(rayEnd[layer].x);
+						const int mapCellY = (int)(rayEnd[layer].y);
 
-						if (const GridNode* floorNode = m_map->GetNode(floorCellX, floorCellY))
+						if (const GridNode* node = m_map->GetNode(mapCellX, mapCellY))
 						{
 							// Floor tex sampling
-							if (floorNode->texIdFloor[layer] != eLevelTextures::TEX_NONE)
+							if ((bIsFloor && node->texIdFloor[layer] != eLevelTextures::TEX_NONE) || (!bIsFloor && node->texIdRoof[layer] != eLevelTextures::TEX_NONE))
 							{
-								const SDL_Surface* pFloorTexture = pMapTextures->GetSDLSurface(floorNode->texIdFloor[layer]);
-								ASSERT(pFloorTexture);
+								const SDL_Surface* pWorldTexture = pMapTextures->GetSDLSurface(bIsFloor ? node->texIdFloor[layer] : node->texIdRoof[layer]);
+								ASSERT(pWorldTexture);
 
-								int texX = static_cast<int>((rayEndFloor[layer].x - floorCellX) * pFloorTexture->w);
-								int texY = static_cast<int>((rayEndFloor[layer].y - floorCellY) * pFloorTexture->h);
+								int texX = static_cast<int>((rayEnd[layer].x - mapCellX) * pWorldTexture->w);
+								int texY = static_cast<int>((rayEnd[layer].y - mapCellY) * pWorldTexture->h);
 								if (texX < 0)
-									texX += pFloorTexture->w;
+									texX += pWorldTexture->w;
 								if (texY < 0)
-									texY += pFloorTexture->h;
+									texY += pWorldTexture->h;
 
-								ASSERT(texX < pFloorTexture->w);
-								ASSERT(texY < pFloorTexture->h);
-								Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pFloorTexture->pixels) + (texY * pFloorTexture->pitch) + (texX * pFloorTexture->format->BytesPerPixel));
+								ASSERT(texX < pWorldTexture->w);
+								ASSERT(texY < pWorldTexture->h);
+								Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWorldTexture->pixels) + (texY * pWorldTexture->pitch) + (texX * pWorldTexture->format->BytesPerPixel));
 								Uint8 r, g, b, a;
-								SDL_GetRGBA(*pixel, pFloorTexture->format, &r, &g, &b, &a);
+								SDL_GetRGBA(*pixel, pWorldTexture->format, &r, &g, &b, &a);
 
-								const int textureArrayIndex{ rowIndexFloor + x };
+								const int textureArrayIndex{ rowIndex + x };
 								GLuint& colByte = m_bgTexRGBA[textureArrayIndex];
 								colByte |= (r << 0);
 								colByte |= (g << 8);
 								colByte |= (b << 16);
 								colByte |= (a << 24);
 
-								m_bgTexDepth[textureArrayIndex] = stripDepthFloor[layer];
+								m_bgTexDepth[textureArrayIndex] = rayDepth[layer];
 
 								// We're drawing the floors nearest-first, so break this inner for-loop as soon as we draw a pixel (ie. no need to calculate pixels BEHIND this)
 								break;
 							}
 						}
 					}
-					rayEndFloor[0] += floorStep[0];
-					rayEndFloor[1] += floorStep[1];
-				}
-
-				// Prevent drawing roof textures behind camera
-				if (rowDistanceRoof > 0)
-				{
-					for (int layer = 0; layer < 2; layer++)
-					{
-						// Render roof
-						const int roofCellX = (int)(rayEndRoof[layer].x);
-						const int roofCellY = (int)(rayEndRoof[layer].y);
-
-						if (const GridNode* roofNode = m_map->GetNode(roofCellX, roofCellY))
-						{
-							// Roof tex sampling
-							if (roofNode->texIdRoof[layer] != eLevelTextures::TEX_NONE)
-							{
-								const SDL_Surface* pRoofTexture = pMapTextures->GetSDLSurface(roofNode->texIdRoof[layer]);
-								ASSERT(pRoofTexture);
-
-								int texX = static_cast<int>((rayEndRoof[layer].x - roofCellX) * pRoofTexture->w);
-								int texY = static_cast<int>((rayEndRoof[layer].y - roofCellY) * pRoofTexture->h);
-								if (texX < 0)
-									texX += pRoofTexture->w;
-								if (texY < 0)
-									texY += pRoofTexture->h;
-
-								ASSERT(texX < pRoofTexture->w);
-								ASSERT(texY < pRoofTexture->h);
-								Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pRoofTexture->pixels) + (texY * pRoofTexture->pitch) + (texX * pRoofTexture->format->BytesPerPixel));
-								Uint8 r, g, b, a;
-								SDL_GetRGBA(*pixel, pRoofTexture->format, &r, &g, &b, &a);
-
-								const int textureArrayIndex{ rowIndexRoof + x };
-								GLuint& colByte = m_bgTexRGBA[textureArrayIndex];
-								colByte |= (r << 0);
-								colByte |= (g << 8);
-								colByte |= (b << 16);
-								colByte |= (a << 24);
-
-								m_bgTexDepth[textureArrayIndex] = stripDepthRoof[layer];
-
-								// We're drawing the roofs nearest-first, so break this inner for-loop as soon as we draw a pixel (ie. no need to calculate pixels BEHIND this)
-								break;
-							}
-						}
-					}
-					rayEndRoof[0] += roofStep[0];
-					rayEndRoof[1] += roofStep[1];
+					rayEnd[0] += rayStep[0];
+					rayEnd[1] += rayStep[1];
 				}
 			}
 		}
@@ -617,7 +559,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 				{
 					Vector2f intersection{ rayStart + rayDir * distance };
 					float depth{ Projection(intersection - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
-					float renderDepth = depth / m_mapMaxDepth;
+					float renderDepth = depth / m_rayConfig.farClip;
 					const float halfHeight{ (1 + (m_rayConfig.yResolution / 2) / depth) * m_frame.fovWallMultiplier };
 					const float fullHeight{ halfHeight * 2};
 
@@ -871,12 +813,14 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 
 	// Upload Raycast image for this frame
 	renderer.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
-	ClearBackgroundArrays();
+	ClearRaycasterArrays();
 }
 
 void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle)
 {
 	Spear::Renderer& renderer = Spear::ServiceLocator::GetScreenRenderer();
+
+	START_PROFILE("Compute Shader")
 
 	if(!m_computeShader.isInitialised)
 	{
@@ -889,13 +833,13 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		// GridNodes Binding SSBO (Shader Storage Buffer Object) - Used to pass array data to shader
 		glGenBuffers(1, &m_computeShader.gridnodesSSBO);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.gridnodesSSBO);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, m_map->TotalNodes() * sizeof(GridNode), m_map->pNodes, GL_DYNAMIC_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, m_map->TotalNodes() * sizeof(GridNode), m_map->pNodes, GL_STATIC_DRAW);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_computeShader.gridnodesSSBO); // bind slot 2
 
 		// RayConfig Binding UBO (Uniform Buffer Object) - Used to pass a single struct as a uniform to shader
 		glGenBuffers(1, &m_computeShader.rayconfigUBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.rayconfigUBO);
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(RaycasterConfig), &m_rayConfig, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(RaycasterConfig), &m_rayConfig, GL_STATIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_computeShader.rayconfigUBO); // bind slot 3
 		for (int i = 0; i < m_computeShader.programSize; i++)
 		{
@@ -906,7 +850,7 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		// FrameData Binding UBO
 		glGenBuffers(1, &m_computeShader.framedataUBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.framedataUBO);
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(RaycastFrameData), &m_frame, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(RaycastFrameData), &m_frame, GL_STATIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 4, m_computeShader.framedataUBO); // bind slot 4
 		for (int i = 0; i < m_computeShader.programSize; i++)
 		{
@@ -943,7 +887,10 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 
 	// Format & Bind screen texture
 	Spear::Texture& screenTexture = renderer.GetBackgroundTextureForNextFrame();
-	screenTexture.Resize(m_rayConfig.xResolution, m_rayConfig.yResolution);
+	if(screenTexture.GetWidth() != m_rayConfig.xResolution || screenTexture.GetHeight() != m_rayConfig.yResolution)
+	{
+		screenTexture.Resize(m_rayConfig.xResolution, m_rayConfig.yResolution);
+	}
 	glBindImageTexture(0, screenTexture.GetGpuTextureId(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
 
 	// Format & Bind depth buffer
@@ -990,8 +937,9 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 	// Unbind wall/floor textures
 	glBindTexture(GL_TEXTURE_2D_ARRAY, NULL);
 
-
-
+	// TODO: See if we can remove needing some uniforms/data by using textureSize/imageSize in shaders
+	// TOOD: Add GPU/Software toggle to ImGui panel and remove ComputeShader hardcoding from DrawGrid3D function
+	// TODO: Remove temp error printing code below
 
 	// TEMP FOR CATCHING NEW ISSUES
 	while (GLenum error = glGetError())
@@ -1000,4 +948,6 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 			<< "\n\tError Code: " << error
 			<< std::endl;
 	}
+
+	END_PROFILE("Compute Shader")
 }

@@ -391,7 +391,7 @@ namespace Spear
 		glTexImage2D(
 			GL_TEXTURE_2D,
 			0,
-			GL_R8,
+			GL_R32F,
 			width,
 			height,
 			0,

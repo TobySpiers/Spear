@@ -81,21 +81,77 @@ const int DRAW_E = 2;
 const int DRAW_S = 4;
 const int DRAW_W = 8;
 
-const float FLT_MAX = 45.25;
-
 vec2 Projection(vec2 vecToProject, vec2 vecTarget)
 {
 	return normalize(vecTarget) * dot(vecToProject, normalize(vecTarget));
 }
 
-int CalcTexX(int rayHit, vec2 intersection, ivec2 mapCheck)
+float CalcTexX(int rayHit, vec2 intersection, ivec2 mapCheck)
 {
-	int result = int((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (worldTexturesSize.x - 1));
+	float result = (rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (worldTexturesSize.x - 1);
 	if (result < 0)
 	{
 		result += worldTexturesSize.x;
 	}
-	return result;
+	return result / textureSize(worldTextures, 0).x;
+}
+
+void FixSeams(int yStart, int yStep, float renderDepth, vec4 correctivePixel)
+{
+	uint screenX = gl_GlobalInvocationID.x;	
+	yStart += yStep;
+	const int seamCorrectionLimit = 10;
+	const int seamCorrectionEnd = yStart + (seamCorrectionLimit * yStep);
+
+	if (rayConfig.highlightCorrectivePixels)
+	{
+		correctivePixel = vec4(1, 0, 0, 1);
+	}
+
+	// Detect whether this strip is a seam or just the end of a wall, by detecting if any floor/ceiling exists within distance and depthRange of wall end
+	bool bIsSeam = false;
+	int foundEdge = -1;
+	for (int screenY = yStart; abs(screenY - seamCorrectionEnd) > 0; screenY += yStep)
+	{
+		if (screenY >= rayConfig.yResolution || screenY < 0)
+		{
+			continue;
+		}	
+		
+		vec4 nextCol = imageLoad(outTexture, ivec2(screenX, screenY));
+		bool nextByteIsInDepthRange = abs(imageLoad(outDepth, ivec2(screenX, screenY)).r - renderDepth) < rayConfig.correctivePixelDepthTolerance;
+		if (nextByteIsInDepthRange && nextCol.a > 0)
+		{
+			bIsSeam = true;
+			foundEdge = screenY;
+			break;
+		}
+	}
+	if (!bIsSeam)
+	{
+		return;
+	}
+
+	// If this is a seam (ie. wall connected to floor/ceiling), fill empty pixels sequentially until reaching first non-empty pixel (within max range)
+	for (int screenY = yStart; screenY != foundEdge; screenY += yStep)
+	{
+		if (screenY >= rayConfig.yResolution || screenY < 0)
+		{
+			continue;
+		}
+		
+		vec4 nextCol = imageLoad(outTexture, ivec2(screenX, screenY));
+		bool nextByteIsInDepthRange = abs(imageLoad(outDepth, ivec2(screenX, screenY)).r - renderDepth) < rayConfig.correctivePixelDepthTolerance;
+		if (!nextByteIsInDepthRange || nextCol.a == 0)
+		{
+			imageStore(outTexture, ivec2(screenX, screenY), correctivePixel);
+			imageStore(outDepth, ivec2(screenX, screenY), vec4(renderDepth, 0, 0, 0));
+		}
+		else
+		{
+			break;
+		}
+	}
 }
 
 // Each thread = 1 Ray = 1 Vertical Strip of Pixels
@@ -191,7 +247,7 @@ void main()
 		{
 			vec2 intersection = rayStart + (rayDir * rayDistance);
 			float depth = length(Projection(intersection - frame.viewPos, frame.viewForward * rayConfig.farClip));
-			float renderDepth = depth / FLT_MAX;
+			float renderDepth = depth / rayConfig.farClip;
 			
 			const float halfHeight = (1 + (rayConfig.yResolution / 2) / depth) * frame.fovWallMultiplier;
 			const float fullHeight = halfHeight * 2;
@@ -205,13 +261,11 @@ void main()
 			int renderingUp = 0;
 			int renderingDown = 0;
 
-			int texX = -1;
+			float texX = CalcTexX(rayHit, intersection, mapCheck);
 			int wallTexture = TEX_NONE;
 
 			if (node.texIdWall != TEX_NONE)
 			{				
-				// X Index into WallTexture = x position inside cell
-				texX = CalcTexX(rayHit, intersection, mapCheck);
 				wallTexture = node.texIdWall;
 			}
 			
@@ -266,9 +320,7 @@ void main()
 						// Y Index into WallTexture = percentage through current Y forloop
 						int texY = (worldTexturesSize.y - 1) - int((float(screenY - bottom) / (top - bottom)) * (worldTexturesSize.y - 1));
 						
-						vec3 texCoord = vec3(float(texX) / textureSize(worldTextures, 0).x,
-											float(texY) / textureSize(worldTextures, 0).y,
-											float(wallTexture));
+						vec3 texCoord = vec3(texX, float(texY) / textureSize(worldTextures, 0).y, wallTexture);
 						vec4 texel = texture(worldTextures, texCoord);
 						
 						// No sense updating the depth array for an invisible pixel, so early out when opacity is 0 - useful for cutout textures (fences, chainlink, etc.)
@@ -301,18 +353,10 @@ void main()
 						wallTexture = TEX_NONE;
 					}
 
-					if (texX == -1 && wallTexture != TEX_NONE)
-					{
-						texX = CalcTexX(rayHit, intersection, mapCheck);
-					}
-
 					if (wallTexture != TEX_NONE && renderingUp == 1 && node.texIdWall == TEX_NONE)
 					{
-						// TODO: Seam Correction logic
-						//const Uint32* correctivePixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + ((pWallTexture->w - 1) * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
-						//Uint8 r, g, b, a;
-						//SDL_GetRGBA(*correctivePixel, pWallTexture->format, &r, &g, &b, &a);
-						//FixSeams(bottom, -1, r | (g << 8) | (b << 16) | (a << 24));
+						vec4 correctiveTexel = texture(worldTextures, vec3(texX, 0, wallTexture));
+						FixSeams(int(bottom), -1, renderDepth, correctiveTexel);
 					}
 				}
 				// Prepare data for next iteration to render lower wall strips.
@@ -339,18 +383,10 @@ void main()
 						wallTexture = TEX_NONE;
 					}
 
-					if (texX == -1 && wallTexture != TEX_NONE)
-					{
-						texX = CalcTexX(rayHit, intersection, mapCheck);
-					}
-
 					if (wallTexture != TEX_NONE && renderingDown == 1 && node.texIdWall == TEX_NONE)
 					{
-						// TODO: Seam Correction logic
-						//const Uint32* correctivePixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texX * pWallTexture->format->BytesPerPixel));
-						//Uint8 r, g, b, a;
-						//SDL_GetRGBA(*correctivePixel, pWallTexture->format, &r, &g, &b, &a);
-						//FixSeams(top, 1, r | (g << 8) | (b << 16) | (a << 24));
+						vec4 correctiveTexel = texture(worldTextures, vec3(texX, 0, wallTexture));
+						FixSeams(int(top), 1, renderDepth, correctiveTexel);
 					}
 				}
 				else

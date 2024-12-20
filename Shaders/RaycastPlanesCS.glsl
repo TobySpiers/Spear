@@ -81,8 +81,6 @@ const int DRAW_E = 2;
 const int DRAW_S = 4;
 const int DRAW_W = 8;
 
-const float FLT_MAX = 45.25;
-
 vec2 Projection(vec2 vecToProject, vec2 vecTarget)
 {
 	return normalize(vecTarget) * dot(vecToProject, normalize(vecTarget));
@@ -100,7 +98,7 @@ void main()
 	
 	// Clear last pixel
 	imageStore(outTexture, screen, vec4(1,0,0,1));
-	imageStore(outDepth, screen, vec4(FLT_MAX, 0, 0, 1));
+	imageStore(outDepth, screen, vec4(rayConfig.farClip, 0, 0, 1));
 	
 	bool bIsFloor = screen.y < (float(rayConfig.yResolution) / 2) + frame.viewPitch;
 	
@@ -137,8 +135,8 @@ void main()
 	float rayDepth[2];
 	rayStart[0] = frame.viewPos + Projection(rowDistance[0] * frame.fovMinAngle, Normal(frame.viewForward));
 	rayStart[1] = frame.viewPos + Projection(rowDistance[1] * frame.fovMinAngle, Normal(frame.viewForward));
-	rayDepth[0] = length(rayEnd[0] - rayStart[0]) / FLT_MAX;
-	rayDepth[1] = length(rayEnd[1] - rayStart[1]) / FLT_MAX;
+	rayDepth[0] = length(rayEnd[0] - rayStart[0]) / rayConfig.farClip;
+	rayDepth[1] = length(rayEnd[1] - rayStart[1]) / rayConfig.farClip;
 	
 	// Step along X until correct ray for the current pixel
 	rayEnd[0] += rayStep[0] * screen.x;
