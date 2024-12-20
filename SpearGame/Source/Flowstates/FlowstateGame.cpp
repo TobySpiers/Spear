@@ -128,16 +128,6 @@ int FlowstateGame::StateUpdate(float deltaTime)
 	if (input.InputStart(INPUT_TOGGLE_RAYCASTER))
 	{
 		view3D = !view3D;
-
-		if (view3D)
-		{
-			const Vector2i res = Raycaster::GetResolution();
-			Spear::ServiceLocator::GetScreenRenderer().SetInternalResolution(res.x, res.y);
-		}
-		else
-		{
-			Spear::ServiceLocator::GetScreenRenderer().SetInternalResolution(Spear::Core::GetWindowSize().x, Spear::Core::GetWindowSize().y);
-		}
 	}
 
 	if (input.InputHold(INPUT_SHOOT))

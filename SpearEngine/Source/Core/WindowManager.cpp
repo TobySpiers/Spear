@@ -53,8 +53,19 @@ namespace Spear
 		SDL_SetWindowSize(m_window, x, y);
 	}
 
+	void WindowManager::SetWindowSize(Vector2i size)
+	{
+		SDL_SetWindowSize(m_window, size.x, size.y);
+	}
+
 	void WindowManager::SetWindowFullscreenMode(eFullscreenMode mode)
 	{
 		SDL_SetWindowFullscreen(m_window, static_cast<Uint32>(mode));
+	}
+	Vector2i WindowManager::GetWindowSize()
+	{
+		Vector2i result;
+		SDL_GetWindowSize(m_window, &result.x, &result.y);
+		return result;
 	}
 }

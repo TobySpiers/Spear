@@ -21,7 +21,10 @@ namespace Spear
 		SDL_GLContext& GetContext();
 
 		void SetWindowSize(float x, float y);
+		void SetWindowSize(Vector2i size);
 		void SetWindowFullscreenMode(eFullscreenMode mode);
+
+		Vector2i GetWindowSize();
 
 	private:
 		SDL_Window* m_window{nullptr};

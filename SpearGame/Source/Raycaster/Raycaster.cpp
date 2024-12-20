@@ -117,6 +117,7 @@ Vector2i Raycaster::GetResolution()
 
 void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 {
+	START_PROFILE("2D Raycasting");
 	Spear::Renderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 	ClearRaycasterArrays();
 	rend.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
@@ -188,10 +189,11 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	const Vector2f raySpacingDir{ forward.Normal() * -1 };
 
 	// Using DDA (digital differential analysis) to quickly calculate intersections
-	for(int x = 0; x < m_rayConfig.xResolution; x++)
+	int maxRays{ 500 };
+	for(int x = 0; x < maxRays; x++)
 	{
 		Vector2f rayStart = pos;
-		Vector2f rayEnd{ fovLeftExtent - (raySpacingDir * raySpacing * x) };
+		Vector2f rayEnd{ fovLeftExtent - (raySpacingDir * raySpacing * (x * m_rayConfig.xResolution / maxRays)) };
 		Vector2f rayDir = Normalize(rayEnd - rayStart);
 
 		Vector2f rayUnitStepSize{ sqrt(1 + (rayDir.y / rayDir.x) * (rayDir.y / rayDir.x)),		// length required to travel 1 X unit in Ray Direction
@@ -281,47 +283,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 		rend.AddLine(line);
 	}
 
-	//FLOOR CASTING
-	for (int y = m_rayConfig.yResolution / 2 + 1; y < m_rayConfig.yResolution; y++)
-	{
-		// Current y position compared to the center of the screen (the horizon)
-		// Starts at 1, increases to HalfHeight
-		int p = y - m_rayConfig.yResolution / 2;
-
-		// Vertical position of the camera.
-		float posZ = 0.61f * m_rayConfig.yResolution;
-
-		// Horizontal distance from the camera to the floor for the current row.
-		// 0.5 is the z position exactly in the middle between floor and ceiling.
-		float rowDistance = posZ / p;
-
-		// unit vectors representing directions to form left/right edge of FoV
-		Vector2f planeDirLeft = Vector2f(cos(angle - halfFov), sin(angle - halfFov));
-		Vector2f planeDirRight = Vector2f(cos(angle + halfFov), sin(angle + halfFov));
-
-		// starting position of first pixel in row (left)
-		// essentially the 'left-most ray' along a length (depth) of rowDistance
-		Vector2f floorRayEnd = pos + rowDistance * planeDirLeft;
-
-		// vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' over by 1 ray)
-		Vector2f floorRayStep = rowDistance * (planeDirRight - planeDirLeft) / m_rayConfig.xResolution;
-
-		for (int x = 0; x < m_rayConfig.xResolution; ++x)
-		{
-			int cellX = (int)(floorRayEnd.x);
-			int cellY = (int)(floorRayEnd.y);
-
-			// If we render floorX and floorY to the screen, we can view the positions on the 2D grid each floor pixel samples its texture from!
-			//Renderer::LinePolyData marker;
-			//marker.colour = Colour4f::Red();
-			//marker.radius = 5.f;
-			//marker.pos = Vector2f(floorX, floorY) * m_rayConfig.scale2D;
-			//marker.segments = 6;
-			//rend.AddLinePoly(marker);
-
-			floorRayEnd += floorRayStep;
-		}
-	}
+	END_PROFILE("2D Raycasting");
 }
 
 void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float angle)

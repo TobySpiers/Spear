@@ -15,6 +15,13 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 
+extern "C"
+{
+	// External Nvidia/AMD flags to request dedicated GPU on laptops/machines with an iGPU (integrated) and dGPU (dedicated)
+	_declspec(dllexport) unsigned NvOptimusEnablement = 1;
+	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
 namespace Spear
 {
 	bool Core::m_shutdown{false};
@@ -156,7 +163,7 @@ namespace Spear
 
 	Vector2i Core::GetWindowSize()
 	{
-		return Vector2i(m_windowParams.width, m_windowParams.height);
+		return ServiceLocator::GetWindowManager().GetWindowSize();
 	}
 	float Core::GetWindowScale()
 	{

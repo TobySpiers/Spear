@@ -82,9 +82,9 @@ vec2 Projection(vec2 vecToProject, vec2 vecTarget)
 	return normalize(vecTarget) * dot(vecToProject, normalize(vecTarget));
 }
 
-vec2 Normal(vec2 input)
+vec2 Normal(vec2 inputVec)
 {
-	return vec2(-input.y, input.x);
+	return vec2(-inputVec.y, inputVec.x);
 }
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
