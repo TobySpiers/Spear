@@ -79,7 +79,7 @@ namespace Spear
 		return true;
 	}
 
-	void Texture::ClearAndResize(int width, int height)
+	void Texture::Resize(int width, int height)
 	{
 		// bind THIS texture
 		glBindTexture(GL_TEXTURE_2D, m_textureId);

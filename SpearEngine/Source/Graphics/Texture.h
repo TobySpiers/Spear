@@ -10,7 +10,7 @@ namespace Spear
 		~Texture();
 
 		bool SetDataFromArrayRGBA(GLuint* pPixels, int width, int height);
-		void ClearAndResize(int width, int height);
+		void Resize(int width, int height);
 
 		// TextureBase Overrides
 		void FreeTexture() override;

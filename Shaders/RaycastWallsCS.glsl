@@ -5,11 +5,9 @@
 // May require our C++ ShaderCompiler class somehow 'detecting' includes and inserting them itself
 struct GridNode
 {
-	int texIdRoofA; // primary roof
-	int texIdRoofB; // additional elevated roof
+	int texIdRoof[2];
 	int texIdWall;
-	int texIdFloorA; // primary floor
-	int texIdFloorB; // additional sunk floor
+	int texIdFloor[2];
 	
 	int drawFlags;
 	
@@ -44,12 +42,12 @@ struct FrameData
 	vec2 screenPlaneEdgeL;
 	vec2 screenPlaneEdgeR;
 	vec2 screenPlane;
+
+	vec2 fovMinAngle;
+	vec2 fovMaxAngle;
 	
 	vec2 raySpacingDir;
 	float raySpacingLength;
-	
-	vec2 fovMinAngle;
-	vec2 fovMaxAngle;
 };
 
 // UBOs
@@ -58,7 +56,7 @@ layout(std140) uniform frameData { FrameData frame; };
 
 // BINDINGS
 layout(rgba8, binding = 0) uniform image2D outTexture;
-layout(r8, binding = 1) uniform image2D outDepth;
+layout(r32f, binding = 1) uniform image2D outDepth;
 layout(std430, binding = 2) buffer GridNodes { GridNode nodes[]; };
 layout(binding = 3) uniform sampler2DArray worldTextures;
 
@@ -83,7 +81,7 @@ const int DRAW_E = 2;
 const int DRAW_S = 4;
 const int DRAW_W = 8;
 
-const float FLT_MAX = 3.402823466e+38;
+const float FLT_MAX = 45.25;
 
 vec2 Projection(vec2 vecToProject, vec2 vecTarget)
 {
@@ -104,13 +102,7 @@ int CalcTexX(int rayHit, vec2 intersection, ivec2 mapCheck)
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {	
-	uint screenX = gl_GlobalInvocationID.x;
-	for(int screenY = 0; screenY < texResolution.y; screenY++)
-	{
-		imageStore(outTexture, ivec2(screenX, screenY), vec4(0,0,0,0));
-		imageStore(outDepth, ivec2(screenX, screenY), vec4(FLT_MAX, 0, 0, 0));
-	}
-	
+	uint screenX = gl_GlobalInvocationID.x;	
 	
 	vec2 rayStart = frame.viewPos;
 	vec2 rayEnd = frame.screenPlaneEdgeL - (frame.raySpacingDir * frame.raySpacingLength * screenX);
@@ -186,7 +178,7 @@ void main()
 				node = nodes[wallNodeIndex];
 					
 				// if tile has a wall texture and is tall enough to be visible...
-				const bool wallExists = node.texIdWall != TEX_NONE || (node.extendUp != 0 && node.texIdRoofA != TEX_NONE) || (node.extendDown != 0 && node.texIdFloorA != TEX_NONE);
+				const bool wallExists = node.texIdWall != TEX_NONE || (node.extendUp != 0 && node.texIdRoof[0] != TEX_NONE) || (node.extendDown != 0 && node.texIdFloor[0] != TEX_NONE);
 				if (wallExists)
 				{
 					rayHit = side ? RAY_HIT_SIDE : RAY_HIT_FRONT;
@@ -197,16 +189,16 @@ void main()
 		
 		if (rayHit != RAY_NOHIT)
 		{
-			vec2 intersection = rayStart + rayDir * rayDistance;
+			vec2 intersection = rayStart + (rayDir * rayDistance);
 			float depth = length(Projection(intersection - frame.viewPos, frame.viewForward * rayConfig.farClip));
 			float renderDepth = depth / FLT_MAX;
-			const int halfHeight = int((1 + (rayConfig.yResolution / 2) / depth) * frame.fovWallMultiplier);
-			const int fullHeight = halfHeight * 2;
+			
+			const float halfHeight = (1 + (rayConfig.yResolution / 2) / depth) * frame.fovWallMultiplier;
+			const float fullHeight = halfHeight * 2;
 
-			//int mid = int(frame.viewPitch + (rayConfig.yResolution / 2));
 			int mid = int(frame.viewPitch + (texResolution.y / 2));
-			int bottom = mid - halfHeight;
-			int top = mid + halfHeight;
+			float bottom = mid - halfHeight;
+			float top = mid + halfHeight;
 
 			// Draw textured vertical line segments for wall
 			bool bWallFinished = false;
@@ -226,7 +218,7 @@ void main()
 			while (!bWallFinished)
 			{
 				// Loop to draw various wall strips. First used to draw 'core' wall strip. Then, upper wall strips, followed by lower wall strips.
-				for (int screenY = max(0, bottom); screenY <= top; screenY++)
+				for (int screenY = max(0, int(bottom)); screenY <= top; screenY++)
 				{
 					// Respect any drawFlags specified in editor 
 					if (node.drawFlags != DRAW_DEFAULT)
@@ -262,15 +254,14 @@ void main()
 					}
 
 					// If we go off the bottom of the screen, skip any pixels remaining in wall strip.
-					//if (screenY >= rayConfig.yResolution)
 					if (screenY >= texResolution.y)
 					{
 						break;
 					}
 
 					// Draw only if our depth is nearer than any existing pixel
-					float existingDepth = vec4(imageLoad(outDepth, ivec2(screenX, screenY))).r;
-					if (renderDepth < existingDepth)
+					float existingDepth = imageLoad(outDepth, ivec2(screenX, screenY)).r;
+					if (renderDepth < existingDepth) //|| (cachedDepths[screenY] == -1 && renderDepth < existingDepth))
 					{
 						// Y Index into WallTexture = percentage through current Y forloop
 						int texY = (worldTexturesSize.y - 1) - int((float(screenY - bottom) / (top - bottom)) * (worldTexturesSize.y - 1));
@@ -286,7 +277,6 @@ void main()
 							continue;
 						}
 						
-						
 						imageStore(outTexture, ivec2(screenX, screenY), texel);
 						imageStore(outDepth, ivec2(screenX, screenY), vec4(renderDepth, 0, 0, 0));
 					}
@@ -298,9 +288,9 @@ void main()
 					bottom = top + 1;
 					top = bottom + fullHeight;
 					
-					if (node.texIdRoofA != TEX_NONE)
+					if (node.texIdRoof[0] != TEX_NONE)
 					{
-						wallTexture = node.texIdRoofA;
+						wallTexture = node.texIdRoof[0];
 					}
 					else if (node.texIdWall != TEX_NONE)
 					{
@@ -336,9 +326,9 @@ void main()
 					top = bottom - 1;
 					bottom = top - fullHeight;
 					
-					if (node.texIdFloorA != TEX_NONE)
+					if (node.texIdFloor[0] != TEX_NONE)
 					{
-						wallTexture = node.texIdFloorA;
+						wallTexture = node.texIdFloor[0];
 					}
 					else if (node.texIdWall != TEX_NONE)
 					{

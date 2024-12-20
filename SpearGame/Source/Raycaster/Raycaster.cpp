@@ -618,12 +618,12 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					Vector2f intersection{ rayStart + rayDir * distance };
 					float depth{ Projection(intersection - m_frame.viewPos, m_frame.viewForward * m_rayConfig.farClip).Length() };
 					float renderDepth = depth / m_mapMaxDepth;
-					const int halfHeight{ static_cast<int>((1 + (m_rayConfig.yResolution / 2) / depth) * m_frame.fovWallMultiplier) };
-					const int fullHeight{ halfHeight * 2};
+					const float halfHeight{ (1 + (m_rayConfig.yResolution / 2) / depth) * m_frame.fovWallMultiplier };
+					const float fullHeight{ halfHeight * 2};
 
 					int mid{ static_cast<int>(m_frame.viewPitch + (m_rayConfig.yResolution / 2)) };
-					int bottom{ mid - halfHeight };
-					int top{ mid + halfHeight };
+					float bottom{ mid - halfHeight };
+					float top{ mid + halfHeight };
 
 					// Draw textured vertical line segments for wall
 					bool bWallFinished = false;
@@ -653,7 +653,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 					while (!bWallFinished)
 					{
 						// Loop to draw various wall strips. First used to draw 'core' wall strip. Then, upper wall strips, followed by lower wall strips.
-						for (int screenY = std::max(0, bottom); screenY <= top; screenY++)
+						for (int screenY = std::max(0, static_cast<int>(bottom)); screenY <= static_cast<int>(top); screenY++)
 						{
 							// Respect any drawFlags specified in editor 
 							if (node.drawFlags != eDrawFlags::DRAW_DEFAULT)
@@ -699,7 +699,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 							if (renderDepth < m_bgTexDepth[screenIndex])
 							{
 								// Y Index into WallTexture = percentage through current Y forloop
-								int texY = (pWallTexture->h - 1) - static_cast<int>((static_cast<float>(screenY - bottom) / (top - bottom)) * (pWallTexture->h - 1));
+								int texY = (pWallTexture->h - 1) - static_cast<int>((static_cast<float>(screenY - static_cast<int>(bottom)) / (static_cast<int>(top) - static_cast<int>(bottom))) * (pWallTexture->h - 1));
 								ASSERT(texY < pWallTexture->h && texY >= 0);
 
 								Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pWallTexture->pixels) + (texY * pWallTexture->pitch) + (texX * pWallTexture->format->BytesPerPixel));
@@ -882,43 +882,50 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 	{
 		m_computeShader.isInitialised = true;
 
-		// Create program for WALL shader
-		m_computeShader.computeProgram = Spear::ShaderCompiler::CreateShaderProgram("../Shaders/RaycastWallsCS.glsl");
-		glUseProgram(m_computeShader.computeProgram);
+		// Compile shaders
+		m_computeShader.program[0] = Spear::ShaderCompiler::CreateShaderProgram("../Shaders/RaycastPlanesCS.glsl");
+		m_computeShader.program[1] = Spear::ShaderCompiler::CreateShaderProgram("../Shaders/RaycastWallsCS.glsl");
 
-		// GridNodes Binding SSBO (Shader Storage Buffer Object)
+		// GridNodes Binding SSBO (Shader Storage Buffer Object) - Used to pass array data to shader
 		glGenBuffers(1, &m_computeShader.gridnodesSSBO);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.gridnodesSSBO);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, m_map->TotalNodes() * sizeof(GridNode), m_map->pNodes, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_computeShader.gridnodesSSBO); // bind slot 2
 
-		// RayConfig Binding UBO (Uniform Buffer Object)
+		// RayConfig Binding UBO (Uniform Buffer Object) - Used to pass a single struct as a uniform to shader
 		glGenBuffers(1, &m_computeShader.rayconfigUBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.rayconfigUBO);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(RaycasterConfig), &m_rayConfig, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_computeShader.rayconfigUBO); // bind slot 3
-		GLuint configBlockIndex = glGetUniformBlockIndex(m_computeShader.computeProgram, "raycasterConfig");
-		glUniformBlockBinding(m_computeShader.computeProgram, configBlockIndex, 3);  // binding point 3
+		for (int i = 0; i < m_computeShader.programSize; i++)
+		{
+			GLuint configBlockIndex = glGetUniformBlockIndex(m_computeShader.program[i], "raycasterConfig");
+			glUniformBlockBinding(m_computeShader.program[i], configBlockIndex, 3);  // binding point 3
+		}
 
 		// FrameData Binding UBO
 		glGenBuffers(1, &m_computeShader.framedataUBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.framedataUBO);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(RaycastFrameData), &m_frame, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 4, m_computeShader.framedataUBO); // bind slot 4
-		GLuint framedataBlockIndex = glGetUniformBlockIndex(m_computeShader.computeProgram, "frameData");
-		glUniformBlockBinding(m_computeShader.computeProgram, framedataBlockIndex, 4);  // binding point 4
+		for (int i = 0; i < m_computeShader.programSize; i++)
+		{
+			GLuint framedataBlockIndex = glGetUniformBlockIndex(m_computeShader.program[i], "frameData");
+			glUniformBlockBinding(m_computeShader.program[i], framedataBlockIndex, 4);  // binding point 4
+		}
 
-		// Store uniform locations
-		m_computeShader.worldTexturesLoc = glGetUniformLocation(m_computeShader.computeProgram, "worldTextures");
-		m_computeShader.worldTexturesSizeLoc = glGetUniformLocation(m_computeShader.computeProgram, "worldTexturesSize");
-		m_computeShader.outputTexSizeLoc = glGetUniformLocation(m_computeShader.computeProgram, "texResolution");
-		m_computeShader.gridDimensionsLoc = glGetUniformLocation(m_computeShader.computeProgram, "gridDimensions");
-
+		// Cache uniform locations for shader programs
+		for (int i = 0; i < m_computeShader.programSize; i++)
+		{
+			m_computeShader.gridSizeLoc[i] = glGetUniformLocation(m_computeShader.program[i], "gridDimensions");
+			m_computeShader.worldTexturesLoc[i] = glGetUniformLocation(m_computeShader.program[i], "worldTextures");
+			m_computeShader.worldTexturesSizeLoc[i] = glGetUniformLocation(m_computeShader.program[i], "worldTexturesSize");
+			m_computeShader.outputTextureSizeLoc[i] = glGetUniformLocation(m_computeShader.program[i], "texResolution");
+		}
 	}
 	else
 	{
 		// If buffers already exist, just update the data
-		glUseProgram(m_computeShader.computeProgram);
 
 		// Upload GridNode data
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.gridnodesSSBO);
@@ -936,7 +943,7 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 
 	// Format & Bind screen texture
 	Spear::Texture& screenTexture = renderer.GetBackgroundTextureForNextFrame();
-	screenTexture.ClearAndResize(m_rayConfig.xResolution, m_rayConfig.yResolution);
+	screenTexture.Resize(m_rayConfig.xResolution, m_rayConfig.yResolution);
 	glBindImageTexture(0, screenTexture.GetGpuTextureId(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);
 
 	// Format & Bind depth buffer
@@ -945,7 +952,7 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 	glTexImage2D(
 		GL_TEXTURE_2D,
 		0,
-		GL_R8,
+		GL_R32F,
 		m_rayConfig.xResolution,
 		m_rayConfig.yResolution,
 		0,
@@ -953,23 +960,32 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		GL_FLOAT,
 		NULL
 	);
-	glBindImageTexture(1, depthTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8);
+	glBindImageTexture(1, depthTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
 
 	// Pass in TextureArray for world textures
 	const Spear::TextureBase* worldTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, worldTextures->GetGpuTextureId());
-	glUniform1i(m_computeShader.worldTexturesLoc, 0); // set sampler to read from GL_TEXTURE 0
 
-	// Upload uniform data
-	glUniform2i(m_computeShader.outputTexSizeLoc, screenTexture.GetWidth(), screenTexture.GetHeight());
-	glUniform2i(m_computeShader.gridDimensionsLoc, m_map->gridWidth, m_map->gridHeight);
-	glUniform3i(m_computeShader.worldTexturesSizeLoc, worldTextures->GetWidth(), worldTextures->GetHeight(), worldTextures->GetDepth());
+	for (int i = 0; i < m_computeShader.programSize; i++)
+	{
+		glUseProgram(m_computeShader.program[i]);
+		glUniform2i(m_computeShader.gridSizeLoc[i], m_map->gridWidth, m_map->gridHeight);
+		glUniform1i(m_computeShader.worldTexturesLoc[i], 0); // set sampler to read from GL_TEXTURE 0
+		glUniform2i(m_computeShader.outputTextureSizeLoc[i], screenTexture.GetWidth(), screenTexture.GetHeight());
+		glUniform3i(m_computeShader.worldTexturesSizeLoc[i], worldTextures->GetWidth(), worldTextures->GetHeight(), worldTextures->GetDepth());
 
-	// Dispatch Compute shader - 1 invocation per vertical pixel column
-	glDispatchCompute(screenTexture.GetWidth(), 1, 1);
-	//glDispatchCompute(1, 1, 1);
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		switch (i)
+		{
+			case 0: // PLANES - 1 invocation per screen pixel
+				glDispatchCompute(screenTexture.GetWidth(), screenTexture.GetHeight(), 1);
+				break;
+			case 1: // WALLS - 1 invocation per screen column
+				glDispatchCompute(screenTexture.GetWidth(), 1, 1);
+				break;
+		}
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	}
 
 	// Unbind wall/floor textures
 	glBindTexture(GL_TEXTURE_2D_ARRAY, NULL);

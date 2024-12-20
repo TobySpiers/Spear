@@ -62,13 +62,13 @@ private:
 		Vector2f	screenPlaneEdgePositionR;	// position of right edge of camera far clip
 		Vector2f	screenPlaneVector;			// direction from left to right
 
-		Vector2f	raySpacingDir;		// direction to space rays horizontally for walls
-		float		raySpacingLength;	// spacing to use between each ray
-
 		// although we have similar data for wall-rays, we need to know Fov distribution for floor-rays because
 		// rays sampled directly in front of us need to be bunched tightly together while distant rays are spread out
 		Vector2f	fovMinAngle;		// minimum ray angle based on fov (left edge of 'visual cone')
 		Vector2f	fovMaxAngle;		// maximum ray angle based on fov (right edge of 'visual cone')
+		
+		Vector2f	raySpacingDir;		// direction to space rays horizontally for walls
+		float		raySpacingLength;	// spacing to use between each ray
 	};
 	static RaycastFrameData m_frame;
 
@@ -76,16 +76,17 @@ private:
 	{
 		bool isInitialised{ false };
 
-		GLuint computeProgram{ 0 };
 		GLuint gridnodesSSBO{ 0 }; // SSBO - Shader Storage Buffer Object
 		GLuint rayconfigUBO{ 0 }; // UBO - Uniform Buffer Object
 		GLuint framedataUBO{0};
 
-		GLint gridDimensionsLoc{-1};
-		GLuint worldTexturesLoc{0};
-		GLuint worldTexturesSizeLoc{0};
-		GLuint outputTexSizeLoc{0};
-		GLuint rayconfigLoc{0};
+		// 0 - Planes, 1 - Walls
+		static const int programSize{2};
+		GLuint program[programSize];
+		GLuint gridSizeLoc[programSize];
+		GLuint worldTexturesLoc[programSize];
+		GLuint worldTexturesSizeLoc[programSize];
+		GLuint outputTextureSizeLoc[programSize];
 	};
 	static RaycastComputeShader m_computeShader;
 };
