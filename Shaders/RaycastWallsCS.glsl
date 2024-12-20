@@ -22,7 +22,6 @@ struct RaycasterConfig
 	float farClip;
 	int xResolution;
 	int yResolution;
-	int threads;
 	int rayEncounterLimit;
 	float scale2D;
 	bool highlightCorrectivePixels;
@@ -61,10 +60,7 @@ layout(std430, binding = 2) buffer GridNodes { GridNode nodes[]; };
 layout(binding = 3) uniform sampler2DArray worldTextures;
 
 // UNIFORMS
-layout(location = 0) uniform ivec2 texResolution;
-layout(location = 1) uniform ivec2 gridDimensions;
-layout(location = 2) uniform ivec3 worldTexturesSize;
-//layout(location = 0) uniform sampler2DArray textureArray;
+layout(location = 0) uniform ivec2 gridDimensions;
 
 // eLevelTexture definitions
 const int TEX_NONE = -1;
@@ -88,10 +84,10 @@ vec2 Projection(vec2 vecToProject, vec2 vecTarget)
 
 float CalcTexX(int rayHit, vec2 intersection, ivec2 mapCheck)
 {
-	float result = (rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (worldTexturesSize.x - 1);
+	float result = (rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (textureSize(worldTextures, 0).x - 1);
 	if (result < 0)
 	{
-		result += worldTexturesSize.x;
+		result += textureSize(worldTextures, 0).x;
 	}
 	return result / textureSize(worldTextures, 0).x;
 }
@@ -252,7 +248,7 @@ void main()
 			const float halfHeight = (1 + (rayConfig.yResolution / 2) / depth) * frame.fovWallMultiplier;
 			const float fullHeight = halfHeight * 2;
 
-			int mid = int(frame.viewPitch + (texResolution.y / 2));
+			int mid = int(frame.viewPitch + (imageSize(outTexture).y / 2));
 			float bottom = mid - halfHeight;
 			float top = mid + halfHeight;
 
@@ -308,7 +304,7 @@ void main()
 					}
 
 					// If we go off the bottom of the screen, skip any pixels remaining in wall strip.
-					if (screenY >= texResolution.y)
+					if (screenY >= imageSize(outTexture).y)
 					{
 						break;
 					}
@@ -318,7 +314,7 @@ void main()
 					if (renderDepth < existingDepth) //|| (cachedDepths[screenY] == -1 && renderDepth < existingDepth))
 					{
 						// Y Index into WallTexture = percentage through current Y forloop
-						int texY = (worldTexturesSize.y - 1) - int((float(screenY - bottom) / (top - bottom)) * (worldTexturesSize.y - 1));
+						int texY = (textureSize(worldTextures, 0).y - 1) - int((float(screenY - bottom) / (top - bottom)) * (textureSize(worldTextures, 0).y - 1));
 						
 						vec3 texCoord = vec3(texX, float(texY) / textureSize(worldTextures, 0).y, wallTexture);
 						vec4 texel = texture(worldTextures, texCoord);

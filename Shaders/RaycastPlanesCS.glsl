@@ -1,5 +1,5 @@
 #version 430 core
-// Compute shader for Raycasting walls
+// Compute shader for Raycasting multiple planes
 
 // TODO: Investigate moving these structs into a 'header' file we can reuse for a RaycastPlanes compute shader
 // May require our C++ ShaderCompiler class somehow 'detecting' includes and inserting them itself
@@ -22,7 +22,6 @@ struct RaycasterConfig
 	float farClip;
 	int xResolution;
 	int yResolution;
-	int threads;
 	int rayEncounterLimit;
 	float scale2D;
 	bool highlightCorrectivePixels;
@@ -61,10 +60,7 @@ layout(std430, binding = 2) buffer GridNodes { GridNode nodes[]; };
 layout(binding = 3) uniform sampler2DArray worldTextures;
 
 // UNIFORMS
-layout(location = 0) uniform ivec2 texResolution;
-layout(location = 1) uniform ivec2 gridDimensions;
-layout(location = 2) uniform ivec3 worldTexturesSize;
-//layout(location = 0) uniform sampler2DArray textureArray;
+layout(location = 0) uniform ivec2 gridDimensions;
 
 // eLevelTexture definitions
 const int TEX_NONE = -1;
@@ -94,7 +90,7 @@ vec2 Normal(vec2 input)
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
-	ivec2 screen = ivec2((gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID).xy);
+	ivec2 screen = ivec2(gl_GlobalInvocationID.xy);
 	
 	// Clear last pixel
 	imageStore(outTexture, screen, vec4(1,0,0,1));
@@ -106,7 +102,7 @@ void main()
 	int rayPitch;
 	if(bIsFloor)
 	{		
-		rayPitch = int(((texResolution.y - screen.y - 1) - (rayConfig.yResolution / 2)) + frame.viewPitch);
+		rayPitch = int(((imageSize(outTexture).y - screen.y - 1) - (rayConfig.yResolution / 2)) + frame.viewPitch);
 	}
 	else
 	{
@@ -138,7 +134,7 @@ void main()
 	rayDepth[0] = length(rayEnd[0] - rayStart[0]) / rayConfig.farClip;
 	rayDepth[1] = length(rayEnd[1] - rayStart[1]) / rayConfig.farClip;
 	
-	// Step along X until correct ray for the current pixel
+	// Step along X to the correct rays for this invocation's pixel
 	rayEnd[0] += rayStep[0] * screen.x;
 	rayEnd[1] += rayStep[1] * screen.x;
 	
@@ -154,18 +150,18 @@ void main()
 			{
 				GridNode node = nodes[cellX + (cellY * gridDimensions.y)];
 			
-				// Roof tex sampling
+				// Tex sampling
 				if ((bIsFloor && node.texIdFloor[layer] != TEX_NONE) || (!bIsFloor && node.texIdRoof[layer] != TEX_NONE))
 				{				
-					int texX = int((rayEnd[layer].x - cellX) * worldTexturesSize.x);
-					int texY = int((rayEnd[layer].y - cellY) * worldTexturesSize.y);
+					int texX = int((rayEnd[layer].x - cellX) * textureSize(worldTextures, 0).x);
+					int texY = int((rayEnd[layer].y - cellY) * textureSize(worldTextures, 0).y);
 					if (texX < 0)
 					{
-						texX += worldTexturesSize.x;
+						texX += textureSize(worldTextures, 0).x;
 					}
 					if (texY < 0)
 					{
-						texY += worldTexturesSize.y;
+						texY += textureSize(worldTextures, 0).y;
 					}
 					vec3 texCoord = vec3(float(texX) / textureSize(worldTextures, 0).x, float(texY) / textureSize(worldTextures, 0).y, bIsFloor ? node.texIdFloor[layer] : node.texIdRoof[layer]);
 
@@ -178,7 +174,7 @@ void main()
 					imageStore(outTexture, screen, texel);
 					imageStore(outDepth, screen, vec4(rayDepth[layer], 0, 0, 0));
 
-					// We're drawing the planes nearest-first, so break this inner for-loop as soon as we draw a pixel (ie. no need to calculate pixels BEHIND this)
+					// We're drawing the planes nearest-first, so break this loop as soon as we draw a pixel (ie. no need to calculate pixels BEHIND this)
 					break;
 				}
 			}

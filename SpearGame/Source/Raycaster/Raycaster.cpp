@@ -19,6 +19,8 @@ MapData* Raycaster::m_map{ nullptr };
 RaycasterConfig Raycaster::m_rayConfig;
 Raycaster::RaycastFrameData Raycaster::m_frame;
 Raycaster::RaycastComputeShader Raycaster::m_computeShader;
+bool Raycaster::m_bSoftwareRendering{false};
+int Raycaster::m_softwareRenderingThreads{15};
 
 constexpr float FOV_MIN{ 35.f };
 constexpr float FOV_MAX{ 95.f };
@@ -38,6 +40,16 @@ void Raycaster::ClearRaycasterArrays()
 {
 	std::fill(m_bgTexRGBA, m_bgTexRGBA + (m_rayConfig.xResolution * m_rayConfig.yResolution), GLuint(0));
 	std::fill(m_bgTexDepth, m_bgTexDepth + (m_rayConfig.xResolution * m_rayConfig.yResolution), GLfloat(m_rayConfig.farClip));
+}
+
+int Raycaster::XResolutionPerThread()
+{
+	return m_rayConfig.xResolution / m_softwareRenderingThreads;
+}
+
+int Raycaster::YResolutionPerThread()
+{
+	return m_rayConfig.yResolution / m_softwareRenderingThreads;
 }
 
 void Raycaster::Init(MapData& map)
@@ -314,9 +326,6 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 
 void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float angle)
 {
-	Spear::Renderer& renderer = Spear::ServiceLocator::GetScreenRenderer();
-	Spear::ThreadManager& threader = Spear::ServiceLocator::GetThreadManager();
-
 	// Calculate const data for this frame
 	{
 		// Calculate 'real' pitch (in_pitch is just a percentage from -1 to +1)
@@ -340,16 +349,28 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		m_frame.fovMaxAngle = Vector2f(cos(angle + halfFov), sin(angle + halfFov));		
 	}
 
-	Draw3DGridCompute(inPos, inPitch, angle);
-	return;
+	if (!m_bSoftwareRendering)
+	{
+		Draw3DGridCompute(inPos, inPitch, angle);
+	}
+	else
+	{
+		Draw3DGridCPU(inPos, inPitch, angle);
+	}
+}
+
+void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float angle)
+{
+	Spear::Renderer& renderer = Spear::ServiceLocator::GetScreenRenderer();
+	Spear::ThreadManager& threader = Spear::ServiceLocator::GetThreadManager();
 
 	// Floor/Ceiling Casting
 	auto RaycastPlanesTask = [](int taskId)
 	{
 		const Spear::TextureBase* pMapTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(0);
 
-		int yLowerBound = m_rayConfig.YResolutionPerThread() * taskId;
-		int yUpperBound = taskId == m_rayConfig.threads - 1 ? m_rayConfig.yResolution : yLowerBound + m_rayConfig.YResolutionPerThread(); // avoid skipping pixels under non-perfect division
+		int yLowerBound = YResolutionPerThread() * taskId;
+		int yUpperBound = taskId == m_softwareRenderingThreads - 1 ? m_rayConfig.yResolution : yLowerBound + YResolutionPerThread(); // avoid skipping pixels under non-perfect division
 
 		for (int y = yLowerBound; y < yUpperBound; y++) // for the chunk of Y pixels allocated to this thread...
 		{
@@ -451,7 +472,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 	};
 	START_PROFILE("Raycast Planes")
 	Spear::TaskHandle RaycastPlanesTaskHandle;
-	threader.DispatchTaskDistributed(RaycastPlanesTask, &RaycastPlanesTaskHandle, m_rayConfig.threads);
+	threader.DispatchTaskDistributed(RaycastPlanesTask, &RaycastPlanesTaskHandle, m_softwareRenderingThreads);
 	RaycastPlanesTaskHandle.WaitForTaskComplete();
 	END_PROFILE("Raycast Planes")
 
@@ -460,8 +481,8 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 	{
 		const Spear::TextureBase* pMapTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(0);
 
-		int xLowerBound = m_rayConfig.XResolutionPerThread() * taskId;
-		int xUpperBound = taskId == m_rayConfig.threads - 1 ? m_rayConfig.xResolution : xLowerBound + m_rayConfig.XResolutionPerThread(); // avoid skipping pixels under non-perfect division
+		int xLowerBound = XResolutionPerThread() * taskId;
+		int xUpperBound = taskId == m_softwareRenderingThreads - 1 ? m_rayConfig.xResolution : xLowerBound + XResolutionPerThread(); // avoid skipping pixels under non-perfect division
 
 		for (int screenX = xLowerBound; screenX < xUpperBound; screenX++) // for the chunk of X pixels allocated to this thread...
 		{
@@ -807,13 +828,15 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 	};
 	START_PROFILE("Raycast Walls")
 	Spear::TaskHandle RaycastWallsTaskHandle;
-	threader.DispatchTaskDistributed(RaycastWallsTask, &RaycastWallsTaskHandle, m_rayConfig.threads);
+	threader.DispatchTaskDistributed(RaycastWallsTask, &RaycastWallsTaskHandle, m_softwareRenderingThreads);
 	RaycastWallsTaskHandle.WaitForTaskComplete();
 	END_PROFILE("Raycast Walls")
 
+	START_PROFILE("Raycast Upload")
 	// Upload Raycast image for this frame
 	renderer.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
 	ClearRaycasterArrays();
+	END_PROFILE("Raycast Upload")
 }
 
 void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle)
@@ -861,10 +884,8 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		// Cache uniform locations for shader programs
 		for (int i = 0; i < m_computeShader.programSize; i++)
 		{
-			m_computeShader.gridSizeLoc[i] = glGetUniformLocation(m_computeShader.program[i], "gridDimensions");
+			m_computeShader.gridDimensionsLoc[i] = glGetUniformLocation(m_computeShader.program[i], "gridDimensions");
 			m_computeShader.worldTexturesLoc[i] = glGetUniformLocation(m_computeShader.program[i], "worldTextures");
-			m_computeShader.worldTexturesSizeLoc[i] = glGetUniformLocation(m_computeShader.program[i], "worldTexturesSize");
-			m_computeShader.outputTextureSizeLoc[i] = glGetUniformLocation(m_computeShader.program[i], "texResolution");
 		}
 	}
 	else
@@ -917,10 +938,8 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 	for (int i = 0; i < m_computeShader.programSize; i++)
 	{
 		glUseProgram(m_computeShader.program[i]);
-		glUniform2i(m_computeShader.gridSizeLoc[i], m_map->gridWidth, m_map->gridHeight);
+		glUniform2i(m_computeShader.gridDimensionsLoc[i], m_map->gridWidth, m_map->gridHeight);
 		glUniform1i(m_computeShader.worldTexturesLoc[i], 0); // set sampler to read from GL_TEXTURE 0
-		glUniform2i(m_computeShader.outputTextureSizeLoc[i], screenTexture.GetWidth(), screenTexture.GetHeight());
-		glUniform3i(m_computeShader.worldTexturesSizeLoc[i], worldTextures->GetWidth(), worldTextures->GetHeight(), worldTextures->GetDepth());
 
 		switch (i)
 		{
@@ -934,20 +953,8 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 
-	// Unbind wall/floor textures
+	// Unbind world textures
 	glBindTexture(GL_TEXTURE_2D_ARRAY, NULL);
-
-	// TODO: See if we can remove needing some uniforms/data by using textureSize/imageSize in shaders
-	// TOOD: Add GPU/Software toggle to ImGui panel and remove ComputeShader hardcoding from DrawGrid3D function
-	// TODO: Remove temp error printing code below
-
-	// TEMP FOR CATCHING NEW ISSUES
-	while (GLenum error = glGetError())
-	{
-		std::cout << "OpenGL Error:"
-			<< "\n\tError Code: " << error
-			<< std::endl;
-	}
 
 	END_PROFILE("Compute Shader")
 }

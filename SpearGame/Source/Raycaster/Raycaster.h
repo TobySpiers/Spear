@@ -26,11 +26,13 @@ public:
 
 	static void Draw2DGrid(const Vector2f& pos, const float angle);
 	static void Draw3DGrid(const Vector2f& pos, float pitch, const float angle);
-	static void Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle);
 
 private:
 	static void RecreateBackgroundArrays(int width, int height);
 	static void ClearRaycasterArrays();
+
+	static void Draw3DGridCPU(const Vector2f& pos, float pitch, const float angle);
+	static void Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle);
 
 	// ImGui Panel
 	static PanelRaycaster debugPanel;
@@ -42,10 +44,20 @@ private:
 	// (OUTPUT) Depth/Texture Data
 	static GLfloat* m_bgTexDepth;
 	static GLuint* m_bgTexRGBA;
+	
+	// (RENDERING SETTINGS)
+	friend class PanelRaycaster;
+	static bool m_bSoftwareRendering;
+	static int m_softwareRenderingThreads;
+	static int XResolutionPerThread();
+	static int YResolutionPerThread();
 
 	// For storing internal per-frame data
 	struct RaycastFrameData
 	{
+		// CAUTION - CHANGES MADE TO THIS STRUCT MUST BE REFLECTED IN RAYCASTER COMPUTE SHADER
+		// ===================================================================================
+
 		float		viewPitch;		// 'slope' used for rays sampling floor/ceiling
 		float		viewHeight;		// vertical position of camera
 		float		fov;				// actual fov (calculated as sum of fovBase + fovModifier)
@@ -80,10 +92,8 @@ private:
 		// 0 - Planes, 1 - Walls
 		static const int programSize{2};
 		GLuint program[programSize];
-		GLuint gridSizeLoc[programSize];
+		GLuint gridDimensionsLoc[programSize];
 		GLuint worldTexturesLoc[programSize];
-		GLuint worldTexturesSizeLoc[programSize];
-		GLuint outputTextureSizeLoc[programSize];
 	};
 	static RaycastComputeShader m_computeShader;
 };
