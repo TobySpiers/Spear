@@ -564,7 +564,6 @@ namespace Spear
 		glBindTexture(GL_TEXTURE_2D, m_fboRenderTexture[m_fboRenderTextureActive]);
 		GLCheck(glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1));
 		m_fboRenderTextureActive = (m_fboRenderTextureActive == 0 ? 1 : 0); // swap buffer
-		
 		RenderText();
 
 		END_PROFILE("ScreenRenderer_Total");

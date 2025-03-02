@@ -2,20 +2,33 @@
 #include "Core/ServiceLocator.h"
 #include "Core/InputManager.h"
 #include "Core/ImguiManager.h"
+#include "Core/WindowManager.h"
 #include "Graphics/ScreenRenderer.h"
+#include "GameObject/GameObject.h"
 #include "UiButton.h"
 
 #include "eFlowstate.h"
 #include "FlowstateEditor.h"
 #include "LevelFileManager.h"
+#include <imgui.h>
+#include <imgui_stdlib.h>
+#include <filesystem>
+#include <imgui_internal.h>
 
 
 void FlowstateEditor::StateEnter()
 {
-	m_map.ClearData();
-	
+	NewLevel("Untitled");
+	m_selectedTiles.clear();
+	m_camOffset = { 400.f, 200.f };
+
 	// Configure Inputs
 	int config[INPUT_COUNT];
+
+	config[INPUT_CTRL] = SDL_SCANCODE_LCTRL;
+	config[INPUT_SHIFT] = SDL_SCANCODE_LSHIFT;
+	config[INPUT_ALT] = SDL_SCANCODE_LALT;
+
 	config[INPUT_APPLY] = SDL_BUTTON_LEFT;
 	config[INPUT_CLEAR] = SDL_BUTTON_RIGHT;
 	config[INPUT_QUIT] = SDL_SCANCODE_ESCAPE;
@@ -47,204 +60,215 @@ void FlowstateEditor::StateEnter()
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
 
-	// Load editor gui textures
-	m_menuTextures.Allocate(64, 64, 2); // 64x64 textures (2 slots)
-	m_menuTextures.SetDataFromFile(0, "../Assets/SPRITES/mode_Editor.png");
-	m_menuTextures.SetDataFromFile(1, "../Assets/SPRITES/mode_Play.png");
-	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_menuTextures, 20);
-
 	// Load map textures
 	m_mapTextures.InitialiseFromDirectory("../Assets/TILESETS/64");
-	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_mapTextures, 800);
+	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_mapTextures, 64 * 64);
 
-	// Assign map textures to Editor Buttons
-	for (int i = 0; i < m_mapTextures.GetDepth(); i++)
-	{
-		m_textureButtons.push_back(Spear::UiButton());
-		m_textureButtons.back().Initialise(m_menuTextures);
-		m_textureButtons.back().m_sprite.texLayer = i;
-		m_textureButtons.back().m_sprite.pos = Vector2f(50.f, 100.f + (i * 75.f));
-		m_textureButtons.back().m_sprite.depth = 0.f;
-	}
+	// Disable ImGui panels - Editor sets up ImGui directly
+	Spear::ImguiManager& imguiManager = Spear::ImguiManager::Get();
+	imguiManager.SetPanelsEnabled(false);
 
-	// Enable ImGui for editor functionality
-	Spear::ImguiManager::Get().SetImguiEnabled(true);
+	Spear::WindowManager::Get().SetWindowTitleOverride("*Untitled - Spear");
 }
 
 int FlowstateEditor::StateUpdate(float deltaTime)
 {
+	bool bRequestQuit = false;
+
 	if(m_saveCooldown > 0.f)
 	{
 		m_saveCooldown -= deltaTime;
 	}
 
-	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+	const char* modal_NewLevel{ "Create New Level" };
+	const char* modal_OpenLevel{ "Open Level" };
+	const char* modal_SaveAs{ "Save As..." };
 
-	// Editor HUD Controls
-	m_cursorInMenu = false;
-	const int mouseWheel = input.Wheel();
-	for (int i = 0; i < m_mapTextures.GetDepth(); i++)
+	static std::string modal_dataString{ "" };
+
+	const char* selectedModal{ nullptr };
+	if (ImGui::BeginMainMenuBar())
 	{
-		m_textureButtons[i].m_sprite.pos.y += m_menuTexturesScrollSpeed * mouseWheel;
-		m_textureButtons[i].Update();
-
-		if (m_textureButtons[i].MouseOver())
+		// Demo window menu
+		if (ImGui::BeginMenu("File"))
 		{
-			m_cursorInMenu = true;
+			bool test = false;
+			if (ImGui::MenuItem("New", "Ctrl+N"))
+			{
+				selectedModal = modal_NewLevel;
+			}
+			if (ImGui::BeginMenu("Open", "Ctrl+O"))
+			{
+				for (const std::filesystem::directory_entry& filepath : std::filesystem::directory_iterator("../Assets/MAPS/"))
+				{
+					if (filepath.path().extension() == ".level")
+					{
+						if (ImGui::MenuItem(filepath.path().filename().string().c_str()))
+						{
+							selectedModal = modal_OpenLevel;
+							modal_dataString = filepath.path().filename().string().c_str();
+						}
+					}
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::MenuItem("Save", "Ctrl+S"))
+			{
+				SaveLevel();
+			}
+			if (ImGui::MenuItem("Save As...", "Ctrl+Alt+S"))
+			{
+				selectedModal = modal_SaveAs;
+			}
+			if (ImGui::MenuItem("Exit", "Escape"))
+			{
+				bRequestQuit = true;
+			}
+			ImGui::EndMenu();
 		}
 
-		if (m_textureButtons[i].Clicked())
+		if (ImGui::BeginMenu("Mode"))
 		{
-			m_curTex = i;
+			bool test = false;
+			ImGui::MenuItem("Tile", nullptr, &test);
+			ImGui::EndMenu();
 		}
+		ImGui::EndMainMenuBar();
+	}
+	if (selectedModal)
+	{
+		ImGui::OpenPopup(selectedModal);
 	}
 
+	if (ImGui::BeginPopupModal(modal_NewLevel, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::Text("Unsaved changes will be lost.\nThis operation cannot be undone!");
+		ImGui::Separator();
+
+		static std::string newLevelName{ "Untitled" };
+		if(ImGui::InputText(".level", &newLevelName, ImGuiInputTextFlags_EnterReturnsTrue)
+		|| ImGui::Button("Create", ImVec2(120, 0)))
+		{
+			ImGui::CloseCurrentPopup();
+			NewLevel(newLevelName.c_str());
+			newLevelName = "Untitled";
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0)))
+		{
+			ImGui::CloseCurrentPopup();
+			newLevelName = "Untitled";
+		}
+		ImGui::EndPopup();
+	}
+
+	if (ImGui::BeginPopupModal(modal_OpenLevel, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::Text("Unsaved changes will be lost.\nThis operation cannot be undone!");
+		ImGui::Separator();
+		ImGui::Text(modal_dataString.c_str());
+
+		if (ImGui::Button("Open", ImVec2(120, 0)))
+		{
+			ImGui::CloseCurrentPopup();
+			OpenLevel(modal_dataString.c_str());
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0)))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+
+	if (ImGui::BeginPopupModal(modal_SaveAs, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		static std::string levelName{ m_levelName };
+		if (ImGui::InputText(".level", &levelName, ImGuiInputTextFlags_EnterReturnsTrue)
+		|| ImGui::Button("Save As", ImVec2(120, 0)))
+		{
+			ImGui::CloseCurrentPopup();
+			SaveLevel(levelName.c_str());
+			levelName = m_levelName;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0)))
+		{
+			ImGui::CloseCurrentPopup();
+			levelName = m_levelName;
+		}
+		ImGui::EndPopup();
+	}
+
+	ImGui::Begin("Editor");
+	ImGui::Text("Mode: ");
+	ImGui::SameLine();
+	if (ImGui::SmallButton("(M) Map"))
+	{
+		m_editorMode = MODE_MAP;
+	}
+	ImGui::SameLine();
+	if (ImGui::SmallButton("(O) Object"))
+	{
+		m_editorMode = MODE_OBJECT;
+	}
+	ImGui::NewLine();
+
+	switch (m_editorMode)
+	{
+	case MODE_MAP:
+		MakePanel_Editor_Map();
+		break;
+	case MODE_OBJECT:
+		MakePanel_Editor_Objects();
+		break;
+	}
+	ImGui::End();
+
+	MakePanel_Visibility();
+
+	ImGui::Begin("Details");
+	switch (m_editorMode)
+	{
+	case MODE_MAP:
+		MakePanel_Details_Tile();
+		break;
+	case MODE_OBJECT:
+		MakePanel_Details_Object();
+		break;
+	}	
+	ImGui::End();
+
+	m_hoveredTile = MousePosToGridIndex();
+	m_hoveredTileValid = ValidTile(m_hoveredTile);
+	ProcessInput();
+
 	// Editor Keyboard
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+	const int mouseWheel = input.Wheel();
 	if (input.InputHold(INPUT_INCREASE_MAPSIZE))
 	{
-		if(m_map.gridWidth < MAP_WIDTH_MAX_SUPPORTED && m_map.gridHeight < MAP_HEIGHT_MAX_SUPPORTED)
+		if(m_map->gridWidth < MAP_WIDTH_MAX_SUPPORTED && m_map->gridHeight < MAP_HEIGHT_MAX_SUPPORTED)
 		{
-			m_map.SetSize(m_map.gridWidth + 1, m_map.gridHeight + 1);
+			m_map->SetSize(m_map->gridWidth + 1, m_map->gridHeight + 1);
 		}
 	}
 	else if (input.InputHold(INPUT_DECREASE_MAPSIZE))
 	{
-		if (m_map.gridWidth > 4 && m_map.gridHeight > 4)
+		if (m_map->gridWidth > 4 && m_map->gridHeight > 4)
 		{
-			m_map.SetSize(m_map.gridWidth - 1, m_map.gridHeight - 1);
-		}
-	}
-	if (input.InputRelease(INPUT_MODE_NEXT))
-	{
-		m_curMode++;
-		if (m_curMode >= EditorMode::MODE_TOTAL)
-		{
-			m_curMode = 0;
-		}
-	}
-	else if (input.InputRelease(INPUT_MODE_PREV))
-	{
-		m_curMode--;
-		if (m_curMode < 0)
-		{
-			m_curMode = EditorMode::MODE_TOTAL - 1;
-		}
-	}
-
-	// Editor Mouse
-	if(!m_cursorInMenu)
-	{
-		Vector2i gridIndex{MousePosToGridIndex()};
-		if (ValidGridIndex(gridIndex))
-		{
-			GridNode& node = m_map.GetNode(gridIndex.x, gridIndex.y);
-
-			// During modes such as Rise/Fall, cache first value so we can mass-edit a set of tiles
-			if (input.InputStart(INPUT_APPLY))
-			{
-				if (m_curMode == MODE_RISE)
-				{
-					m_clickCache = node.extendUp + 1;
-				}
-				else if (m_curMode == MODE_FALL)
-				{
-					m_clickCache = node.extendDown + 1;
-				}
-			}
-
-			if (input.InputHold(INPUT_APPLY))
-			{
-				switch (m_curMode)
-				{
-					case MODE_PLAYERSTART:
-						m_map.playerStart = gridIndex;
-						break;
-					case MODE_WALL:
-						node.texIdWall = m_curTex;
-						node.collisionMask = eCollisionMask::COLL_WALL;
-						break;
-					case MODE_FLOOR:
-						node.texIdFloor[0] = m_curTex;
-						break;
-					case MODE_FLOOR2:
-						node.texIdFloor[1] = m_curTex;
-						break;
-					case MODE_ROOF:
-						node.texIdRoof[0] = m_curTex;
-						break;
-					case MODE_ROOF2:
-						node.texIdRoof[1] = m_curTex;
-						break;
-					case MODE_RISE:
-						node.extendUp = m_clickCache;
-						break;
-					case MODE_FALL:
-						node.extendDown = m_clickCache;
-						break;
-					case MODE_COLLISION:
-						node.collisionMask = eCollisionMask::COLL_WALL;
-						break;
-				}
-			}
-			else if (input.InputHold(INPUT_CLEAR))
-			{
-				switch (m_curMode)
-				{
-				case MODE_WALL:
-					node.texIdWall = eLevelTextures::TEX_NONE;
-					node.collisionMask = eCollisionMask::COLL_NONE;
-					break;
-				case MODE_FLOOR:
-					node.texIdFloor[0] = eLevelTextures::TEX_NONE;
-					break;
-				case MODE_FLOOR2:
-					node.texIdFloor[1] = eLevelTextures::TEX_NONE;
-					break;
-				case MODE_ROOF:
-					node.texIdRoof[0] = eLevelTextures::TEX_NONE;
-					break;
-				case MODE_ROOF2:
-					node.texIdRoof[1] = eLevelTextures::TEX_NONE;
-					break;
-				case MODE_RISE:
-					node.extendUp = 0;
-					break;
-				case MODE_FALL:
-					node.extendDown = 0;
-					break;
-				case MODE_COLLISION:
-					node.collisionMask = eCollisionMask::COLL_NONE;
-					break;
-				case MODE_DRAW_DIRECTION:
-					node.drawFlags = eDrawFlags::DRAW_DEFAULT;
-					break;
-				}
-			}
-			else if (m_curMode == MODE_DRAW_DIRECTION)
-			{
-				if (input.InputHold(INPUT_FACE_NORTH))
-				{
-					node.drawFlags |= DRAW_N;
-				}
-				if (input.InputHold(INPUT_FACE_EAST))
-				{
-					node.drawFlags |= DRAW_E;
-				}
-				if (input.InputHold(INPUT_FACE_SOUTH))
-				{
-					node.drawFlags |= DRAW_S;
-				}
-				if (input.InputHold(INPUT_FACE_WEST))
-				{
-					node.drawFlags |= DRAW_W;
-				}
-			}
+			m_map->SetSize(m_map->gridWidth - 1, m_map->gridHeight - 1);
 		}
 	}
 
 	// Camera Controls
-	const float scrollSpeed{1000.f};
 	const float zoomSpeed{10.f};
+	float scrollSpeed{1000.f};
+	if (input.InputHold(INPUT_SHIFT))
+	{
+		scrollSpeed = 2000.f;
+	}
+
 	if(!input.InputHold(INPUT_MODIFIER))
 	{ 
 		if (input.InputHold(INPUT_SCROLL_LEFT))
@@ -263,13 +287,13 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 		{
 			m_camOffset.y -= scrollSpeed * deltaTime;
 		}
-		if (input.InputHold(INPUT_ZOOM_IN))
+		if (input.InputHold(INPUT_ZOOM_IN) || mouseWheel > 0)
 		{
-			m_camZoom *= 1.05f;
+			m_camZoom *= 1.1f;
 		}
-		if (input.InputHold(INPUT_ZOOM_OUT))
+		if (input.InputHold(INPUT_ZOOM_OUT) || mouseWheel < 0)
 		{
-			m_camZoom *= 0.95f;
+			m_camZoom *= 0.9f;
 		}
 		m_camZoom = std::min(m_camZoom, 3.f);
 		m_camZoom = std::max(m_camZoom, 0.75f);
@@ -282,15 +306,15 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	}
 	else if (input.InputHold(INPUT_MODIFIER) && input.InputHold(INPUT_LOAD))
 	{
-		LoadLevel();
+		OpenLevel("Test.level");
 	}
 
 	// Quit
 	if (input.InputRelease(INPUT_QUIT))
 	{
-		return static_cast<int>(eFlowstate::STATE_MENU);
+		bRequestQuit = true;
 	}
-	return static_cast<int>(eFlowstate::STATE_THIS);
+	return bRequestQuit ? static_cast<int>(eFlowstate::STATE_MENU) : static_cast<int>(eFlowstate::STATE_THIS);
 }
 
 Vector2i FlowstateEditor::MousePosToGridIndex()
@@ -298,39 +322,446 @@ Vector2i FlowstateEditor::MousePosToGridIndex()
 	Vector2f mousePos{ Spear::ServiceLocator::GetInputManager().GetMousePos().ToFloat()};
 	mousePos -= m_camOffset;
 
-	return Vector2i(std::round(mousePos.x / MapSpacing()), std::round(mousePos.y / MapSpacing()));
+	const Vector2i result{ static_cast<int>(std::round(mousePos.x / MapSpacing())), static_cast<int>(std::round(mousePos.y / MapSpacing())) };
+	return result;
 }
 
-bool FlowstateEditor::ValidGridIndex(const Vector2i& index)
+bool FlowstateEditor::ValidTile(const Vector2i& index)
 {
-	return (index.x >= 0 && index.x < m_map.gridWidth
-		 && index.y >= 0 && index.y < m_map.gridHeight);
+	return (index.x >= 0 && index.x < m_map->gridWidth
+		 && index.y >= 0 && index.y < m_map->gridHeight);
 }
 
-const char* FlowstateEditor::GetModeText()
+void FlowstateEditor::ProcessInput()
 {
-	switch (m_curMode)
+	if (ProcessInputDragView())
 	{
-		case MODE_PLAYERSTART:
-			return "PlayerStart";
-		case MODE_FLOOR:
+		return;
+	}
+
+	if (ProcessInputFlood())
+	{
+		return;
+	}
+
+	if (ProcessInputSelect())
+	{
+		return;
+	}
+}
+
+bool FlowstateEditor::ProcessInputDragView()
+{
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+	if (input.RightClickStart())
+	{
+		m_clickOrigin = input.GetMousePos();
+		m_dragOrigin = m_camOffset;
+	}
+	else if (input.RightClickHold())
+	{
+		m_camOffset = m_dragOrigin + (input.GetMousePos() - m_clickOrigin).ToFloat();
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FlowstateEditor::ProcessInputFlood()
+{
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+	if (input.MiddleClickStart())
+	{
+		StartSelection();
+		FloodSelect(m_clickOrigin);
+	}
+	else if (input.MiddleClickHold())
+	{
+		if (m_clickOrigin != m_hoveredTile)
+		{
+			m_clickOrigin = m_hoveredTile;
+			m_ongoingClickSelection.clear();
+			FloodSelect(m_clickOrigin);
+		}
+	}
+	else if (input.MiddleClickRelease())
+	{
+		CommitSelection();
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FlowstateEditor::ProcessInputSelect()
+{
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+	if (input.ClickStart())
+	{
+		StartSelection();
+	}
+	else if (input.ClickHold())
+	{
+		if (input.InputHold(INPUT_SHIFT))
+		{
+			m_ongoingClickSelection.clear();
+			const Vector2i diff{ m_hoveredTile - m_clickOrigin };
+
+			for (int stepX = 0; stepX <= std::abs(diff.x); stepX++)
+			{
+				for (int stepY = 0; stepY <= std::abs(diff.y); stepY++)
+				{
+					const HashableVector2i tile{ m_clickOrigin.x + (stepX * Sign(diff.x)), m_clickOrigin.y + (stepY * Sign(diff.y)) };
+					if (ValidTile(tile))
+					{
+						m_ongoingClickSelection.insert(tile);
+					}
+				}
+			}
+		}
+		else if (m_hoveredTileValid)
+		{
+			m_ongoingClickSelection.insert(m_hoveredTile);
+		}
+	}
+	else if (input.ClickRelease())
+	{
+		CommitSelection();
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void FlowstateEditor::StartSelection()
+{
+	m_clickOrigin = m_hoveredTile;
+
+	if (Spear::ServiceLocator::GetInputManager().InputHold(INPUT_CTRL))
+	{
+		if (!m_selectedTiles.contains(m_hoveredTile))
+		{
+			m_ongoingSelectionMode = SELECTION_ADDITIVE;
+		}
+		else
+		{
+			m_ongoingSelectionMode = SELECTION_SUBTRACTIVE;
+		}
+	}
+	else
+	{
+		m_selectedTiles.clear();
+		m_ongoingSelectionMode = SELECTION_ADDITIVE;
+	}
+
+	m_ongoingClickSelection.clear();
+}
+
+void FlowstateEditor::FloodSelect(const Vector2i& origin)
+{
+	if (!ValidTile(origin))
+	{
+		return;
+	}
+
+	std::unordered_set<HashableVector2i> searched;
+
+	const GridNode& searchNode = m_map->GetNode(origin);
+	std::unordered_set<HashableVector2i> search{origin};
+	while (search.size())
+	{
+		const Vector2i& searchPos = *search.begin();
+		m_ongoingClickSelection.insert(searchPos);
+
+		for (int i = 0; i < 4; i++)
+		{
+			HashableVector2i neighbourPos{ searchPos };
+			if (i % 2)
+			{
+				neighbourPos.x += (i == 1) ? 1 : -1;
+			}
+			else
+			{
+				neighbourPos.y += (i == 0) ? 1 : -1;
+			}
+			if (ValidTile(neighbourPos))
+			{
+				if (m_map->GetNode(neighbourPos).CompareNodeByTexture(searchNode))
+				{
+					if (!searched.contains(neighbourPos))
+					{
+						search.insert(neighbourPos);
+					}
+				}
+			}
+		}
+
+		searched.insert(searchPos);
+		search.erase(searchPos);
+	}
+}
+
+void FlowstateEditor::CommitSelection()
+{
+	if (m_ongoingSelectionMode == SELECTION_ADDITIVE)
+	{
+		m_selectedTiles.insert(m_ongoingClickSelection.begin(), m_ongoingClickSelection.end());
+	}
+	else if (m_ongoingSelectionMode == SELECTION_SUBTRACTIVE)
+	{
+		for (const HashableVector2i& selectedTile : m_ongoingClickSelection)
+		{
+			m_selectedTiles.erase(selectedTile);
+		}
+	}
+
+	m_ongoingClickSelection.clear();
+}
+
+void FlowstateEditor::MakePanel_Editor_Map()
+{
+	ImGui::SeparatorText("Tile Editor");
+	ImGui::Text("Map Size:");
+	int mapWidth{ m_map->gridWidth };
+	int mapHeight{m_map->gridHeight};
+	bool mapSizeChanged = ImGui::InputInt("Width", &mapWidth);
+	mapSizeChanged |= ImGui::InputInt("Height", &mapHeight);
+	{
+		m_map->SetSize(mapWidth, mapHeight);
+	}
+
+	// TOOD: This should be part of MapData so different maps can use unique offsets (small offsets for road & pavement vs. large offsets for canyons etc.)
+	// Maybe units represent 'tiles' so 1 = aligned to first tile, 2 equals aligned to 2nd tile, 1.5 is in middle, etc.
+	int temp{0};
+	ImGui::SeparatorText("TODO (Unimplemented)");
+	ImGui::Text("Roof Distances: ");
+	ImGui::InputInt("Upper Roof", &temp);
+	ImGui::InputInt("Lower Roof", &temp);
+
+	ImGui::Text("Floor Distances: ");
+	ImGui::InputInt("Upper Floor", &temp);
+	ImGui::InputInt("Lower Floor", &temp);
+}
+
+void FlowstateEditor::MakePanel_Editor_Objects()
+{
+	ImGui::SeparatorText("TODO: Object Editor");
+	std::vector<std::pair<const char*, GameObject::ConstructorFuncPtr>> ObjectConstructors = *GameObject::ObjectConstructors();
+	for (auto pair : ObjectConstructors)
+	{
+		if (ImGui::Button(pair.first))
+		{
+			// Create object!
+		}
+	}
+}
+
+void FlowstateEditor::MakePanel_Visibility()
+{
+	ImGui::Begin("Show-In-Editor Flags");
+	for (int flagbit = 0; (1 << flagbit) < DRAW_ALL; flagbit++)
+	{
+		DrawFlags flag = static_cast<DrawFlags>(1 << flagbit);
+		ImGui::CheckboxFlags(GetModeText(flag), &m_visibilityFlags, flag);
+	}
+	ImGui::End();
+}
+
+void FlowstateEditor::MakePanel_Details_Tile()
+{
+	if (!m_selectedTiles.size())
+	{
+		ImGui::Text("No tile selected");
+		return;
+	}
+
+	// Taking a COPY of the first node and amalgamating settings from selected tiles
+	GridNode commonNode = m_map->GetNode(*m_selectedTiles.begin());
+	for (const HashableVector2i selectedTile : m_selectedTiles)
+	{
+		const GridNode& node = m_map->GetNode(selectedTile);
+		for (int i = 0; i < 2; i++)
+		{
+			if (commonNode.texIdFloor[i] != node.texIdFloor[i])
+			{
+				commonNode.texIdFloor[i] = TEX_MULTI;
+			}
+			if (commonNode.texIdRoof[i] != node.texIdRoof[i])
+			{
+				commonNode.texIdRoof[i] = TEX_MULTI;
+			}
+		}
+		if (commonNode.texIdWall != node.texIdWall)
+		{
+			commonNode.texIdWall = TEX_MULTI;
+		}
+	}
+	
+	ImGui::SeparatorText("Texture Settings");
+
+	const char* strRoofA = "Roof (Far)";
+	ImGui::ImageButton(strRoofA, m_mapTextures.GetTextureViewForLayer(commonNode.texIdRoof[1]), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	bool modifiedRoofA = MakePopup_TextureSelect(commonNode.texIdRoof[1], strRoofA);
+	ImGui::SameLine();
+	ImGui::Text(strRoofA);
+
+	const char* strRoofB = "Roof (Near)";
+	ImGui::ImageButton(strRoofB, m_mapTextures.GetTextureViewForLayer(commonNode.texIdRoof[0]), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	bool modifiedRoofB = MakePopup_TextureSelect(commonNode.texIdRoof[0], strRoofB);
+	ImGui::SameLine();
+	ImGui::Text(strRoofB);
+
+	const char* strWall = "Wall";
+	ImGui::ImageButton(strWall, m_mapTextures.GetTextureViewForLayer(commonNode.texIdWall), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	bool modifiedWall = MakePopup_TextureSelect(commonNode.texIdWall, strWall);
+	ImGui::SameLine();
+	ImGui::Text(strWall);
+
+	const char* strFloorA = "Floor (Near)";
+	ImGui::ImageButton(strFloorA, m_mapTextures.GetTextureViewForLayer(commonNode.texIdFloor[0]), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	bool modifiedFloorA = MakePopup_TextureSelect(commonNode.texIdFloor[0], strFloorA);
+	ImGui::SameLine();
+	ImGui::Text(strFloorA);
+
+	const char* strFloorB = "Floor (Far)";
+	ImGui::ImageButton(strFloorB, m_mapTextures.GetTextureViewForLayer(commonNode.texIdFloor[1]), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	bool modifiedFloorB = MakePopup_TextureSelect(commonNode.texIdFloor[1], strFloorB);
+	ImGui::SameLine();
+	ImGui::Text(strFloorB);
+
+	ImGui::SeparatorText("Height Settings");
+	bool modifiedRise = ImGui::InputInt("Rise", &commonNode.extendUp);
+	commonNode.extendUp = std::max(commonNode.extendUp, 0);
+	bool modifiedFall = ImGui::InputInt("Fall", &commonNode.extendDown);
+	commonNode.extendDown = std::max(commonNode.extendDown, 0);
+
+	ImGui::SeparatorText("Collision Flags");
+	bool modifiedCollWall = ImGui::CheckboxFlags("Wall##coll", &commonNode.collisionMask, COLL_WALL);
+	bool modifiedCollSolid = ImGui::CheckboxFlags("Solid", &commonNode.collisionMask, COLL_SOLID);
+
+	ImGui::SeparatorText("Visibility Flags");
+	bool modifiedDrawN = ImGui::CheckboxFlags("North Face", &commonNode.drawFlags, DRAW_N);
+	bool modifiedDrawE = ImGui::CheckboxFlags("East Face", &commonNode.drawFlags, DRAW_E);
+	bool modifiedDrawS = ImGui::CheckboxFlags("South Face", &commonNode.drawFlags, DRAW_S);
+	bool modifiedDrawW = ImGui::CheckboxFlags("West Face", &commonNode.drawFlags, DRAW_W);
+
+	for(const HashableVector2i selectedTile : m_selectedTiles)
+	{
+		GridNode& node = m_map->GetNode(selectedTile);
+
+		if (modifiedRoofB)
+			node.texIdRoof[0] = commonNode.texIdRoof[0];
+		if (modifiedRoofA)
+			node.texIdRoof[1] = commonNode.texIdRoof[1];
+		if (modifiedWall)
+			node.texIdWall = commonNode.texIdWall;
+		if (modifiedFloorA)
+			node.texIdFloor[0] = commonNode.texIdFloor[0];
+		if (modifiedFloorB)
+			node.texIdFloor[1] = commonNode.texIdFloor[1];
+
+		if (modifiedRise)
+			node.extendUp = commonNode.extendUp;
+		if (modifiedFall)
+			node.extendDown = commonNode.extendDown;
+
+		if (modifiedCollWall)
+			node.collisionMask = (node.collisionMask & ~COLL_WALL) | (commonNode.collisionMask & COLL_WALL);
+		if (modifiedCollSolid)
+			node.collisionMask = (node.collisionMask & ~COLL_SOLID) | (commonNode.collisionMask & COLL_SOLID);
+
+		if (modifiedDrawN)
+			node.drawFlags = (node.drawFlags & ~DRAW_N) | (commonNode.drawFlags & DRAW_N);
+		if (modifiedDrawE)
+			node.drawFlags = (node.drawFlags & ~DRAW_E) | (commonNode.drawFlags & DRAW_E);
+		if (modifiedDrawS)
+			node.drawFlags = (node.drawFlags & ~DRAW_S) | (commonNode.drawFlags & DRAW_S);
+		if (modifiedDrawW)
+			node.drawFlags = (node.drawFlags & ~DRAW_W) | (commonNode.drawFlags & DRAW_W);
+
+	}
+}
+
+void FlowstateEditor::MakePanel_Details_Object()
+{
+	ImGui::Text("No object selected");
+}
+
+bool FlowstateEditor::MakePopup_TextureSelect(int& outValue, const char* popupId)
+{
+	if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+	{
+		ImGui::OpenPopup(popupId);
+	}
+
+	bool valueChanged = false;
+	if (ImGui::BeginPopup(popupId, ImGuiWindowFlags_NoMove))
+	{
+		for (int i = 0; i < m_mapTextures.GetDepth(); i++)
+		{
+			ImGui::Image(m_mapTextures.GetTextureViewForLayer(i), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+			if (ImGui::IsItemClicked())
+			{
+				valueChanged = outValue != i;
+				outValue = i;
+				ImGui::CloseCurrentPopup();
+			}
+
+			const int popupItemsPerRow = 4;
+			if ((i + 1) % popupItemsPerRow != 0)
+			{
+				ImGui::SameLine();
+			}
+		}
+
+		ImGui::EndPopup();
+	}
+
+	if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+	{
+		if (outValue != TEX_NONE)
+		{
+			outValue = TEX_NONE;
+			valueChanged = true;
+		}
+	}
+
+	return valueChanged;
+}
+
+const char* FlowstateEditor::GetModeText(DrawFlags flag)
+{
+	switch (flag)
+	{
+		case DRAW_OBJECTS:
+			return "Objects";
+		case DRAW_FLOOR:
 			return "Floor";
-		case MODE_FLOOR2:
+		case DRAW_FLOOR2:
 			return "Floor2";
-		case MODE_WALL:
+		case DRAW_WALL:
 			return "Wall";
-		case MODE_ROOF:
+		case DRAW_ROOF:
 			return "Roof";
-		case MODE_ROOF2:
+		case DRAW_ROOF2:
 			return "Roof2";
-		case MODE_RISE:
+		case DRAW_RISE:
 			return "Rise";
-		case MODE_FALL:
+		case DRAW_FALL:
 			return "Fall";
-		case MODE_COLLISION:
+		case DRAW_COLLISION:
 			return "Collision";
-		case MODE_DRAW_DIRECTION:
-			return "DrawDir";
+		case DRAW_DIRECTION:
+			return "Directional";
 		default:
 			return "Unknown";
 	}
@@ -340,26 +771,8 @@ void FlowstateEditor::StateRender()
 {
 	Spear::Renderer& rend = Spear::ServiceLocator::GetScreenRenderer();
 
-	// Draw Editor HUD
-	Spear::Renderer::TextData textMode;
-	textMode.text = std::string("MODE: ") + GetModeText();
-	textMode.pos = Vector2f(20.f, 20.f);
-	textMode.alignment = Spear::Renderer::TEXT_ALIGN_LEFT;
-	Spear::ServiceLocator::GetScreenRenderer().AddText(textMode);
-
-	Spear::Renderer::TextData textLevel;
-	textLevel.text = "Level 0";
-	textLevel.pos = Vector2f(Spear::Core::GetWindowSize().x / 2, 20.f);
-	textLevel.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
-	Spear::ServiceLocator::GetScreenRenderer().AddText(textLevel);
-
-	Spear::Renderer::TextData textResolution;
-	textResolution.text = std::to_string(m_map.gridWidth) + " x " + std::to_string(m_map.gridHeight);
-	textResolution.pos = Vector2f(Spear::Core::GetWindowSize().x - 20.f, 20.f);
-	textResolution.alignment = Spear::Renderer::TEXT_ALIGN_RIGHT;
-	Spear::ServiceLocator::GetScreenRenderer().AddText(textResolution);
-
 	// Draw save popup if cooldown active
+	// TODO: Make this an ImGui overlay ( see ImGuiDemo > Examples > Simple Overlay)
 	if(m_saveCooldown > 0.f)
 	{
 		Spear::Renderer::TextData textSavePopup;
@@ -372,7 +785,7 @@ void FlowstateEditor::StateRender()
 	// Draw PlayerStart
 	Spear::Renderer::TextData textStart;
 	textStart.text = "@";
-	textStart.pos = m_camOffset + (m_map.playerStart.ToFloat() * MapSpacing());
+	textStart.pos = m_camOffset + (m_map->playerStart.ToFloat() * MapSpacing());
 	textStart.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 	Spear::ServiceLocator::GetScreenRenderer().AddText(textStart);
 
@@ -383,47 +796,62 @@ void FlowstateEditor::StateRender()
 	constexpr float roofDepth = 0.7f;
 	constexpr float outlineDepth = 0.1f;
 	constexpr float inactiveOpacity = 0.2f;
-	for (int x = 0; x < m_map.gridWidth; x++)
+
+	for (int x = 0; x < m_map->gridWidth; x++)
 	{
-		for (int y = 0; y < m_map.gridHeight; y++)
+		for (int y = 0; y < m_map->gridHeight; y++)
 		{
-			GridNode& node{ m_map.GetNode(x, y) };
+			GridNode& node{ m_map->GetNode(x, y) };
 
 			// Tile Outlines
-			Spear::Renderer::LinePolyData square;
-			square.segments = 4;
-			square.colour = (node.collisionMask > 0 ? Colour4f::Red() : Colour4f::White());
-			square.pos = Vector2f(x, y) * MapSpacing();
-			square.pos += m_camOffset;
-			square.radius = TileRadius() + 2;
-			square.rotation = TO_RADIANS(45.f);
-			square.depth = outlineDepth;
-
-			if(mouseNode.x == x && mouseNode.y == y && !m_cursorInMenu)
+			const Vector2f tilePos = m_camOffset + (Vector2f(x, y) * MapSpacing());
+			if (m_editorMode == MODE_MAP)
 			{
-				square.colour = Colour4f::Blue();
+				Spear::Renderer::LinePolyData square;
+				square.segments = 4;
+				square.colour = (node.collisionMask > 0 ? m_colourCollision : m_colourDefault);
+				square.pos = tilePos;
+				square.radius = TileRadius() + 2;
+				square.rotation = TO_RADIANS(45.f);
+				square.depth = outlineDepth;
+				if (m_ongoingClickSelection.contains({ x, y }))
+				{
+					switch (m_ongoingSelectionMode)
+					{
+					case SELECTION_ADDITIVE: square.colour = m_colourSelectingAdd; break;
+					case SELECTION_SUBTRACTIVE: square.colour = m_colourSelectingSubtract; break;
+					default: ASSERT(false); break;
+					}
+				}
+				else if (m_hoveredTileValid && m_hoveredTile.x == x && m_hoveredTile.y == y)
+				{
+					square.colour = m_colourHovered;
+				}
+				else if (m_selectedTiles.contains({ x, y }))
+				{
+					square.colour = m_colourSelected;
+				}
+				rend.AddLinePoly(square);
 			}
 
-			rend.AddLinePoly(square);
-
-			// Height info
-			if (m_curMode == MODE_RISE && node.extendUp)
+			// Meta info
+			if (m_visibilityFlags & DRAW_RISE && node.extendUp)
 			{
 				Spear::Renderer::TextData textRise;
 				textRise.text = std::to_string(node.extendUp);
-				textRise.pos = square.pos;
+				textRise.pos = tilePos;
 				textRise.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise);
 			}
-			else if (m_curMode == MODE_FALL && node.extendDown)
+			if (m_visibilityFlags & DRAW_FALL && node.extendDown)
 			{
 				Spear::Renderer::TextData textRise;
 				textRise.text = std::to_string(node.extendDown);
-				textRise.pos = square.pos;
+				textRise.pos = tilePos;
 				textRise.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 				Spear::ServiceLocator::GetScreenRenderer().AddText(textRise);
 			}
-			else if (m_curMode == MODE_DRAW_DIRECTION)
+			if (m_visibilityFlags & DRAW_DIRECTION)
 			{
 				Spear::Renderer::TextData textDraw;
 				std::string textFlags{ "" };
@@ -432,26 +860,13 @@ void FlowstateEditor::StateRender()
 				if (node.drawFlags & DRAW_S) textFlags += "S";
 				if (node.drawFlags & DRAW_W) textFlags += "W";
 				textDraw.text = textFlags;
-				textDraw.pos = square.pos;
+				textDraw.pos = tilePos;
 				textDraw.alignment = Spear::Renderer::TEXT_ALIGN_MIDDLE;
 				Spear::ServiceLocator::GetScreenRenderer().AddText(textDraw);
 			}
-
-			// Roof Textures
-			if ((m_curMode == MODE_ROOF && node.texIdRoof[0] != TEX_NONE)
-			|| (m_curMode == MODE_ROOF2 && node.texIdRoof[1] != TEX_NONE))
-			{
-				Spear::Renderer::SpriteData sprite;
-				sprite.pos = Vector2f(x, y) * MapSpacing();
-				sprite.pos += m_camOffset;
-				sprite.size = Vector2f(m_camZoom, m_camZoom);
-				sprite.texLayer = node.texIdRoof[m_curMode == MODE_ROOF ? 0 : 1];
-				sprite.depth = roofDepth;
-				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
-			}
-
+			
 			// Wall Textures
-			if (node.texIdWall != TEX_NONE)
+			if (m_visibilityFlags & DRAW_WALL && node.texIdWall != TEX_NONE)
 			{
 				Spear::Renderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * MapSpacing();
@@ -459,70 +874,98 @@ void FlowstateEditor::StateRender()
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdWall;
 				sprite.depth = wallDepth;
-
-				if(m_curMode != MODE_WALL && m_curMode != MODE_COLLISION)
-				{
-					sprite.opacity = inactiveOpacity;
-				}
-
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 
-			// Floor Textures
-			if ((m_curMode != MODE_FLOOR2 && node.texIdFloor[0] != TEX_NONE)
-			|| (m_curMode == MODE_FLOOR2 && node.texIdFloor[1] != TEX_NONE))
+			// Roof Textures
+			if (m_visibilityFlags & DRAW_ROOF && node.texIdRoof[0] != TEX_NONE)
 			{
 				Spear::Renderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * MapSpacing();
 				sprite.pos += m_camOffset;
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
-				sprite.texLayer = node.texIdFloor[m_curMode == MODE_FLOOR ? 0 : 1];
-				sprite.depth = m_curMode == MODE_FLOOR ? roofDepth : floorDepth;
+				sprite.texLayer = node.texIdRoof[0];
+				sprite.depth = roofDepth;
+				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
+			}
+			if (m_visibilityFlags & DRAW_ROOF2 && node.texIdRoof[1] != TEX_NONE)
+			{
+				Spear::Renderer::SpriteData sprite;
+				sprite.pos = Vector2f(x, y) * MapSpacing();
+				sprite.pos += m_camOffset;
+				sprite.size = Vector2f(m_camZoom, m_camZoom);
+				sprite.texLayer = node.texIdRoof[1];
+				sprite.depth = roofDepth;
+				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
+			}
 
-				if (m_curMode != MODE_FLOOR)
-				{
-					sprite.opacity = inactiveOpacity;
-				}
-
+			// Floor Textures
+			if (m_visibilityFlags & DRAW_FLOOR && node.texIdFloor[0] != TEX_NONE)
+			{
+				Spear::Renderer::SpriteData sprite;
+				sprite.pos = Vector2f(x, y) * MapSpacing();
+				sprite.pos += m_camOffset;
+				sprite.size = Vector2f(m_camZoom, m_camZoom);
+				sprite.texLayer = node.texIdFloor[0];
+				sprite.depth = floorDepth;
+				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
+			}
+			if (m_visibilityFlags & DRAW_FLOOR2 && node.texIdFloor[1] != TEX_NONE)
+			{
+				Spear::Renderer::SpriteData sprite;
+				sprite.pos = Vector2f(x, y) * MapSpacing();
+				sprite.pos += m_camOffset;
+				sprite.size = Vector2f(m_camZoom, m_camZoom);
+				sprite.texLayer = node.texIdFloor[1];
+				sprite.depth = floorDepth;
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 		}
 	}
-
-	// Draw Editor Buttons
-	for (int i = 0; i < m_mapTextures.GetDepth(); i++)
-	{
-		m_textureButtons[i].Draw(BATCH_MAP);
-	}
-	// Active Button Highlight 
-	Spear::Renderer::LinePolyData activeTexButton;
-	activeTexButton.segments = 4;
-	activeTexButton.colour = Colour4f::Blue();
-	activeTexButton.pos = m_textureButtons[m_curTex].m_sprite.pos;
-	activeTexButton.radius = 48;
-	activeTexButton.rotation = TO_RADIANS(45.f);
-	rend.AddLinePoly(activeTexButton);
 
 	Spear::ServiceLocator::GetScreenRenderer().Render();
 }
 
 void FlowstateEditor::StateExit()
 {
+	delete m_map;
+	m_map = nullptr;
+
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
 
-	Spear::ImguiManager::Get().SetImguiEnabled(false);
+	Spear::ImguiManager& imguiManager = Spear::ImguiManager::Get();
+	imguiManager.SetPanelsEnabled(false);
+	imguiManager.SetMenuBarStatsEnabled(true);
+	imguiManager.SetMenuBarLabel(nullptr);
+
+	Spear::WindowManager::Get().SetWindowTitleOverride(nullptr);
+}
+
+void FlowstateEditor::NewLevel(const char* levelName)
+{
+	delete m_map;
+	m_map = new EditorMapData(levelName);
+	Spear::WindowManager::Get().SetWindowTitleOverride((std::string("*") + levelName + " - Spear").c_str());
 }
 
 void FlowstateEditor::SaveLevel()
 {
 	if(m_saveCooldown <= 0.f)
 	{
-		LevelFileManager::EditorSaveLevel("level", m_map);
+		LevelFileManager::EditorSaveLevel(*m_map);
 		m_saveCooldown = 3.0f;
 	}
 }
 
-void FlowstateEditor::LoadLevel()
+void FlowstateEditor::SaveLevel(const char* levelName)
 {
-	LevelFileManager::EditorLoadLevel("level", m_map);
+	m_map->mapName = levelName;
+	SaveLevel();
+	Spear::WindowManager::Get().SetWindowTitleOverride((std::string(levelName) + " - Spear").c_str());
+}
+
+void FlowstateEditor::OpenLevel(const char* levelName)
+{
+	LevelFileManager::EditorLoadLevel(levelName, *m_map);
+	Spear::WindowManager::Get().SetWindowTitleOverride((std::string(m_map->mapName) + " - Spear").c_str());
 }

@@ -148,7 +148,7 @@ void main()
 
 			if(cellX < gridDimensions.x && cellY < gridDimensions.y && cellX >= 0 && cellY >= 0)
 			{
-				GridNode node = nodes[cellX + (cellY * gridDimensions.y)];
+				GridNode node = nodes[cellX + (cellY * gridDimensions.x)];
 			
 				// Tex sampling
 				if ((bIsFloor && node.texIdFloor[layer] != TEX_NONE) || (!bIsFloor && node.texIdRoof[layer] != TEX_NONE))

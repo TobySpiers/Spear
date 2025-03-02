@@ -31,9 +31,11 @@ namespace Spear
 
 		static ImguiManager& Get();
 
-		bool IsImguiEnabled();
-		void SetImguiEnabled(bool bEnabled);
+		bool ArePanelsEnabled();
+		void SetPanelsEnabled(bool bEnabled);
+
 		void SetMenuBarLabel(const char* newLabel);
+		void SetMenuBarStatsEnabled(bool bShowStats);
 
 		// Register a panel against an associated user-defined category ID
 		static void RegisterPanel(ImguiPanelBase* panel);
@@ -44,12 +46,15 @@ namespace Spear
 		friend class Core;
 		friend class ImguiPanelBase;
 
+		void StartImguiFrame();
+		void EndImguiFrame();
 		void MakePanels();
 		static std::vector<ImguiPanelBase*>& GetPanelList();
 
 		const char* menuLabel{ nullptr };
 
-		bool bImguiEnabled = false;
+		bool bPanelsEnabled = false;
 		bool bImguiDemoEnabled = false;
+		bool bImguiMenuStats = true;
 	};
 }

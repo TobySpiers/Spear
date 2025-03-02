@@ -81,6 +81,15 @@ namespace Spear
 		m_textureDepth = slots;
 		FreeSDLSurfaces();
 		m_pSDLSurfaces.resize(slots);
+
+		// Create the TextureViews array for accessing layers as individual textures
+		m_textureViews.clear();
+		m_textureViews.resize(slots);
+		glGenTextures(slots, m_textureViews.data());
+		for (int i = 0; i < slots; i++)
+		{
+			glTextureView(m_textureViews[i], GL_TEXTURE_2D, m_textureId, GL_RGBA8, 0, 1, i, 1);
+		}
 	}
 
 	bool TextureArray::SetDataFromFile(GLuint slot, const char* filename)
@@ -159,8 +168,20 @@ namespace Spear
 		return true;
 	}
 
+	GLuint TextureArray::GetTextureViewForLayer(int layer)
+	{
+		if (layer >= 0 && layer < m_textureViews.size())
+		{
+			return m_textureViews[layer];
+		}
+		return 0;
+	}
+
 	void TextureArray::FreeTexture()
 	{
+		glDeleteTextures(m_textureViews.size(), m_textureViews.data());
+		m_textureViews.clear();
+
 		if (m_textureId != 0)
 		{
 			glDeleteTextures(1, &m_textureId);

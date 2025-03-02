@@ -6,6 +6,7 @@
 #include "Audio/AudioManager.h"
 #include "ImguiManager.h"
 #include "GameObject/GameObject.h"
+#include "Graphics/ScreenRenderer.h"
 #include "SDL_Image.h"
 #include "imgui.h"
 
@@ -76,6 +77,7 @@ namespace Spear
 		FlowstateManager& stateManager = ServiceLocator::GetFlowstateManager();
 		AudioManager& audioManager = ServiceLocator::GetAudioManager();
 		ImguiManager& imguiManager = ServiceLocator::GetImguiManager();
+		Renderer& renderer = ServiceLocator::GetScreenRenderer();
 
 		u64 frameStart;
 		float deltaTime{1.f / targetFPS };
@@ -108,8 +110,17 @@ namespace Spear
 						mousewheelInput = (event.wheel.y > 0 ? 1 : -1);
 					}
 					break;
+
+				case SDL_WINDOWEVENT:
+					if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+					{
+						renderer.SetInternalResolution(event.window.data1, event.window.data2);
+					}
+					break;
 				}
 			}
+
+			imguiManager.StartImguiFrame();
 
 			START_PROFILE("UPDATE");
 			// Refresh input data
@@ -135,6 +146,7 @@ namespace Spear
 
 			// ImGui: update & render
 			imguiManager.MakePanels();
+			imguiManager.EndImguiFrame();
 
 			// Swap buffers
 			SDL_GL_SwapWindow(&ServiceLocator::GetWindowManager().GetWindow());
@@ -173,7 +185,8 @@ namespace Spear
 	// Convert WindowCoordinate (0,0 : x,x > BottomLeft : TopRight) to DeviceCoordinate (-1,-1 : 1, 1 > BottomLeft : TopRight)
 	Vector2f Core::GetNormalizedDeviceCoordinate(const Vector2f& inCoord)
 	{
-		return GetNormalizedDeviceCoordinate(inCoord, Vector2f(m_windowParams.width, m_windowParams.height));
+		const Vector2i windowSize = GetWindowSize();
+		return GetNormalizedDeviceCoordinate(inCoord, Vector2f(windowSize.x, windowSize.y));
 	}
 
 	Vector2f Core::GetNormalizedDeviceCoordinate(const Vector2f& inCoord, const Vector2f& viewport)

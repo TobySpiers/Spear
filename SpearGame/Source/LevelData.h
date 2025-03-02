@@ -6,7 +6,8 @@ constexpr int MAP_HEIGHT_MAX_SUPPORTED{ 40 };
 
 enum eLevelTextures
 {
-	TEX_NONE = -1,
+	TEX_MULTI = -2,
+	TEX_NONE = -1
 };
 
 enum eDrawFlags : u8
@@ -43,18 +44,24 @@ struct GridNode
 	int collisionMask{ COLL_NONE };
 
 	void Reset();
+
+	// Returns true if textures assigned to each node match
+	bool CompareNodeByTexture(const GridNode& other);
 };
 
 struct EditorMapData
 {
+	EditorMapData(const char* name) : mapName(name) {};
+
+	std::string mapName{ "Untitled" };
 	Vector2i playerStart{ 5, 5 };
 	int gridWidth{ 10 };
 	int gridHeight{ 10 };
 	GridNode gridNodes[MAP_WIDTH_MAX_SUPPORTED * MAP_HEIGHT_MAX_SUPPORTED];
 
-	void SetSize(int width, int height) { gridWidth = width; gridHeight = height; }
+	void SetSize(int width, int height);
 	GridNode& GetNode(int x, int y) { ASSERT(x < gridWidth && y < gridHeight && x >= 0 && y >= 0); return gridNodes[x + (y * MAP_WIDTH_MAX_SUPPORTED)]; }
-	void ClearData();
+	GridNode& GetNode(const Vector2i& pos) { return GetNode(pos.x, pos.y); }
 };
 
 struct MapData

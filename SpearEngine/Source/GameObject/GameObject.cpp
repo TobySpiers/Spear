@@ -8,7 +8,7 @@ std::vector<GameObject*> GameObject::s_tickList;
 std::vector<GameObject*> GameObject::s_drawList;
 std::vector<GameObject*> GameObject::s_destroyList;
 std::unordered_map<size_t, GameObject::DeserializeFuncPtr>* GameObject::s_objectDeserializers = nullptr;
-bool GameObject::bDeserializing = false;
+std::vector<std::pair<const char*, GameObject::ConstructorFuncPtr>>* GameObject::s_objectConstructors = nullptr;
 
 void GameObject::GlobalTick(float deltaTime)
 {	
@@ -116,6 +116,11 @@ void GameObject::DeregisterPtr(GameObjectPtrBase* ptr)
 {
 	ASSERT(ptr);
 	trackedPtrs.erase(ptr);
+}
+
+const char* GameObject::GetClassName()
+{
+	return "UnknownObject";
 }
 
 void GameObject::GlobalSerialize(const char* filename)
@@ -264,9 +269,10 @@ GameObject::~GameObject()
 	}
 }
 
-bool GameObject::RegisterClassDeserializer(size_t hashcode, DeserializeFuncPtr func)
+bool GameObject::RegisterFactoryFunctionsForClass(const char* className, size_t hashcode, DeserializeFuncPtr deserializeFunc, ConstructorFuncPtr constructorFunc)
 {
-	ObjectDeserializers()->insert({hashcode, func});
+	ObjectDeserializers()->insert({hashcode, deserializeFunc });
+	ObjectConstructors()->emplace_back(std::pair<const char*, ConstructorFuncPtr>(className, constructorFunc));
 	return true;
 }
 
@@ -277,4 +283,13 @@ std::unordered_map<size_t, GameObject::DeserializeFuncPtr>* GameObject::ObjectDe
 		s_objectDeserializers = new std::unordered_map<size_t, DeserializeFuncPtr>;
 	}
 	return s_objectDeserializers;
+}
+
+std::vector<std::pair<const char*, GameObject::ConstructorFuncPtr>> *GameObject::ObjectConstructors()
+{
+	if (!s_objectConstructors)
+	{
+		s_objectConstructors = new std::vector<std::pair<const char*, GameObject::ConstructorFuncPtr>>;
+	}
+	return s_objectConstructors;
 }

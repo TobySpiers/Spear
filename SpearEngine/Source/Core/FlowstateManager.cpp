@@ -43,8 +43,9 @@ namespace Spear
 	void FlowstateManager::Update(float deltaTime)
 	{
 		START_PROFILE("Flowstate Update");
+
 		s8 nextStateId = m_pCurState->StateUpdate(deltaTime);
-		Flowstate* pNextState{nullptr};
+		Flowstate* pNextState{ nullptr };
 		if (nextStateId >= 0)
 		{
 			pNextState = m_registeredStates.at(nextStateId);
@@ -52,10 +53,15 @@ namespace Spear
 
 		if (pNextState)
 		{
+			// Finish the active state
 			m_pCurState->StateExit();
 			m_pCurState = pNextState;
+
+			// Ensure Update always runs prior to Render
 			m_pCurState->StateEnter();
+			m_pCurState->StateUpdate(FLT_MIN);
 		}
+
 		END_PROFILE("Flowstate Update");
 	}
 

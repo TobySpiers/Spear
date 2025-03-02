@@ -1,12 +1,15 @@
 #include "Core.h"
 #include "WindowManager.h"
+#include "ServiceLocator.h"
+#include "SDL_image.h"
 
 namespace Spear
 {
 	WindowManager::WindowManager(const WindowParams& params)
 	{
 		// Create window with OpenGL surface
-		m_window = SDL_CreateWindow(params.title, params.xpos, params.ypos, params.width * params.scale, params.height * params.scale, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | (params.fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
+		const Uint32 windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | (params.fullscreen ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_MAXIMIZED);
+		m_window = SDL_CreateWindow(params.title, params.xpos, params.ypos, params.width * params.scale, params.height * params.scale, windowFlags);
 		ASSERT(m_window);
 
 		// Context for working with OpenGL
@@ -26,6 +29,12 @@ namespace Spear
 					<< "\n\t Version: " << glGetString(GL_VERSION)
 					<< "\n\t Shading Language: " << glGetString(GL_SHADING_LANGUAGE_VERSION)
 					<< std::endl;
+		
+		m_defaultWindowTitle = params.title;
+
+		SDL_Surface* icon = IMG_Load("../Assets/icon.png");
+		SDL_SetWindowIcon(m_window, icon);
+		SDL_FreeSurface(icon);
 	}
 
 	WindowManager::~WindowManager()
@@ -34,6 +43,11 @@ namespace Spear
 		SDL_GL_DeleteContext(m_context);
 		SDL_DestroyWindow(m_window);
 		LOG("Window shutdown...");
+	}
+
+	WindowManager& WindowManager::Get()
+	{
+		return ServiceLocator::GetWindowManager();
 	}
 
 	SDL_Window& WindowManager::GetWindow()
@@ -62,6 +76,12 @@ namespace Spear
 	{
 		SDL_SetWindowFullscreen(m_window, static_cast<Uint32>(mode));
 	}
+
+	void WindowManager::SetWindowTitleOverride(const char* title)
+	{
+		SDL_SetWindowTitle(m_window, title != nullptr ? title : m_defaultWindowTitle);
+	}
+
 	Vector2i WindowManager::GetWindowSize()
 	{
 		Vector2i result;

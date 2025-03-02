@@ -8,7 +8,7 @@ struct MapData;
 class LevelFileManager
 {
 public:
-	static void EditorSaveLevel(const char* levelName, const EditorMapData& rMapData);
+	static void EditorSaveLevel(const EditorMapData& rMapData);
 	static void EditorLoadLevel(const char* levelName, EditorMapData& rMapData);
 
 	static void LoadLevel(const char* levelName, MapData& rMapData);

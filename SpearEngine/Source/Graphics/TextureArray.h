@@ -17,6 +17,9 @@ namespace Spear
 		bool SetDataFromFile(GLuint slot, const char* filename);
 		bool SetDataFromArrayRGBA(GLuint slot, float* pPixels, int width, int height);
 
+		// For accessing a single layer as an individual texture
+		GLuint GetTextureViewForLayer(int layer = 0);
+
 		// TextureBase Overrides
 		void FreeTexture() override;
 		GLuint GetGpuTextureId() const override { return m_textureId; };
@@ -29,7 +32,8 @@ namespace Spear
 
 	private:
 		void FreeSDLSurfaces();
-		std::vector<SDL_Surface*> m_pSDLSurfaces;
+		std::vector<SDL_Surface*> m_pSDLSurfaces; // TODO: Shouldn't really keep this data on the CPU, except software renderer needs it - free these up somehow?
+		std::vector<GLuint> m_textureViews; // for accessing layers within texture array as individual textures - particularly useful for passing to ImGui
 		GLuint m_textureId{ 0 };
 		GLuint m_textureWidth{ 0 };
 		GLuint m_textureHeight{ 0 };

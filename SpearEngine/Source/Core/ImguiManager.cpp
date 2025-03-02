@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
 
 namespace Spear
 {
@@ -53,6 +54,12 @@ namespace Spear
 
 		// Set default scale
 		ImGui::GetIO().FontGlobalScale = 1.5f;
+
+		// Load default layout if no user layout is stored
+		if (!std::filesystem::exists("imgui.ini"))
+		{
+			ImGui::LoadIniSettingsFromDisk("DefaultImgui.ini");
+		}
 	}
 
 	ImguiManager::~ImguiManager()
@@ -64,14 +71,40 @@ namespace Spear
 		return ServiceLocator::GetImguiManager();
 	}
 
-	bool ImguiManager::IsImguiEnabled()
+	void ImguiManager::StartImguiFrame()
 	{
-		return bImguiEnabled;
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplSDL2_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 	}
 
-	void ImguiManager::SetImguiEnabled(bool bEnabled)
+	void ImguiManager::EndImguiFrame()
 	{
-		bImguiEnabled = bEnabled;
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		// Update and Render additional Platform Windows
+		// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
+			SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+		}
+	}
+
+	bool ImguiManager::ArePanelsEnabled()
+	{
+		return bPanelsEnabled;
+	}
+
+	void ImguiManager::SetPanelsEnabled(bool bEnabled)
+	{
+		bPanelsEnabled = bEnabled;
 	}
 
 	void ImguiManager::SetMenuBarLabel(const char* newLabel)
@@ -79,21 +112,20 @@ namespace Spear
 		menuLabel = newLabel;
 	}
 
+	void ImguiManager::SetMenuBarStatsEnabled(bool bShowStats)
+	{
+		bImguiMenuStats = bShowStats;
+	}
+
 	void ImguiManager::MakePanels()
 	{
-		if (!bImguiEnabled)
+		if (!bPanelsEnabled)
 		{
 			return;
 		}
-		// TODO: Maybe useful for ignoring game inputs in future when panels are interacted with
-		//if (!imguiIO.WantCaptureKeyboard && !imguiIO.WantCaptureMouse)
-
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplSDL2_NewFrame();
-		ImGui::NewFrame();
-		std::vector<ImguiPanelBase*>& panels = GetPanelList();
 
 		// Create topbar
+		std::vector<ImguiPanelBase*>& panels = GetPanelList();
 		if (ImGui::BeginMainMenuBar())
 		{
 			// Demo window menu
@@ -129,7 +161,8 @@ namespace Spear
 				}
 			}
 
-			// Dev Info
+			// Stats
+			if(bImguiMenuStats)
 			{
 				const float frameMs = FrameProfiler::GetCurrentFrameMs();
 				std::string stringMs(std::to_string(frameMs) + "ms");
@@ -143,17 +176,16 @@ namespace Spear
 				ImGui::TextColored(ImVec4(0.f, 0.8f, 0.f, 1.f), stringMs.c_str());
 				ImGui::SameLine((ImGui::GetWindowWidth() / 2) + 10);
 				ImGui::TextColored(ImVec4(0.f, 0.8f, 0.f, 1.f), stringFps.c_str());
-
-				// User label
-				if (menuLabel != nullptr)
-				{
-					ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::CalcTextSize(menuLabel).x - 10);
-					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-					ImGui::Text(menuLabel);
-					ImGui::PopStyleColor();
-				}
 			}
 
+			// User label
+			if (menuLabel != nullptr)
+			{
+				ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::CalcTextSize(menuLabel).x - 10);
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+				ImGui::Text(menuLabel);
+				ImGui::PopStyleColor();
+			}
 			
 			ImGui::EndMainMenuBar();
 		}
@@ -174,20 +206,6 @@ namespace Spear
 				panel->MakePanel();
 				ImGui::End();
 			}
-		}
-
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-		// Update and Render additional Platform Windows
-		// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
-			SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
 		}
 	}
 

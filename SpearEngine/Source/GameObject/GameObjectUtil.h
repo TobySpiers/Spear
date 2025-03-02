@@ -18,8 +18,16 @@ static GameObject* CreateAndDeserialise(std::ifstream& is)\
 	obj->Deserialize(is);\
 	return obj;\
 }\
-static bool s_factoryRegistered;
+static GameObject* CreateNew()\
+{\
+	return GameObject::Create<classname>();\
+}\
+virtual const char* GetClassName() override\
+{\
+	return #classname;\
+}\
+static bool s_factoryRegistered;\
 
 // GameObject factory registration macro: must be placed in class .cpp file
 #define GAMEOBJECT_REGISTER(classname)	\
-bool classname::s_factoryRegistered = GameObject::RegisterClassDeserializer(typeid(classname).hash_code(), CreateAndDeserialise);
+bool classname::s_factoryRegistered = GameObject::RegisterFactoryFunctionsForClass(#classname, typeid(classname).hash_code(), CreateAndDeserialise, CreateNew);

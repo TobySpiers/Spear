@@ -45,7 +45,7 @@ void FlowstateGame::StateEnter()
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_worldTextures, 500);
 
 	// Load world
-	LevelFileManager::LoadLevel("level", m_gameState.mapData);
+	LevelFileManager::LoadLevel("Test.level", m_gameState.mapData);
 	Raycaster::Init(m_gameState.mapData);
 
 	// Set darkness
@@ -63,7 +63,7 @@ void FlowstateGame::StateEnter()
 	//GameObject::GlobalSerialize("../Assets/MAPS/test.objects");
 
 	// Load GameObject (originally serialized via above commented code)
-	GameObject::GlobalDeserialize("../Assets/MAPS/test.objects");
+	GameObject::GlobalDeserialize("../Assets/MAPS/Test.objects");
 }
 
 bool view3D{false};
@@ -81,8 +81,8 @@ int FlowstateGame::StateUpdate(float deltaTime)
 	Spear::ImguiManager& imgui = Spear::ImguiManager::Get();
 	if (input.InputStart(INPUT_TOGGLE_IMGUI))
 	{
-		bool imguiEnabled = !imgui.IsImguiEnabled();
-		imgui.SetImguiEnabled(imguiEnabled);
+		bool imguiEnabled = !imgui.ArePanelsEnabled();
+		imgui.SetPanelsEnabled(imguiEnabled);
 		imgui.SetMenuBarLabel(GetDebugInputModeText());
 		if (!imguiEnabled)
 		{
@@ -93,7 +93,7 @@ int FlowstateGame::StateUpdate(float deltaTime)
 			SDL_SetRelativeMouseMode(debugInputMode == DEBUGINPUT_FULL ? SDL_TRUE : SDL_FALSE);
 		}
 	}
-	if (imgui.IsImguiEnabled())
+	if (imgui.ArePanelsEnabled())
 	{
 		if (input.InputStart(INPUT_TOGGLE_IMGUI_INPUT))
 		{

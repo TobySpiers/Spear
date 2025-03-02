@@ -33,8 +33,17 @@ struct Colour4f
 	static const Colour4f Red() {return {1, 0, 0, 1};};
 	static const Colour4f Green() { return {0, 1, 0, 1}; };
 	static const Colour4f Blue() { return {0, 0, 1, 1}; };
+	static const Colour4f Yellow() { return {1, 1, 0, 1}; };
+	static const Colour4f Magenta() { return {1, 0, 1, 1}; };
+	static const Colour4f Cyan() { return {0, 1, 1, 1}; };
+
+	static const Colour4f DarkBlue() { return {0, 0, 0.5, 1}; };
+	static const Colour4f LightBlue() { return {0.33, 0.33, 1, 1}; };
+
 	static const Colour4f White() { return {1, 1, 1, 1}; };
+	static const Colour4f LightGrey() { return {0.75, 0.75, 0.75, 1}; };
 	static const Colour4f Grey() { return {0.5, 0.5, 0.5, 1}; };
+	static const Colour4f DarkGrey() { return {0.25, 0.25, 0.25, 1}; };
 	static const Colour4f Black() { return {0, 0, 0, 1}; };
 	static const Colour4f Invisible() { return {0, 0, 0, 0}; };
 };

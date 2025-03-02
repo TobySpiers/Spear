@@ -1,13 +1,13 @@
 #include "LevelFileManager.h"
 
 
-std::string GetFilePath(const char* levelName) {return std::string("../Assets/MAPS/") + std::string(levelName) + ".dat"; };
+std::string GetFilePath(const char* levelName) {return std::string("../Assets/MAPS/") + std::string(levelName); };
 
 char LevelFileManager::m_reservedMapMemory[MAP_RESERVED_BYTES];
 
-void LevelFileManager::EditorSaveLevel(const char* levelName, const EditorMapData& rMapData)
+void LevelFileManager::EditorSaveLevel(const EditorMapData& rMapData)
 {
-	std::ofstream file(GetFilePath(levelName));
+	std::ofstream file(GetFilePath(rMapData.mapName.c_str()) + ".level");
 
 	// Write width/height header
 	file	<< rMapData.gridWidth << std::endl
@@ -24,12 +24,12 @@ void LevelFileManager::EditorSaveLevel(const char* levelName, const EditorMapDat
 			Serialize(node, file);
 		}
 	}
+
+	file << rMapData.mapName;
 }
 
 void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMapData)
 {
-	rMapData.ClearData();
-
 	// Read width/height header
 	std::ifstream file(GetFilePath(levelName));
 	std::string width, height;
@@ -50,6 +50,8 @@ void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMa
 			Deserialize(node, file);
 		}
 	}
+
+	std::getline(file, rMapData.mapName);
 }
 
 void LevelFileManager::LoadLevel(const char* levelName, MapData& rMapData)

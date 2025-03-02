@@ -40,6 +40,8 @@ public:
 
 	// Native ---
 
+	virtual const char* GetClassName();
+
 	static void GlobalSerialize(const char* filename);
 	static void GlobalDeserialize(const char* filename);
 
@@ -58,16 +60,18 @@ public:
 	bool IsPendingDestroy() const;
 	bool IsSafeToDestroy() const;
 
+	using ConstructorFuncPtr = GameObject*(*)();
+	static std::vector<std::pair<const char*, ConstructorFuncPtr>>* ObjectConstructors();
+
 protected:
 	
 	GameObject() {};
 	virtual ~GameObject();
 
 	virtual void Serialize(std::ofstream& os) const = 0;
-	static bool bDeserializing;
 
 	using DeserializeFuncPtr = GameObject*(*)(std::ifstream& is);
-	static bool RegisterClassDeserializer(size_t hashcode, DeserializeFuncPtr func);
+	static bool RegisterFactoryFunctionsForClass(const char* className, size_t hashcode, DeserializeFuncPtr deserializeFunc, ConstructorFuncPtr constructorFunc);
 
 	int internalId{ -1 };
 
@@ -81,6 +85,8 @@ private:
 
 	static std::unordered_map<size_t, DeserializeFuncPtr>* ObjectDeserializers();
 	static std::unordered_map<size_t, DeserializeFuncPtr>* s_objectDeserializers;
+	static std::vector<std::pair<const char*, ConstructorFuncPtr>>* s_objectConstructors;
+
 	static std::vector<GameObject*> s_allocatedObjects;
 	static std::vector<GameObject*> s_tickList;
 	static std::vector<GameObject*> s_drawList;
@@ -95,7 +101,6 @@ template<typename T>
 T* GameObject::Create()
 {
 	static_assert(std::is_base_of<GameObject, T>::value, "Requested class must derive from GameObject!");
-	ASSERT(!bDeserializing);
 	T* obj = new T();
 	obj->internalId = s_allocatedObjects.size();
 	s_allocatedObjects.push_back(obj);

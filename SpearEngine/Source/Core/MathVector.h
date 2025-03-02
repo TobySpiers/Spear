@@ -49,6 +49,10 @@ struct Vector2
 	Vector2<T> operator-(const Vector2<T>& other) const { return Vector2<T>(x - other.x, y - other.y); };
 	Vector2<T> operator-=(const Vector2<T>& other) { *this = *this - other; return *this; };
 
+	// comparison operator
+	bool operator==(const Vector2<T>& other) { return this->x == other.x && this->y == other.y; }
+	bool operator!=(const Vector2<T>& other) { return !(*this == other); }
+
 	// Explicit Conversions Only
 	Vector2<int> ToInt() const {return Vector2<int>(static_cast<int>(x), static_cast<int>(y)); };
 	Vector2<float> ToFloat() const {return Vector2<float>(static_cast<float>(x), static_cast<float>(y)); };
@@ -101,6 +105,10 @@ struct Vector3
 	Vector3<T> operator+=(const Vector3<T>& other) { *this = *this + other; return *this; };
 	Vector3<T> operator-(const Vector3<T>& other) const { return Vector3<T>(x - other.x, y - other.y, z - other.z); };
 	Vector3<T> operator-=(const Vector3<T>& other) { *this = *this - other; return *this; };
+
+	// comparison operator
+	bool operator==(const Vector3<T>& other) { return this->x == other.x && this->y == other.y && this->z == other.z; }
+	bool operator!=(const Vector3<T>& other) { return !(*this == other); }
 
 	// Explicit Conversions Only
 	Vector3<int> ToInt() const { return Vector3<int>(static_cast<int>(x), static_cast<int>(y), static_cast<int>(z)); };
@@ -180,3 +188,27 @@ template <typename T> int Sign(T val)
 
 float Lerp(const float lerpKey, const Vector2f* keyValueArray, int arraySize);
 float Lerp(const float lerpKey, const Vector2f& keyValueA, const Vector2f& keyValueB);
+
+struct HashableVector2i : Vector2<int32_t>
+{
+	HashableVector2i() {};
+	HashableVector2i(int32_t inX, int32_t inY) : Vector2<int32_t>(inX, inY) {};
+	HashableVector2i(const Vector2i& inVal);
+
+	bool operator==(const HashableVector2i& other) const
+	{
+		return this->x == other.x && this->y == other.y;
+	}
+};
+
+namespace std
+{
+	template<>
+	struct hash<HashableVector2i>
+	{
+		size_t operator()(const HashableVector2i& vec) const
+		{
+			return ((uint64_t)vec.x << 32) | vec.y; // Combine the hash values
+		}
+	};
+}

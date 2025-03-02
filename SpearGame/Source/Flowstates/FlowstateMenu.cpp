@@ -25,9 +25,6 @@ void FlowstateMenu::StateEnter()
 	m_menuTextures.SetDataFromFile(1, "../Assets/SPRITES/mode_Play.png");
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_menuTextures, 100);
 
-
-	//Spear::ServiceLocator::GetScreenRenderer().SetTextureArrayData(m_menuTextures);
-
 	// Editor Button
 	m_buttons[0].Initialise(m_menuTextures);
 	m_buttons[0].m_sprite.texLayer = 0;
@@ -42,7 +39,7 @@ void FlowstateMenu::StateEnter()
 	m_buttons[1].m_sprite.size = Vector2f(2.5f, 2.5f);
 	m_buttons[1].m_sprite.opacity = 0.75;
 
-	Spear::ImguiManager::Get().SetImguiEnabled(true);
+	Spear::ImguiManager::Get().SetPanelsEnabled(true);
 	Spear::ImguiManager::Get().SetMenuBarLabel("F1 to Toggle In-Game");
 }
 
@@ -87,6 +84,6 @@ void FlowstateMenu::StateExit()
 {
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
 
-	Spear::ImguiManager::Get().SetImguiEnabled(false);
+	Spear::ImguiManager::Get().SetPanelsEnabled(false);
 	Spear::ImguiManager::Get().SetMenuBarLabel(nullptr);
 }

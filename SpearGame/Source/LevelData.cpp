@@ -124,10 +124,17 @@ void GridNode::Reset()
 	collisionMask = 0;
 }
 
-void EditorMapData::ClearData()
+bool GridNode::CompareNodeByTexture(const GridNode& other)
 {
-	for (int i = 0; i < MAP_WIDTH_MAX_SUPPORTED * MAP_HEIGHT_MAX_SUPPORTED; i++)
-	{
-		gridNodes[i].Reset();
-	}
+	return texIdWall == other.texIdWall
+		&& texIdFloor[0] == other.texIdFloor[0]
+		&& texIdFloor[1] == other.texIdFloor[1]
+		&& texIdRoof[0] == other.texIdRoof[0]
+		&& texIdRoof[1] == other.texIdRoof[1];
+}
+
+void EditorMapData::SetSize(int width, int height)
+{
+	gridWidth = std::max(3, width); 
+	gridHeight = std::max(3, height);
 }
