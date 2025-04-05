@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 	stateManager.SetInitialState((u32)eFlowstate::STATE_MENU);
 
 	// Run game
-	Spear::Core::RunGameloop(60);
+	Spear::Core::RunGameloop();
 
 	// Shutdown
 	Spear::Core::Cleanup();

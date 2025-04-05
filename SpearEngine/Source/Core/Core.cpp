@@ -73,6 +73,11 @@ namespace Spear
 
 	void Core::RunGameloop(int targetFPS)
 	{		
+		if (targetFPS <= 0)
+		{
+			targetFPS = INT_MAX;
+		}
+
 		InputManager& inputManager = ServiceLocator::GetInputManager();
 		FlowstateManager& stateManager = ServiceLocator::GetFlowstateManager();
 		AudioManager& audioManager = ServiceLocator::GetAudioManager();

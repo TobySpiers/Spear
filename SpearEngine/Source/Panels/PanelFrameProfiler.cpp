@@ -90,7 +90,16 @@ void PanelFrameProfiler::DrawCategory(const ProfileCategory& category)
 	const float framePercentage = category.durationMs / msTarget;
 	const int red = std::clamp(100 * framePercentage, 0.f, 255.f);
 	const int green = std::clamp(100 * (1 - framePercentage), 0.f, 255.f);
-	ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, IM_COL32(red, green, 0, 255));
+	
+	if (treeOpen)
+	{
+		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, IM_COL32(75, 75, 75, 255));
+	}
+	else
+	{
+		ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, IM_COL32(red, green, 0, 255));
+	}
+
 	ImGui::Text("%.2f", framePercentage * 100);
 
 	if (treeOpen)

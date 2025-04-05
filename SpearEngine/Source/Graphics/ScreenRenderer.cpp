@@ -537,9 +537,11 @@ namespace Spear
 		START_PROFILE("ScreenRenderer_Total");
 
 		// FIRST PASS (to FrameBuffer) ----------------------------------------
+		START_PROFILE("ScreenRenderer_BindFBO");
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 		GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		ASSERT(result == GL_FRAMEBUFFER_COMPLETE);
+		END_PROFILE("ScreenRenderer_BindFBO");
 
 		// Prepare frame (alpha blending for sprites/text)
 		glViewport(0, 0, m_fboResolution.x, m_fboResolution.y);

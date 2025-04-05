@@ -97,7 +97,7 @@ namespace Spear
 
 	public:
 		static void Initialise(const WindowParams& params);
-		static void RunGameloop(int targetFPS);
+		static void RunGameloop(int targetFPS = 0);
 		static void SignalShutdown();
 		static void Cleanup();
 
