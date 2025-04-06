@@ -60,10 +60,10 @@ void FlowstateGame::StateEnter()
 	//emitter->m_bPlayOnStart = true;
 	//emitter->m_soundSource.SetSound(0);
 	//emitter->m_soundSource.Play();
-	//GameObject::GlobalSerialize("../Assets/MAPS/test.objects");
+	//GameObject::GlobalSerialize("../Assets/MAPS/ManualTest.objs");
 
 	// Load GameObject (originally serialized via above commented code)
-	GameObject::GlobalDeserialize("../Assets/MAPS/Test.objects");
+	GameObject::GlobalDeserialize("../Assets/MAPS/ManualTest.objs");
 }
 
 bool view3D{false};

@@ -7,7 +7,7 @@
 #define SERIALIZE(outStream, ...) Serializer::ForwardArgsToSerializers([&](auto& arg) { Serializer::Serialize(outStream, arg); }, __VA_ARGS__);
 #define DESERIALIZE(inStream, ...) Serializer::ForwardArgsToSerializers([&](auto& arg) { Serializer::Deserialize(inStream, arg); }, __VA_ARGS__);
 
-// Macro adding Serialize/Deserialize member functions callable via insertion/extraction operators
+// Macro adding serialization support via insertion/extraction operators ( << & >> )
 #define SERIALIZABLE_BASE(Class, ...)\
 virtual void Serialize(std::ofstream& stream) const\
 {\
@@ -29,13 +29,14 @@ friend std::ifstream& operator>>(std::ifstream& stream, Class& obj)\
     return stream;\
 }
 
+// Macro adding serialization support via insertion/extraction operators ( << & >> ) for classes derived from a SERIALIZABLE_BASE class
 #define SERIALIZABLE_DERIVED(Class, BaseClass, ...)\
-virtual void Serialize(std::ofstream& stream) const\
+virtual void Serialize(std::ofstream& stream) const override\
 {\
     SERIALIZE(stream, __VA_ARGS__)\
     BaseClass::Serialize(stream);\
 }\
-virtual void Deserialize(std::ifstream& stream)\
+virtual void Deserialize(std::ifstream& stream) override\
 {\
     DESERIALIZE(stream, __VA_ARGS__)\
     BaseClass::Deserialize(stream);\

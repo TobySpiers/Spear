@@ -2,14 +2,22 @@
 #include "Core/Serializer.h"
 
 // GameObject class definition macro: must be placed inside header
-#define GAMEOBJECT_SERIALISABLE(classname, ...)								\
+#define GAMEOBJECT_SERIALISABLE(classname, baseclass, ...)								\
+private:\
+typedef baseclass Super;\
 virtual void Serialize(std::ofstream& os) const override\
 {\
 	os << typeid(classname).hash_code() << std::endl;\
+	Serialize_Internal(os);\
+}\
+virtual void Serialize_Internal(std::ofstream& os) const override\
+{\
+	Super::Serialize_Internal(os);\
     SERIALIZE(os, __VA_ARGS__)\
 }\
-void Deserialize(std::ifstream& is)\
+virtual void Deserialize(std::ifstream& is) override\
 {\
+	Super::Deserialize(is);\
 	DESERIALIZE(is, __VA_ARGS__)\
 }\
 static GameObject* CreateAndDeserialise(std::ifstream& is)\

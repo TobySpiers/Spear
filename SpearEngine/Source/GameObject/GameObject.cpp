@@ -1,6 +1,7 @@
 #include "GameObject.h"
 #include <algorithm>
 #include <Core/FrameProfiler.h>
+#include <imgui.h>
 
 // Tracking
 std::vector<GameObject*> GameObject::s_allocatedObjects;
@@ -118,6 +119,11 @@ void GameObject::DeregisterPtr(GameObjectPtrBase* ptr)
 	trackedPtrs.erase(ptr);
 }
 
+void GameObject::PopulateEditorPanel()
+{
+	ImGui::DragFloat3("Position", & m_position.x);
+}
+
 const char* GameObject::GetClassName()
 {
 	return "UnknownObject";
@@ -126,7 +132,11 @@ const char* GameObject::GetClassName()
 void GameObject::GlobalSerialize(const char* filename)
 {
 	std::ofstream file(filename);
+	GlobalSerialize(file);
+}
 
+void GameObject::GlobalSerialize(std::ofstream& file)
+{
 	// Save out num objects to expect on deserialization
 	file << s_allocatedObjects.size() << std::endl;
 
@@ -152,7 +162,11 @@ void GameObject::GlobalSerialize(const char* filename)
 void GameObject::GlobalDeserialize(const char* filename)
 {
 	std::ifstream file(filename);
+	GlobalDeserialize(file);
+}
 
+void GameObject::GlobalDeserialize(std::ifstream& file)
+{
 	// Load in num objects to expect
 	std::string objectTotalStr;
 	std::getline(file, objectTotalStr);
@@ -267,6 +281,16 @@ GameObject::~GameObject()
 	{
 		ptr->Invalidate();
 	}
+}
+
+void GameObject::Serialize_Internal(std::ofstream& os) const
+{
+	SERIALIZE(os, m_position)
+}
+
+void GameObject::Deserialize(std::ifstream& is)
+{
+	DESERIALIZE(is, m_position)
 }
 
 bool GameObject::RegisterFactoryFunctionsForClass(const char* className, size_t hashcode, DeserializeFuncPtr deserializeFunc, ConstructorFuncPtr constructorFunc)

@@ -29,26 +29,31 @@ public:
 
 	// Implementable ---
 
-	// Order of operations when deserializing: DefaultConstructor -> Variable Assignment From File -> OnDeserialize -> OnCreated
 	virtual void OnCreated() {};
 	virtual void OnTick(float deltaTime) {};
 	virtual void OnDraw() const {};
 	virtual void OnDestroy() {};
+
+	// Order of operations when deserializing: DefaultConstructor -> Variable Assignment From File -> OnDeserialize -> OnCreated
+	virtual void OnDeserialize() {};
 	virtual void OnPreSerialize() {};
 	virtual void OnPostSerialize() {};
-	virtual void OnDeserialize() {};
+
+	// Editor/debug
+	virtual void PopulateEditorPanel();
 
 	// Native ---
 
 	virtual const char* GetClassName();
 
 	static void GlobalSerialize(const char* filename);
+	static void GlobalSerialize(std::ofstream& file);
 	static void GlobalDeserialize(const char* filename);
+	static void GlobalDeserialize(std::ifstream& file);
 
 	static void GlobalTick(float deltaTime);
 	static void GlobalDraw();
 	static void GlobalDestroy();
-
 
 	void SetTickEnabled(bool bShouldTick);
 	bool IsTickEnabled() const;
@@ -60,8 +65,16 @@ public:
 	bool IsPendingDestroy() const;
 	bool IsSafeToDestroy() const;
 
+	Vector3f GetPosition() const { return m_position; }
+	void SetPosition(const Vector3f& position) { m_position = position; }
+
+private:
+	Vector3f m_position{0.f, 0.f, 0.f};
+
+public:
 	using ConstructorFuncPtr = GameObject*(*)();
 	static std::vector<std::pair<const char*, ConstructorFuncPtr>>* ObjectConstructors();
+	static const std::vector<GameObject*>& GetAllObjects() { return s_allocatedObjects; }
 
 protected:
 	
@@ -69,6 +82,8 @@ protected:
 	virtual ~GameObject();
 
 	virtual void Serialize(std::ofstream& os) const = 0;
+	virtual void Serialize_Internal(std::ofstream& os) const;
+	virtual void Deserialize(std::ifstream& is);
 
 	using DeserializeFuncPtr = GameObject*(*)(std::ifstream& is);
 	static bool RegisterFactoryFunctionsForClass(const char* className, size_t hashcode, DeserializeFuncPtr deserializeFunc, ConstructorFuncPtr constructorFunc);

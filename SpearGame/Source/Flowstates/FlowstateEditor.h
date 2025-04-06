@@ -6,12 +6,14 @@
 
 #include <unordered_set>
 
+class GameObject;
+
 class FlowstateEditor : public Spear::Flowstate
 {
 	enum EditorMode
 	{
-		MODE_MAP,
-		MODE_OBJECT,
+		MODE_TILES,
+		MODE_OBJECTS,
 
 		EDITORMODE_COUNT
 	};
@@ -26,9 +28,6 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_CLEAR,
 		INPUT_QUIT,
 		INPUT_MODIFIER,
-
-		INPUT_INCREASE_MAPSIZE,
-		INPUT_DECREASE_MAPSIZE,
 
 		INPUT_SCROLL_LEFT,
 		INPUT_SCROLL_RIGHT,
@@ -107,15 +106,27 @@ class FlowstateEditor : public Spear::Flowstate
 	bool MakePopup_TextureSelect(int& outValue, const char* popupId);
 
 	const char* GetModeText(DrawFlags flag);
+
+	// Tile Helpers
 	Vector2i MousePosToGridIndex();
 	bool ValidTile(const Vector2i& index);
-	float MapSpacing(){return m_camZoom * (m_mapTextures.GetWidth() + 10.f);};
-	float TileRadius(){return m_camZoom * (m_mapTextures.GetWidth() * 0.707f);};
+	float MapSpacing() { return m_camZoom * m_mapTextures.GetWidth(); };
+	float TileRadius(){return m_camZoom * (m_mapTextures.GetWidth() * 0.66f);};
+
+	// Object Helpers
+	Vector2f MousePosToWorldPos();
 
 	void ProcessInput();
-	bool ProcessInputDragView();
-	bool ProcessInputFlood();
-	bool ProcessInputSelect();
+	bool ProcessInput_DragView();
+
+	// Tiles - Editor Input
+	bool ProcessInput_Tiles_FloodSelect();
+	bool ProcessInput_Tiles_Select();
+
+	// Objects - Editor Input
+	bool ProcessInput_Objects_Select();
+	bool ProcessInput_Objects_Create();
+	bool ProcessInput_Objects_Delete();
 
 	void StartSelection();
 	void FloodSelect(const Vector2i& origin);
@@ -154,6 +165,18 @@ public:
 	void OpenLevel(const char* levelName);
 
 private:
+	// State
+	int m_editorMode{ EditorMode::MODE_TILES };
+
+	// File
+	EditorMapData* m_map{nullptr};
+	std::string m_levelName{ "Untitled" };
+	float m_saveCooldown{0.f};
+
+	// Camera
+	Vector2f m_camOffset{400.f, 200.f};
+	float m_camZoom{1.f};
+
 	// Hud
 	float m_menuTexturesScrollSpeed{ 20.f };
 	Spear::TextureArray m_mapTextures;
@@ -161,27 +184,19 @@ private:
 	// Colours
 	const Colour4f m_colourDefault = Colour4f::White();
 	const Colour4f m_colourCollision = Colour4f::Red();
-
 	const Colour4f m_colourHovered = Colour4f::Yellow();
 	const Colour4f m_colourSelectingAdd = Colour4f::Blue();
 	const Colour4f m_colourSelectingSubtract = Colour4f::White();
 	const Colour4f m_colourSelected = Colour4f::Blue();
+	const Colour4f m_colourObject = Colour4f::Cyan();
 
-	// State
-	int m_editorMode{ EditorMode::MODE_MAP };
-	int m_curTex{0};
-	int m_clickCache{0};
-	int m_tileMode{DrawFlags::DRAW_WALL};
-	bool m_cursorInMenu{false};
+	// Editor - Tiles
 	std::unordered_set<HashableVector2i> m_selectedTiles;
-
 	Vector2i m_hoveredTile{ -1, -1 };
 	bool m_hoveredTileValid{ false };
 
-	Vector2f m_camOffset{400.f, 200.f};
-	float m_camZoom{1.f};
+	// Editor - Objects
+	int m_objectConstructorId{0};
+	std::vector<GameObject*> m_selectedObjects;
 
-	EditorMapData* m_map{nullptr};
-	std::string m_levelName{ "Untitled" };
-	float m_saveCooldown{0.f};
 };

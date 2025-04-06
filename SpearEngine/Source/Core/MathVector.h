@@ -72,7 +72,7 @@ struct Vector3
 
 	friend std::ofstream& operator<<(std::ofstream& stream, const Vector3<T>& obj)
 	{
-		stream << obj.x << obj.y << obj.z;
+		stream << obj.x << " " << obj.y << " " << obj.z;
 		return stream;
 	}
 	friend std::ifstream& operator>>(std::ifstream& stream, Vector3<T>& obj)
@@ -85,6 +85,7 @@ struct Vector3
 
 	Vector3() {};
 	Vector3(T inVal) : x{ inVal }, y{ inVal }, z{ inVal } {};
+	Vector3(const Vector2<T>& inXY) : x{inXY.x}, y{inXY.y}, z{0} {};
 	Vector3(T inX, T inY, T inZ) : x{ inX }, y{ inY }, z{ inZ } {};
 
 	T x{ 0 };
@@ -114,6 +115,9 @@ struct Vector3
 	Vector3<int> ToInt() const { return Vector3<int>(static_cast<int>(x), static_cast<int>(y), static_cast<int>(z)); };
 	Vector3<float> ToFloat() const { return Vector3<float>(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)); };
 	Vector3<double> ToDouble() const { return Vector3<double>(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z)); };
+
+	// Swizzles
+	Vector2<T> XY() const { return Vector2<T>(x, y); }
 };
 
 template <typename T>

@@ -1,4 +1,5 @@
 #include "LevelFileManager.h"
+#include "GameObject/GameObject.h"
 
 
 std::string GetFilePath(const char* levelName) {return std::string("../Assets/MAPS/") + std::string(levelName); };
@@ -25,7 +26,9 @@ void LevelFileManager::EditorSaveLevel(const EditorMapData& rMapData)
 		}
 	}
 
-	file << rMapData.mapName;
+	file << rMapData.mapName << std::endl;
+
+	GameObject::GlobalSerialize(file);
 }
 
 void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMapData)
@@ -52,6 +55,8 @@ void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMa
 	}
 
 	std::getline(file, rMapData.mapName);
+
+	GameObject::GlobalDeserialize(file);
 }
 
 void LevelFileManager::LoadLevel(const char* levelName, MapData& rMapData)
