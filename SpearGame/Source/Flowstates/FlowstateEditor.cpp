@@ -1001,6 +1001,8 @@ void FlowstateEditor::StateRender()
 void FlowstateEditor::StateExit()
 {
 	GameObject::GlobalDestroy();
+	m_selectedObjects.clear();
+	m_selectedTiles.clear();
 
 	delete m_map;
 	m_map = nullptr;

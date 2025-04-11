@@ -121,7 +121,7 @@ void GameObject::DeregisterPtr(GameObjectPtrBase* ptr)
 
 void GameObject::PopulateEditorPanel()
 {
-	ImGui::DragFloat3("Position", & m_position.x);
+	EXPOSE(m_position);
 }
 
 const char* GameObject::GetClassName()

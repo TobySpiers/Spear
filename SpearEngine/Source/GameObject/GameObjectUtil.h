@@ -2,7 +2,7 @@
 #include "Core/Serializer.h"
 
 // GameObject class definition macro: must be placed inside header
-#define GAMEOBJECT_SERIALISABLE(classname, baseclass, ...)								\
+#define GAMEOBJECT_SERIALISABLE(classname, baseclass, ...)\
 private:\
 typedef baseclass Super;\
 virtual void Serialize(std::ofstream& os) const override\
@@ -33,6 +33,11 @@ static GameObject* CreateNew()\
 virtual const char* GetClassName() override\
 {\
 	return #classname;\
+}\
+virtual void PopulateEditorPanel()\
+{\
+	Super::PopulateEditorPanel();\
+	EXPOSE(__VA_ARGS__);\
 }\
 static bool s_factoryRegistered;\
 

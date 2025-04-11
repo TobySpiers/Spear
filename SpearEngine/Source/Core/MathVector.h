@@ -3,6 +3,7 @@
 #include <fstream>
 
 struct ImVec2;
+struct EditorVariable;
 
 template <typename T>
 struct Vector2
@@ -23,6 +24,8 @@ struct Vector2
 		stream >> obj.y;
 		return stream;
 	};
+	Vector2<T>& operator<<(const EditorVariable& editor);
+
 
 	Vector2(){};
 	Vector2(T inVal) : x{ inVal }, y{ inVal }{};
@@ -82,6 +85,7 @@ struct Vector3
 		stream >> obj.z;
 		return stream;
 	};
+	Vector3<T>& operator<<(const EditorVariable& editor);
 
 	Vector3() {};
 	Vector3(T inVal) : x{ inVal }, y{ inVal }, z{ inVal } {};

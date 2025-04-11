@@ -1,4 +1,5 @@
 #include "MathVector.h"
+#include "Serializer.h"
 #include "imgui.h"
 #include "Core.h"
 
@@ -10,6 +11,46 @@ template struct Vector2<int32_t>;
 template struct Vector3<int>;
 template struct Vector3<float>;
 template struct Vector3<double>;
+
+template<typename T>
+Vector2<T>& Vector2<T>::operator<<(const EditorVariable& editor)
+{
+	if constexpr (std::is_same_v<T, int>)
+	{
+		ImGui::InputInt2(editor.propertyName, &x);
+	}
+	else if constexpr (std::is_same_v<T, float>)
+	{
+		ImGui::InputFloat2(editor.propertyName, &x);
+	}
+	else
+	{
+		ImGui::Text(editor.propertyName);
+		ImGui::SameLine();
+		ImGui::Text(" | ERROR: Unhandled Vector2<T> type");
+	}
+	return *this;
+}
+
+template<typename T>
+inline Vector3<T>& Vector3<T>::operator<<(const EditorVariable& editor)
+{
+	if constexpr (std::is_same_v<T, int>)
+	{
+		ImGui::InputInt3(editor.propertyName, &x);
+	}
+	else if constexpr (std::is_same_v<T, float>)
+	{
+		ImGui::InputFloat3(editor.propertyName, &x);
+	}
+	else
+	{
+		ImGui::Text(editor.propertyName);
+		ImGui::SameLine();
+		ImGui::Text(" | ERROR: Unhandled Vector3<T> type");
+	}
+	return *this;
+}
 
 // Imgui helper
 template <typename T> 
