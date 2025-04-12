@@ -16,11 +16,27 @@
 #include <imgui_internal.h>
 
 
+void FlowstateEditor::ResetEditor()
+{
+	GameObject::GlobalDestroy();
+	m_selectedObjects.clear();
+	m_selectedTiles.clear();
+	m_camOffset = { 400.f, 200.f };
+	m_camZoom = 1.f;
+
+	delete m_map;
+	m_map = nullptr;
+}
+
+void FlowstateEditor::InitialiseMap(const char* mapName)
+{
+	ASSERT(m_map == nullptr);
+	m_map = new EditorMapData(mapName);
+}
+
 void FlowstateEditor::StateEnter()
 {
 	NewLevel("Untitled");
-	m_selectedTiles.clear();
-	m_camOffset = { 400.f, 200.f };
 
 	// Configure Inputs
 	int config[INPUT_COUNT];
@@ -34,6 +50,7 @@ void FlowstateEditor::StateEnter()
 	config[INPUT_QUIT] = SDL_SCANCODE_ESCAPE;
 	config[INPUT_MODIFIER] = SDL_SCANCODE_LCTRL;
 
+	config[INPUT_DELETE] = SDL_SCANCODE_DELETE;
 
 	config[INPUT_SCROLL_LEFT] = SDL_SCANCODE_A;
 	config[INPUT_SCROLL_RIGHT] = SDL_SCANCODE_D;
@@ -62,7 +79,7 @@ void FlowstateEditor::StateEnter()
 	m_mapTextures.InitialiseFromDirectory("../Assets/TILESETS/64");
 	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_mapTextures, 64 * 64);
 
-	// Disable ImGui panels - Editor sets up ImGui directly
+	// Disable automatic ImGui handling - Editor handles ImGui manually
 	Spear::ImguiManager& imguiManager = Spear::ImguiManager::Get();
 	imguiManager.SetPanelsEnabled(false);
 
@@ -203,11 +220,13 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	ImGui::SameLine();
 	if (ImGui::SmallButton("(M) Map"))
 	{
+		m_selectedObjects.clear();
 		m_editorMode = MODE_TILES;
 	}
 	ImGui::SameLine();
 	if (ImGui::SmallButton("(O) Object"))
 	{
+		m_selectedTiles.clear();
 		m_editorMode = MODE_OBJECTS;
 	}
 	ImGui::NewLine();
@@ -215,7 +234,7 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	switch (m_editorMode)
 	{
 	case MODE_TILES:
-		MakePanel_Editor_Map();
+		MakePanel_Editor_Tiles();
 		break;
 	case MODE_OBJECTS:
 		MakePanel_Editor_Objects();
@@ -237,12 +256,27 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	}	
 	ImGui::End();
 
+	// Cache mouse info
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 	m_hoveredTile = MousePosToGridIndex();
 	m_hoveredTileValid = ValidTile(m_hoveredTile);
+	m_hoveredObject = MousePosToObject();
+	// Handle input
 	ProcessInput();
 
+	// ObjectClass tooltips
+	if (m_editorMode == MODE_OBJECTS)
+	{
+		if(m_hoveredObject)
+		{
+			ImGui::SetNextWindowPos(input.GetMousePos() + Vector2i(10, 10));
+			ImGui::BeginTooltip();
+			ImGui::Text(m_hoveredObject->GetClassName());
+			ImGui::EndTooltip();
+		}
+	}
+
 	// Deprecating...? Keyboard Camera Controls
-	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 	const int mouseWheel = input.Wheel();
 	const float zoomSpeed{10.f};
 	float scrollSpeed{1000.f};
@@ -314,11 +348,37 @@ bool FlowstateEditor::ValidTile(const Vector2i& index)
 }
 
 Vector2f FlowstateEditor::MousePosToWorldPos()
+{	
+	return ScreenPosToWorldPos(Spear::InputManager::Get().GetMousePos().ToFloat());
+}
+
+Vector2f FlowstateEditor::ScreenPosToWorldPos(const Vector2f& screenPos)
 {
-	Vector2f mousePos{ Spear::ServiceLocator::GetInputManager().GetMousePos().ToFloat() };
-	mousePos -= m_camOffset;
-	
-	return { mousePos.x / MapSpacing(), mousePos.y / MapSpacing() };
+	return (screenPos - m_camOffset) / MapSpacing();
+}
+
+Vector2f FlowstateEditor::WorldPosToScreenPos(const Vector2f& worldPos)
+{
+	return m_camOffset + (worldPos * MapSpacing());
+}
+
+GameObject* FlowstateEditor::MousePosToObject()
+{
+	const Vector2f worldPos = MousePosToWorldPos();
+
+	const std::vector<GameObject*>& gameObjects = GameObject::GetAllObjects();
+	float bestProximity{m_hoverRadiusSqr};
+	GameObject* result{nullptr};
+	for (GameObject* object : gameObjects)
+	{
+		const float proximity = (object->GetPosition().XY() - worldPos).LengthSqr();
+		if (proximity < bestProximity)
+		{
+			result = object;
+			bestProximity = proximity;
+		}
+	}
+	return result;
 }
 
 void FlowstateEditor::ProcessInput()
@@ -342,15 +402,6 @@ void FlowstateEditor::ProcessInput()
 	}
 	else if (m_editorMode == EditorMode::MODE_OBJECTS)
 	{
-	
-		/* Minimum Viable Controls:
-		* Middle Click: Create new & select
-		* Click: Clear selection & select object
-		* Ctrl Click: Add to selection
-		* Click + Drag: Reposition (w/ group)
-		* Del: Delete currently selected
-		*/
-
 		if (ProcessInput_Objects_Select())
 		{
 			return;
@@ -455,6 +506,80 @@ bool FlowstateEditor::ProcessInput_Tiles_Select()
 
 bool FlowstateEditor::ProcessInput_Objects_Select()
 {
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+	const bool bHoveringSelectedObject = m_hoveredObject && m_selectedObjects.contains(m_hoveredObject);
+
+	if (input.ClickStart())
+	{
+		m_clickOrigin = input.GetMousePos();
+
+		if (input.InputHold(INPUT_CTRL))
+		{
+			if (bHoveringSelectedObject)
+			{
+				m_selectedObjects.erase(m_hoveredObject);
+				return true;
+			}
+		}
+		else if(!bHoveringSelectedObject)
+		{
+			m_selectedObjects.clear();
+		}
+
+		if (m_hoveredObject)
+		{
+			if (!bHoveringSelectedObject)
+			{
+				m_selectedObjects.insert(m_hoveredObject);
+			}
+			if (!input.InputHold(INPUT_CTRL))
+			{
+				m_draggingObject = m_hoveredObject;
+				m_draggedObjectDeltaToMouse = m_hoveredObject->GetPosition().XY() - MousePosToWorldPos().ToFloat();
+			}
+		}
+		return true;
+	}
+	else if (input.ClickHold())
+	{
+		if (m_draggingObject)
+		{
+			const Vector2f delta = (MousePosToWorldPos() - m_draggingObject->GetPosition().XY()) + m_draggedObjectDeltaToMouse;
+			for (GameObject* obj : m_selectedObjects)
+			{
+				obj->SetPosition(obj->GetPosition() + delta);
+			}
+		}
+		else
+		{
+			m_dragSelectingObjects = true;
+		}
+
+		return true;
+	}
+	else if (input.ClickRelease())
+	{
+		if (!m_draggingObject)
+		{
+			// Drag Select - Commit
+			const Vector2f firstMousePos = ScreenPosToWorldPos(m_clickOrigin.ToFloat());
+			const Vector2f curMousePos = MousePosToWorldPos();
+
+			const std::vector<GameObject*>& gameObjects = GameObject::GetAllObjects();
+			for (GameObject* object : gameObjects)
+			{
+				if (object->GetPosition().XY().IsBetween(firstMousePos, curMousePos))
+				{
+					m_selectedObjects.insert(object);
+				}
+			}
+		}
+
+		m_draggingObject = nullptr;
+		m_dragSelectingObjects = false;
+		return true;
+	}
+	
 	return false;
 }
 
@@ -467,7 +592,7 @@ bool FlowstateEditor::ProcessInput_Objects_Create()
 		GameObject::ConstructorFuncPtr ObjectConstructor = GameObject::ObjectConstructors()->at(m_objectConstructorId).second;
 		GameObject* newObj = ObjectConstructor();
 		newObj->SetPosition(MousePosToWorldPos());
-		m_selectedObjects.emplace_back(newObj);
+		m_selectedObjects.insert(newObj);
 	}
 
 	return false;
@@ -475,6 +600,23 @@ bool FlowstateEditor::ProcessInput_Objects_Create()
 
 bool FlowstateEditor::ProcessInput_Objects_Delete()
 {
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+	if (input.InputRelease(INPUT_DELETE))
+	{
+		for (GameObject* obj : m_selectedObjects)
+		{
+			obj->Destroy();
+		}
+		if (m_selectedObjects.contains(m_hoveredObject))
+		{
+			m_hoveredObject = nullptr;
+		}
+		m_selectedObjects.clear();
+
+		// Since we are not ticking GameObjects while in editor, we need to manually flush destroyed objects.
+		GameObject::FlushPendingDestroys();
+	}
+
 	return false;
 }
 
@@ -563,7 +705,7 @@ void FlowstateEditor::CommitSelection()
 	m_ongoingClickSelection.clear();
 }
 
-void FlowstateEditor::MakePanel_Editor_Map()
+void FlowstateEditor::MakePanel_Editor_Tiles()
 {
 	ImGui::SeparatorText("Tile Editor");
 	ImGui::Text("Map Size:");
@@ -586,6 +728,9 @@ void FlowstateEditor::MakePanel_Editor_Map()
 	ImGui::Text("Floor Distances: ");
 	ImGui::InputInt("Upper Floor", &temp);
 	ImGui::InputInt("Lower Floor", &temp);
+
+	ImGui::Text("Brush");
+	ImGui::InputInt("Brush Size", &temp);
 }
 
 void FlowstateEditor::MakePanel_Editor_Objects()
@@ -747,7 +892,32 @@ void FlowstateEditor::MakePanel_Details_Object()
 		return;
 	}
 
-	m_selectedObjects[0]->PopulateEditorPanel();
+	bool bUniformType = true;
+	GameObject* selectedObject = *m_selectedObjects.begin();
+	const char* objectClass = selectedObject->GetClassName();
+	for (const GameObject* obj : m_selectedObjects)
+	{
+		if (obj->GetClassName() != objectClass)
+		{
+			bUniformType = false;
+			break;
+		}
+	}
+
+	if (bUniformType)
+	{
+	// TODO: PopulateEditorPanel should return an int representing which property was changed (or -1 for null)
+	// Then we need to implement a CopyEditorProperty method to take the integer (and a reference object) and copy the modified value into all selected objects
+		selectedObject->PopulateEditorPanel();
+		for (GameObject* obj : m_selectedObjects)
+		{
+			obj = selectedObject;
+		}
+	}
+	else
+	{
+		ImGui::Text("Multiple types selected");
+	}
 }
 
 bool FlowstateEditor::MakePopup_TextureSelect(int& outValue, const char* popupId)
@@ -858,36 +1028,48 @@ void FlowstateEditor::StateRender()
 		for (int y = 0; y < m_map->gridHeight; y++)
 		{
 			GridNode& node{ m_map->GetNode(x, y) };
+			const bool bActiveSelection = m_selectedTiles.size() || m_ongoingClickSelection.size();
+			const bool bIsHovered = m_hoveredTile.x == x && m_hoveredTile.y == y;
+			const bool bIsSelected = m_selectedTiles.contains({ x, y }) || m_ongoingClickSelection.contains({x, y});
 
 			// Tile Outlines
 			const Vector2f tilePos = m_camOffset + (Vector2f(x, y) * MapSpacing());
 			if (m_editorMode == MODE_TILES)
 			{
-				Spear::Renderer::LinePolyData square;
-				square.segments = 4;
-				square.colour = (node.collisionMask > 0 ? m_colourCollision : m_colourDefault);
-				square.pos = tilePos;
-				square.radius = TileRadius() + 2;
-				square.rotation = TO_RADIANS(45.f);
-				square.depth = outlineDepth;
+
+				Spear::Renderer::LineBoxData box;
+				box.colour = (node.collisionMask > 0 ? m_colourCollision : m_colourDefault);
+				box.start = tilePos - Vector2f(TileRadius());
+				box.end = tilePos + Vector2f(TileRadius());
+				box.depth = outlineDepth;
+
+				if (!bIsHovered)
+				{
+					box.depth += 0.025f;
+				}
+				if (!bIsSelected)
+				{
+					box.depth += 0.025f;
+				}
+
 				if (m_ongoingClickSelection.contains({ x, y }))
 				{
 					switch (m_ongoingSelectionMode)
 					{
-					case SELECTION_ADDITIVE: square.colour = m_colourSelectingAdd; break;
-					case SELECTION_SUBTRACTIVE: square.colour = m_colourSelectingSubtract; break;
+					case SELECTION_ADDITIVE: box.colour = m_colourSelectingAdd; break;
+					case SELECTION_SUBTRACTIVE: box.colour = m_colourSelectingSubtract; break;
 					default: ASSERT(false); break;
 					}
 				}
-				else if (m_hoveredTileValid && m_hoveredTile.x == x && m_hoveredTile.y == y)
+				else if (bIsHovered)
 				{
-					square.colour = m_colourHovered;
+					box.colour = m_colourHovered;
 				}
-				else if (m_selectedTiles.contains({ x, y }))
+				else if (bIsSelected)
 				{
-					square.colour = m_colourSelected;
+					box.colour = m_colourSelected;
 				}
-				rend.AddLinePoly(square);
+				rend.AddLineBox(box);
 			}
 
 			// Meta info
@@ -930,6 +1112,10 @@ void FlowstateEditor::StateRender()
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdWall;
 				sprite.depth = wallDepth;
+				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
+				{
+					sprite.opacity = m_fadedTileOpacity;
+				}
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 
@@ -942,6 +1128,10 @@ void FlowstateEditor::StateRender()
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdRoof[0];
 				sprite.depth = roofDepth;
+				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
+				{
+					sprite.opacity = m_fadedTileOpacity;
+				}
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 			if (m_visibilityFlags & DRAW_ROOF2 && node.texIdRoof[1] != TEX_NONE)
@@ -952,6 +1142,10 @@ void FlowstateEditor::StateRender()
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdRoof[1];
 				sprite.depth = roofDepth;
+				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
+				{
+					sprite.opacity = m_fadedTileOpacity;
+				}
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 
@@ -964,6 +1158,10 @@ void FlowstateEditor::StateRender()
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdFloor[0];
 				sprite.depth = floorDepth;
+				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
+				{
+					sprite.opacity = m_fadedTileOpacity;
+				}
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 			if (m_visibilityFlags & DRAW_FLOOR2 && node.texIdFloor[1] != TEX_NONE)
@@ -974,38 +1172,64 @@ void FlowstateEditor::StateRender()
 				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdFloor[1];
 				sprite.depth = floorDepth;
+				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
+				{
+					sprite.opacity = m_fadedTileOpacity;
+				}
 				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
 			}
 		}
 	}
 
-	const float objectIconSize = 10.f;
-
 	// Draw GameObjects
-	const std::vector<GameObject*>& gameObjects = GameObject::GetAllObjects();
-	for (const GameObject* object : gameObjects)
+	if(m_visibilityFlags & DRAW_OBJECTS)
 	{
-		Spear::Renderer::LinePolyData icon;
-		icon.segments = 8;
-		icon.colour = m_colourObject;
-		icon.pos = object->GetPosition().XY() * MapSpacing();
-		icon.pos += m_camOffset;
-		icon.radius = m_camZoom * objectIconSize;
-		icon.depth = objectDepth;
-		Spear::ServiceLocator::GetScreenRenderer().AddLinePoly(icon);
-	}
+		const std::vector<GameObject*>& gameObjects = GameObject::GetAllObjects();
+		const Vector2f selectionBoxStart = ScreenPosToWorldPos(m_clickOrigin.ToFloat());
+		const Vector2f selectionBoxEnd = MousePosToWorldPos();
+		for (GameObject* object : gameObjects)
+		{
+			const Vector3f editorPosition = m_camOffset + (object->GetPosition().XY() * MapSpacing());
 
-	Spear::ServiceLocator::GetScreenRenderer().Render();
+			if (m_selectedObjects.contains(object))
+			{
+				object->DrawInEditorSelected(editorPosition, m_camZoom);
+			}
+			else
+			{
+				object->DrawInEditor(editorPosition, m_camZoom);
+			}
+
+			if (m_editorMode == MODE_OBJECTS && m_dragSelectingObjects)
+			{
+				if (object->GetPosition().XY().IsBetween(selectionBoxStart, selectionBoxEnd))
+				{
+					object->DrawInEditorHovered(editorPosition, m_camZoom);
+				}
+			}
+		}
+		if(m_editorMode == MODE_OBJECTS)
+		{
+			if (m_dragSelectingObjects)
+			{
+				Spear::Renderer::LineBoxData box;
+				box.start = m_clickOrigin.ToFloat();
+				box.end = Spear::InputManager::Get().GetMousePos().ToFloat();
+				rend.AddLineBox(box);
+			}
+
+			if (m_hoveredObject)
+			{
+				m_hoveredObject->DrawInEditorHovered(m_camOffset + (m_hoveredObject->GetPosition().XY() * MapSpacing()), m_camZoom);
+			}
+		}
+	}
+	Spear::Renderer::Get().Render();
 }
 
 void FlowstateEditor::StateExit()
 {
-	GameObject::GlobalDestroy();
-	m_selectedObjects.clear();
-	m_selectedTiles.clear();
-
-	delete m_map;
-	m_map = nullptr;
+	ResetEditor();
 
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
 
@@ -1019,8 +1243,9 @@ void FlowstateEditor::StateExit()
 
 void FlowstateEditor::NewLevel(const char* levelName)
 {
-	delete m_map;
-	m_map = new EditorMapData(levelName);
+	ResetEditor();
+	InitialiseMap(levelName);
+
 	Spear::WindowManager::Get().SetWindowTitleOverride((std::string("*") + levelName + " - Spear").c_str());
 }
 
@@ -1042,6 +1267,9 @@ void FlowstateEditor::SaveLevel(const char* levelName)
 
 void FlowstateEditor::OpenLevel(const char* levelName)
 {
+	ResetEditor();
+	InitialiseMap(levelName);
+
 	LevelFileManager::EditorLoadLevel(levelName, *m_map);
 	Spear::WindowManager::Get().SetWindowTitleOverride((std::string(m_map->mapName) + " - Spear").c_str());
 }

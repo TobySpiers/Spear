@@ -3,9 +3,14 @@
 #include "ScreenRenderer.h"
 #include "ShaderCompiler.h"
 #include "TextureFont.h"
+#include <Core/ServiceLocator.h>
 
 namespace Spear
 {
+	Renderer& Renderer::Get()
+	{
+		return ServiceLocator::GetScreenRenderer();
+	}
 
 	Renderer::Renderer()
 	{
@@ -438,25 +443,42 @@ namespace Spear
 
 	void Renderer::AddLinePoly(const LinePolyData& poly)
 	{
-		// line, triangle, square, or bigger
-		ASSERT(poly.segments > 1);
+		// triangle, diamond, pentagon, circle, etc.
+		ASSERT(poly.segments >= 3);
+
+		LineData line;
+		line.colour = poly.colour;
+		line.depth = poly.depth;
 
 		// decompose into individual lines
-		// not the most efficient approach memory-wise as data gets duplicated a whole bunch
-		// but for current purposes these are used sparingly enough for it not to matter too much
+		// not the most efficient approach as vertices are duplicated more than necessary (plus colour/depth is sent with each line segment)
+		// but for current purposes this works fine
 		float increment {(PI * 2) / poly.segments};
 		for (int i = 0; i < poly.segments; i++)
 		{
 			int nextIndex{ (i == poly.segments - 1) ? 0 : i + 1 };
 
-			LineData line;
 			line.start = poly.pos + Vector2f(cos(poly.rotation + (increment * i)), sin(poly.rotation + (increment * i))) * poly.radius;
 			line.end = poly.pos + Vector2f(cos(poly.rotation + (increment * nextIndex)), sin(poly.rotation + (increment * nextIndex))) * poly.radius;
-			line.colour = poly.colour;
-			line.depth = poly.depth;
 
 			AddLine(line);
 		}
+	}
+
+	void Renderer::AddLineBox(const LineBoxData& box)
+	{
+		Spear::Renderer::LineData line;
+		line.colour = box.colour;
+		line.depth = box.depth;
+		line.start = box.start;
+		line.end = { box.start.x, box.end.y };
+		AddLine(line);
+		line.end = { box.end.x, box.start.y };
+		AddLine(line);
+		line.start = box.end;
+		AddLine(line);
+		line.end = { box.start.x, box.end.y };
+		AddLine(line);
 	}
 
 	void Renderer::AddSprite(const SpriteData& sprite, int batchId)

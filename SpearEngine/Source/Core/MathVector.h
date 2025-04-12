@@ -56,6 +56,9 @@ struct Vector2
 	bool operator==(const Vector2<T>& other) { return this->x == other.x && this->y == other.y; }
 	bool operator!=(const Vector2<T>& other) { return !(*this == other); }
 
+	// Returns true if Vector's XY components are between the values of A & B's XY components
+	bool IsBetween(const Vector2<T>& A, const Vector2<T> B);
+
 	// Explicit Conversions Only
 	Vector2<int> ToInt() const {return Vector2<int>(static_cast<int>(x), static_cast<int>(y)); };
 	Vector2<float> ToFloat() const {return Vector2<float>(static_cast<float>(x), static_cast<float>(y)); };

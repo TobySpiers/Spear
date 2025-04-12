@@ -24,7 +24,7 @@ void Serializer::Deserialize(std::ifstream& stream, std::string& string)
 
 bool Serializer::ExposeCategory(const char* category)
 {
-    return ImGui::TreeNode(category);
+    return ImGui::TreeNodeEx(category, ImGuiTreeNodeFlags_DefaultOpen);
 }
 
 void Serializer::PopCategory()

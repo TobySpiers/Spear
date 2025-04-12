@@ -30,7 +30,7 @@ static GameObject* CreateNew()\
 {\
 	return GameObject::Create<classname>();\
 }\
-virtual const char* GetClassName() override\
+virtual const char* GetClassName() const override\
 {\
 	return #classname;\
 }\

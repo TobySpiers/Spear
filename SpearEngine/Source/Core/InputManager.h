@@ -7,6 +7,8 @@ namespace Spear
 	public:
 		NO_COPY(InputManager);
 
+		static InputManager& Get();
+
 		InputManager(){};
 		~InputManager(){};
 

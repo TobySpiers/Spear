@@ -29,6 +29,8 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_QUIT,
 		INPUT_MODIFIER,
 
+		INPUT_DELETE,
+
 		INPUT_SCROLL_LEFT,
 		INPUT_SCROLL_RIGHT,
 		INPUT_SCROLL_UP,
@@ -97,7 +99,7 @@ class FlowstateEditor : public Spear::Flowstate
 	OngoingClick m_clickType{CLICK_NONE};
 	std::unordered_set<HashableVector2i> m_ongoingClickSelection;
 
-	void MakePanel_Editor_Map();
+	void MakePanel_Editor_Tiles();
 	void MakePanel_Editor_Objects();
 	void MakePanel_Visibility();
 	void MakePanel_Details_Tile();
@@ -111,10 +113,13 @@ class FlowstateEditor : public Spear::Flowstate
 	Vector2i MousePosToGridIndex();
 	bool ValidTile(const Vector2i& index);
 	float MapSpacing() { return m_camZoom * m_mapTextures.GetWidth(); };
-	float TileRadius(){return m_camZoom * (m_mapTextures.GetWidth() * 0.66f);};
+	float TileRadius(){return m_camZoom * (m_mapTextures.GetWidth() * 0.5f);};
 
 	// Object Helpers
 	Vector2f MousePosToWorldPos();
+	Vector2f ScreenPosToWorldPos(const Vector2f& screenPos);
+	Vector2f WorldPosToScreenPos(const Vector2f& worldPos);
+	GameObject* MousePosToObject();
 
 	void ProcessInput();
 	bool ProcessInput_DragView();
@@ -136,14 +141,15 @@ public:
 	FlowstateEditor() {};
 	virtual ~FlowstateEditor() {};
 
+	void ResetEditor();
+	void InitialiseMap(const char* mapName);
+
 	// --- Flowstate Interface ---
 	// Called once when state begins
 	void StateEnter() override;
 
 	// Update game. Return a slot id to switch state, return -1 to remain in current state.
 	int StateUpdate(float deltaTime) override;
-	void Update_TileEditor(float deltaTime);
-	void Update_GameObjectEditor(float deltaTime);
 
 	// Render game
 	void StateRender() override;
@@ -182,13 +188,13 @@ private:
 	Spear::TextureArray m_mapTextures;
 
 	// Colours
-	const Colour4f m_colourDefault = Colour4f::White();
+	const float m_fadedTileOpacity = 0.5f;
+	const Colour4f m_colourDefault = Colour4f(1.f, 1.f, 1.f, 0.2f);
 	const Colour4f m_colourCollision = Colour4f::Red();
-	const Colour4f m_colourHovered = Colour4f::Yellow();
-	const Colour4f m_colourSelectingAdd = Colour4f::Blue();
-	const Colour4f m_colourSelectingSubtract = Colour4f::White();
-	const Colour4f m_colourSelected = Colour4f::Blue();
-	const Colour4f m_colourObject = Colour4f::Cyan();
+	const Colour4f m_colourHovered = Colour4f::White();
+	const Colour4f m_colourSelectingAdd = Colour4f::Cyan();
+	const Colour4f m_colourSelectingSubtract = Colour4f::Red();
+	const Colour4f m_colourSelected = Colour4f::Cyan();
 
 	// Editor - Tiles
 	std::unordered_set<HashableVector2i> m_selectedTiles;
@@ -197,6 +203,11 @@ private:
 
 	// Editor - Objects
 	int m_objectConstructorId{0};
-	std::vector<GameObject*> m_selectedObjects;
+	std::unordered_set<GameObject*> m_selectedObjects;
+	GameObject* m_hoveredObject{nullptr};
+	GameObject* m_draggingObject{nullptr};
+	Vector2f m_draggedObjectDeltaToMouse{0.f, 0.f};
+	const float m_hoverRadiusSqr{.1f};
+	bool m_dragSelectingObjects{false};
 
 };

@@ -23,8 +23,8 @@ class GameObject
 {
 	friend class GameObjectPtrBase;
 	template <typename T> friend class GameObjectPtr;
-
-public:
+	
+	public:
 	template<typename T> static T* Create();
 
 	// Implementable ---
@@ -39,12 +39,15 @@ public:
 	virtual void OnPreSerialize() {};
 	virtual void OnPostSerialize() {};
 
-	// Editor/debug
+	// Editor
 	virtual void PopulateEditorPanel();
+	virtual void DrawInEditor(const Vector3f& position, float zoom) const;
+	virtual void DrawInEditorHovered(const Vector3f& position, float zoom) const;
+	virtual void DrawInEditorSelected(const Vector3f& position, float zoom) const;
 
 	// Native ---
 
-	virtual const char* GetClassName();
+	virtual const char* GetClassName() const;
 
 	static void GlobalSerialize(const char* filename);
 	static void GlobalSerialize(std::ofstream& file);
@@ -61,9 +64,13 @@ public:
 	void SetDrawEnabled(bool bShouldDraw);
 	bool IsDrawEnabled() const;
 
+	// Marks object as PendingDestroy. Destruction may not occur for several GlobalTicks. If immediate destruction is needed, call FlushPendingDestroys() afterwards.
 	void Destroy();
 	bool IsPendingDestroy() const;
 	bool IsSafeToDestroy() const;
+
+	// Forces immediate destruction for all PendingDestroy objects.
+	static void FlushPendingDestroys();
 
 	Vector3f GetPosition() const { return m_position; }
 	void SetPosition(const Vector3f& position) { m_position = position; }
@@ -91,6 +98,10 @@ protected:
 	int internalId{ -1 };
 
 private:
+	static void DisableTick_Internal(GameObject* obj, int ticklistIndex);
+	static void DisableDraw_Internal(GameObject* obj, int drawlistIndex);
+	static void DestroyObjects_Internal();
+
 	static void RegisterTickingObject(GameObject* obj);
 	static void RegisterDrawingObject(GameObject* obj);
 

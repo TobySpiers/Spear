@@ -34,6 +34,8 @@ namespace Spear
 		NO_COPY(Renderer);
 	public:
 		
+		static Renderer& Get();
+
 		enum TextAlign
 		{
 			TEXT_ALIGN_LEFT,
@@ -69,12 +71,20 @@ namespace Spear
 
 		struct LinePolyData
 		{
-			Colour4f colour{0.f, 0.f, 0.f, 0.f};
+			Colour4f colour{ 1.f, 1.f, 1.f, 1.f };
 			Vector2f pos{ 0.f, 0.f };
 			float radius{ 0.f };
 			float rotation{ 0.f };
 			float depth{ 0.f };
 			int segments{ 3 };
+		};
+
+		struct LineBoxData
+		{
+			Colour4f colour{ 1.f, 1.f, 1.f, 1.f };
+			Vector2f start{0.f, 0.f};
+			Vector2f end{0.f, 0.f};
+			float depth{0.f};
 		};
 
 		Renderer();
@@ -99,7 +109,8 @@ namespace Spear
 
 		// Raw Lines (discrete batches not necessary as no textures used)
 		void AddLine(const LineData& line);
-		void AddLinePoly(const LinePolyData& circle);
+		void AddLinePoly(const LinePolyData& poly);
+		void AddLineBox(const LineBoxData& box);
 
 		// Background
 		Texture& GetBackgroundTextureForNextFrame();

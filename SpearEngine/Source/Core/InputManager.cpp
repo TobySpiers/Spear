@@ -1,9 +1,15 @@
 #include "Core.h"
 #include "InputManager.h"
 #include <imgui.h>
+#include <Core/ServiceLocator.h>
 
 namespace Spear
 {
+	InputManager& InputManager::Get()
+	{
+		return ServiceLocator::GetInputManager();
+	}
+
 	void InputManager::ConfigureInputBindings(int* bindings, int totalBindings)
 	{
 		ASSERT(totalBindings <= KEYBINDINGS_LIMIT);

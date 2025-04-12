@@ -52,6 +52,39 @@ inline Vector3<T>& Vector3<T>::operator<<(const EditorVariable& editor)
 	return *this;
 }
 
+template<typename T>
+bool Vector2<T>::IsBetween(const Vector2<T>& A, const Vector2<T> B)
+{
+	T xMin;
+	T xMax;
+	if (A.x < B.x)
+	{
+		xMin = A.x;
+		xMax = B.x;
+	}
+	else
+	{
+		xMin = B.x;
+		xMax = A.x;
+	}
+
+	T yMin;
+	T yMax;
+	if (A.y < B.y)
+	{
+		yMin = A.y;
+		yMax = B.y;
+	}
+	else
+	{
+		yMin = B.y;
+		yMax = A.y;
+	}
+
+
+	return x > xMin && x < xMax && y > yMin && y < yMax;
+}
+
 // Imgui helper
 template <typename T> 
 Vector2<T>::operator ImVec2() const

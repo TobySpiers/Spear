@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <Core/FrameProfiler.h>
 #include <imgui.h>
+#include <Graphics/ScreenRenderer.h>
 
 // Tracking
 std::vector<GameObject*> GameObject::s_allocatedObjects;
@@ -19,13 +20,7 @@ void GameObject::GlobalTick(float deltaTime)
 		GameObject* obj = s_tickList[i];
 		if (!obj->IsTickEnabled())
 		{
-			std::iter_swap(s_tickList.begin() + i, s_tickList.end());
-			s_tickList.pop_back();
-			obj->tickState = eGameObjectTickState::TickDisabled;
-			if (obj->IsPendingDestroy() && obj->IsSafeToDestroy())
-			{
-				s_destroyList.push_back(obj);
-			}
+			DisableTick_Internal(obj, i);
 		}
 		else
 		{
@@ -33,23 +28,8 @@ void GameObject::GlobalTick(float deltaTime)
 		}
 	}
 
-	while (s_destroyList.size())
-	{
-		GameObject* obj = s_destroyList.back();
-		ASSERT(obj->IsSafeToDestroy());
-		const int cachedInternalId = obj->internalId;
-		obj->OnDestroy();
-		for (GameObjectPtrBase* ptr : obj->trackedPtrs)
-		{
-			ptr->Invalidate();
-		}
-		std::iter_swap(s_allocatedObjects.begin() + cachedInternalId, s_allocatedObjects.end() - 1);
-		GameObject* swappedObj = s_allocatedObjects[cachedInternalId];
-		swappedObj->internalId = cachedInternalId;
-		s_allocatedObjects.pop_back();
-		delete obj;
-		s_destroyList.pop_back();
-	}
+	DestroyObjects_Internal();
+
 	END_PROFILE("GameObject Update");
 }
 
@@ -61,13 +41,7 @@ void GameObject::GlobalDraw()
 		GameObject* obj = s_drawList[i];
 		if (!obj->IsDrawEnabled())
 		{
-			std::iter_swap(s_drawList.begin() + i, s_drawList.end());
-			s_drawList.pop_back();
-			obj->drawState = eGameObjectTickState::TickDisabled;
-			if (obj->IsPendingDestroy() && obj->IsSafeToDestroy())
-			{
-				s_destroyList.push_back(obj);
-			}
+			DisableDraw_Internal(obj, i);
 		}
 		else
 		{
@@ -88,6 +62,74 @@ void GameObject::GlobalDestroy()
 		obj->OnDestroy();
 		delete obj;
 		s_allocatedObjects.pop_back();
+	}
+}
+
+void GameObject::FlushPendingDestroys()
+{
+	for (int i = s_drawList.size() - 1; i >= 0; i--)
+	{
+		GameObject* obj = s_drawList[i];
+		if (!obj->IsDrawEnabled())
+		{
+			DisableDraw_Internal(obj, i);
+		}
+	}
+
+	for (int i = s_tickList.size() - 1; i >= 0; i--)
+	{
+		GameObject* obj = s_tickList[i];
+		if (!obj->IsTickEnabled())
+		{
+			DisableTick_Internal(obj, i);
+		}
+	}
+
+	DestroyObjects_Internal();
+}
+
+void GameObject::DestroyObjects_Internal()
+{
+	while (s_destroyList.size())
+	{
+		GameObject* obj = s_destroyList.back();
+		ASSERT(obj->IsSafeToDestroy());
+		
+		const int cachedInternalId = obj->internalId;
+		obj->OnDestroy();
+		for (GameObjectPtrBase* ptr : obj->trackedPtrs)
+		{
+			ptr->Invalidate();
+		}
+		std::iter_swap(s_allocatedObjects.begin() + cachedInternalId, s_allocatedObjects.end() - 1);
+		GameObject* swappedObj = s_allocatedObjects[cachedInternalId];
+		swappedObj->internalId = cachedInternalId;
+		s_allocatedObjects.pop_back();
+		delete obj;
+
+		s_destroyList.pop_back();
+	}
+}
+
+void GameObject::DisableTick_Internal(GameObject* obj, int ticklistIndex)
+{
+	std::iter_swap(s_tickList.begin() + ticklistIndex, s_tickList.end());
+	s_tickList.pop_back();
+	obj->tickState = eGameObjectTickState::TickDisabled;
+	if (obj->IsPendingDestroy() && obj->IsSafeToDestroy())
+	{
+		s_destroyList.push_back(obj);
+	}
+}
+
+void GameObject::DisableDraw_Internal(GameObject* obj, int drawlistIndex)
+{
+	std::iter_swap(s_drawList.begin() + drawlistIndex, s_drawList.end());
+	s_drawList.pop_back();
+	obj->drawState = eGameObjectTickState::TickDisabled;
+	if (obj->IsPendingDestroy() && obj->IsSafeToDestroy())
+	{
+		s_destroyList.push_back(obj);
 	}
 }
 
@@ -124,7 +166,41 @@ void GameObject::PopulateEditorPanel()
 	EXPOSE(m_position);
 }
 
-const char* GameObject::GetClassName()
+void GameObject::DrawInEditor(const Vector3f& position, float zoom) const
+{
+	Spear::Renderer::LinePolyData icon;
+	icon.segments = 8;
+	icon.colour = Colour4f::White();
+	icon.pos = position.XY();
+	icon.radius = zoom * 10.f;
+	icon.depth = position.z;
+	Spear::Renderer::Get().AddLinePoly(icon);
+}
+
+void GameObject::DrawInEditorHovered(const Vector3f& position, float zoom) const
+{
+	Spear::Renderer::LinePolyData icon;
+	icon.segments = 4;
+	icon.colour = Colour4f::White();
+	icon.pos = position.XY();
+	icon.radius = zoom * 15.f;
+	icon.depth = position.z;
+	icon.rotation = TO_RADIANS(45.f);
+	Spear::Renderer::Get().AddLinePoly(icon);
+}
+
+void GameObject::DrawInEditorSelected(const Vector3f& position, float zoom) const
+{
+	Spear::Renderer::LinePolyData icon;
+	icon.segments = 8;
+	icon.colour = Colour4f::Cyan();
+	icon.pos = position.XY();
+	icon.radius = zoom * 10.f;
+	icon.depth = position.z;
+	Spear::Renderer::Get().AddLinePoly(icon);
+}
+
+const char* GameObject::GetClassName() const
 {
 	return "UnknownObject";
 }
@@ -152,7 +228,7 @@ void GameObject::GlobalSerialize(std::ofstream& file)
 		obj->Serialize(file);
 	}
 
-	// Restore any GameObjects
+	// Restore all GameObjects
 	for (GameObject* obj : s_allocatedObjects)
 	{
 		obj->OnPostSerialize();
