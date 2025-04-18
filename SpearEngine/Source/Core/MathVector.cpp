@@ -13,41 +13,128 @@ template struct Vector3<float>;
 template struct Vector3<double>;
 
 template<typename T>
-Vector2<T>& Vector2<T>::operator<<(const EditorVariable& editor)
+Vector2<T>& Vector2<T>::operator<<(EditorExposer& editor)
 {
+	const T cachedX = x;
+	const T cachedY = y;
+
 	if constexpr (std::is_same_v<T, int>)
 	{
-		ImGui::InputInt2(editor.propertyName, &x);
+		editor.modified = ImGui::InputInt2(editor.propertyName.c_str(), &x);
 	}
 	else if constexpr (std::is_same_v<T, float>)
 	{
-		ImGui::InputFloat2(editor.propertyName, &x);
+		editor.modified = ImGui::InputFloat2(editor.propertyName.c_str(), &x);
 	}
 	else
 	{
-		ImGui::Text(editor.propertyName);
+		ImGui::Text(editor.propertyName.c_str());
 		ImGui::SameLine();
 		ImGui::Text(" | ERROR: Unhandled Vector2<T> type");
+	}
+
+	if (editor.modified)
+	{
+		if (cachedX != x)
+		{
+			editor.outPropertyChain->emplace_back(0);
+		}
+		else
+		{
+			editor.outPropertyChain->emplace_back(1);
+		}
+	}
+
+	return *this;
+}
+
+template<typename T>
+const Vector2<T>& Vector2<T>::operator>>(EditorManipulator& extractor) const
+{
+	switch ((*extractor.propertyChain)[0])
+	{
+		case 0: extractor.value = &x; break;
+		case 1: extractor.value = &y; break;
+		default: ASSERT(false); break;
 	}
 	return *this;
 }
 
 template<typename T>
-inline Vector3<T>& Vector3<T>::operator<<(const EditorVariable& editor)
+Vector2<T>& Vector2<T>::operator<<(EditorManipulator& inserter)
 {
+	switch ((*inserter.propertyChain)[0])
+	{
+	case 0: x = *static_cast<const T*>(inserter.value); break;
+	case 1: y = *static_cast<const T*>(inserter.value); break;
+	default: ASSERT(false); break;
+	}
+	return *this;
+}
+
+template<typename T>
+inline Vector3<T>& Vector3<T>::operator<<(EditorExposer& editor)
+{
+	const T cachedX = x;
+	const T cachedY = y;
+	const T cachedZ = z;
+
 	if constexpr (std::is_same_v<T, int>)
 	{
-		ImGui::InputInt3(editor.propertyName, &x);
+		editor.modified = ImGui::InputInt3(editor.propertyName.c_str(), &x);
 	}
 	else if constexpr (std::is_same_v<T, float>)
 	{
-		ImGui::InputFloat3(editor.propertyName, &x);
+		editor.modified = ImGui::InputFloat3(editor.propertyName.c_str(), &x);
 	}
 	else
 	{
-		ImGui::Text(editor.propertyName);
+		ImGui::Text(editor.propertyName.c_str());
 		ImGui::SameLine();
 		ImGui::Text(" | ERROR: Unhandled Vector3<T> type");
+	}
+
+	if (editor.modified)
+	{
+		if (cachedX != x)
+		{
+			editor.outPropertyChain->emplace_back(0);
+		}
+		else if(cachedY != y)
+		{
+			editor.outPropertyChain->emplace_back(1);
+		}
+		else
+		{
+			editor.outPropertyChain->emplace_back(2);
+		}
+	}
+
+	return *this;
+}
+
+template<typename T>
+const Vector3<T>& Vector3<T>::operator>>(EditorManipulator& extractor) const
+{
+	switch ((*extractor.propertyChain)[0])
+	{
+	case 0: extractor.value = &x; break;
+	case 1: extractor.value = &y; break;
+	case 2: extractor.value = &z; break;
+	default: ASSERT(false); break;
+	}
+	return *this;
+}
+
+template<typename T>
+Vector3<T>& Vector3<T>::operator<<(EditorManipulator& inserter)
+{
+	switch ((*inserter.propertyChain)[0])
+	{
+	case 0: x = *static_cast<const T*>(inserter.value); break;
+	case 1: y = *static_cast<const T*>(inserter.value); break;
+	case 2: z = *static_cast<const T*>(inserter.value); break;
+	default: ASSERT(false); break;
 	}
 	return *this;
 }

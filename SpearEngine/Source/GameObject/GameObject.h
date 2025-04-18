@@ -40,7 +40,9 @@ class GameObject
 	virtual void OnPostSerialize() {};
 
 	// Editor
-	virtual void PopulateEditorPanel();
+	virtual void PopulateEditorPanel(std::vector<int>& outPropertyChain);
+	virtual const void* GetProperty(const std::vector<int>& propertyChain, int step = 1) const;
+	virtual void SetProperty(const void* value, const std::vector<int>& propertyChain, int step = 1);
 	virtual void DrawInEditor(const Vector3f& position, float zoom) const;
 	virtual void DrawInEditorHovered(const Vector3f& position, float zoom) const;
 	virtual void DrawInEditorSelected(const Vector3f& position, float zoom) const;

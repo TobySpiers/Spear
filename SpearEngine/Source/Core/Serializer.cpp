@@ -22,6 +22,56 @@ void Serializer::Deserialize(std::ifstream& stream, std::string& string)
     }
 }
 
+const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const int& arg)
+{
+    return &arg;
+}
+
+const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const float& arg)
+{
+    return &arg;
+}
+
+const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const double& arg)
+{
+    return &arg;
+}
+
+const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const bool& arg)
+{
+    return &arg;
+}
+
+const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const std::string& arg)
+{
+    return &arg;
+}
+
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, int& arg)
+{
+    arg = *static_cast<const int*>(newValue);
+}
+
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, float& arg)
+{
+    arg = *static_cast<const float*>(newValue);
+}
+
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, double& arg)
+{
+    arg = *static_cast<const double*>(newValue);
+}
+
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, bool& arg)
+{
+    arg = *static_cast<const bool*>(newValue);
+}
+
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, std::string& arg)
+{
+    arg = *static_cast<const std::string*>(newValue);
+}
+
 bool Serializer::ExposeCategory(const char* category)
 {
     return ImGui::TreeNodeEx(category, ImGuiTreeNodeFlags_DefaultOpen);
@@ -70,22 +120,27 @@ std::string Serializer::GetPropertyName(const char* propertyNames, int propertyI
     return std::string(propertyNames + strIndex, strLength);
 }
 
-void Serializer::Expose(const char* propertyName, int& data)
+bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, int& data)
 {
-    ImGui::InputInt(propertyName, &data);
+    return ImGui::InputInt(propertyName, &data);
 }
 
-void Serializer::Expose(const char* propertyName, float& data)
+bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, float& data)
 {
-    ImGui::InputFloat(propertyName, &data);
+    return ImGui::InputFloat(propertyName, &data);
 }
 
-void Serializer::Expose(const char* propertyName, bool& data)
+bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, double& data)
 {
-    ImGui::Checkbox(propertyName, &data);
+    return ImGui::InputDouble(propertyName, &data);
 }
 
-void Serializer::Expose(const char* propertyName, std::string& data)
+bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, bool& data)
 {
-    ImGui::InputText(propertyName, &data);
+    return ImGui::Checkbox(propertyName, &data);
+}
+
+bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, std::string& data)
+{
+    return ImGui::InputText(propertyName, &data);
 }

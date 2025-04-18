@@ -906,13 +906,20 @@ void FlowstateEditor::MakePanel_Details_Object()
 
 	if (bUniformType)
 	{
-	// TODO: PopulateEditorPanel should return an int representing which property was changed (or -1 for null)
-	// Then we need to implement a CopyEditorProperty method to take the integer (and a reference object) and copy the modified value into all selected objects
-		selectedObject->PopulateEditorPanel();
-		for (GameObject* obj : m_selectedObjects)
+		std::vector<int> propertyChain;
+		selectedObject->PopulateEditorPanel(propertyChain);
+		if (!propertyChain.empty())
 		{
-			obj = selectedObject;
+			const void* modifiedProperty = selectedObject->GetProperty(propertyChain);
+			for (GameObject* obj : m_selectedObjects)
+			{
+				if (obj != selectedObject)
+				{
+					obj->SetProperty(modifiedProperty, propertyChain);
+				}
+			}
 		}
+
 	}
 	else
 	{
