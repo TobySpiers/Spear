@@ -14,10 +14,14 @@
 #include <imgui_stdlib.h>
 #include <filesystem>
 #include <imgui_internal.h>
+#include "Editor/EditorAction_ModifyProperties.h"
 
 
 void FlowstateEditor::ResetEditor()
 {
+	ClearRedoActions();
+	ClearUndoActions();
+
 	GameObject::GlobalDestroy();
 	m_selectedObjects.clear();
 	m_selectedTiles.clear();
@@ -42,8 +46,11 @@ void FlowstateEditor::StateEnter()
 	int config[INPUT_COUNT];
 
 	config[INPUT_CTRL] = SDL_SCANCODE_LCTRL;
-	config[INPUT_SHIFT] = SDL_SCANCODE_LSHIFT;
 	config[INPUT_ALT] = SDL_SCANCODE_LALT;
+	config[INPUT_SHIFT] = SDL_SCANCODE_LSHIFT;
+
+	config[INPUT_Z] = SDL_SCANCODE_Z;
+	config[INPUT_Y] = SDL_SCANCODE_Y;
 
 	config[INPUT_APPLY] = SDL_BUTTON_LEFT;
 	config[INPUT_CLEAR] = SDL_BUTTON_RIGHT;
@@ -71,6 +78,7 @@ void FlowstateEditor::StateEnter()
 	config[INPUT_LOAD] = SDL_SCANCODE_L;
 
 	Spear::ServiceLocator::GetInputManager().ConfigureInputBindings(config, INPUT_COUNT);
+	Spear::ServiceLocator::GetInputManager().AllowImguiKeyboardConsumption(false);
 
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
@@ -243,6 +251,7 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	ImGui::End();
 
 	MakePanel_Visibility();
+	MakePanel_UndoRedo();
 
 	ImGui::Begin("Details");
 	switch (m_editorMode)
@@ -388,6 +397,11 @@ void FlowstateEditor::ProcessInput()
 		return;
 	}
 
+	if (ProcessInput_UndoRedo())
+	{
+		return;
+	}
+
 	if(m_editorMode == EditorMode::MODE_TILES)
 	{
 		if (ProcessInput_Tiles_FloodSelect())
@@ -430,6 +444,26 @@ bool FlowstateEditor::ProcessInput_DragView()
 	}
 
 	return true;
+}
+
+bool FlowstateEditor::ProcessInput_UndoRedo()
+{
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+
+	if (input.InputHold(INPUT_CTRL))
+	{
+		if (input.InputRelease(INPUT_Z))
+		{
+			UndoAction();
+			return true;
+		}
+		else if (input.InputRelease(INPUT_Y))
+		{
+			RedoAction();
+			return true;
+		}
+	}
+	return false;
 }
 
 bool FlowstateEditor::ProcessInput_Tiles_FloodSelect()
@@ -906,25 +940,52 @@ void FlowstateEditor::MakePanel_Details_Object()
 
 	if (bUniformType)
 	{
-		std::vector<int> propertyChain;
-		selectedObject->PopulateEditorPanel(propertyChain);
-		if (!propertyChain.empty())
+		// Expose selected object for editing in ImGui, encapsulated within an EditorAction
+		EditorAction_ModifyProperties* modifyPropertiesAction = new EditorAction_ModifyProperties(selectedObject, m_selectedObjects.size() - 1);
+
+		// If object was modified, apply modification to other selected objects too
+		if (modifyPropertiesAction->WasObjectModified())
 		{
-			const void* modifiedProperty = selectedObject->GetProperty(propertyChain);
 			for (GameObject* obj : m_selectedObjects)
 			{
 				if (obj != selectedObject)
 				{
-					obj->SetProperty(modifiedProperty, propertyChain);
+					modifyPropertiesAction->ModifySecondaryObject(obj);
 				}
 			}
-		}
 
+			// Register this action with the m_undoActions array. Deleted when removed from Redo & Undo lists.
+			CommitAction(modifyPropertiesAction);
+		}
+		else
+		{
+			// If no property modifications were made, we have no reason to hang onto the EditorAction
+			delete modifyPropertiesAction;
+		}
 	}
 	else
 	{
 		ImGui::Text("Multiple types selected");
 	}
+}
+
+void FlowstateEditor::MakePanel_UndoRedo()
+{
+	ImGui::Begin("History");
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(.5f, .5f, .5f, 1.0f));
+	for (EditorActionBase* redoAction : m_redoActions)
+	{
+		ImGui::Text(redoAction->ActionName().c_str());
+	}
+	ImGui::PopStyleColor();
+
+	for (int i = m_undoActions.size() - 1; i >= 0; i--)
+	{
+		EditorActionBase* UndoAction = m_undoActions[i];
+		ImGui::Text(UndoAction->ActionName().c_str());
+	}
+
+	ImGui::End();
 }
 
 bool FlowstateEditor::MakePopup_TextureSelect(int& outValue, const char* popupId)
@@ -1239,6 +1300,7 @@ void FlowstateEditor::StateExit()
 	ResetEditor();
 
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
+	Spear::ServiceLocator::GetInputManager().AllowImguiKeyboardConsumption(true);
 
 	Spear::ImguiManager& imguiManager = Spear::ImguiManager::Get();
 	imguiManager.SetPanelsEnabled(false);
@@ -1279,4 +1341,48 @@ void FlowstateEditor::OpenLevel(const char* levelName)
 
 	LevelFileManager::EditorLoadLevel(levelName, *m_map);
 	Spear::WindowManager::Get().SetWindowTitleOverride((std::string(m_map->mapName) + " - Spear").c_str());
+}
+
+void FlowstateEditor::CommitAction(EditorActionBase* action)
+{
+	ClearRedoActions();
+	m_undoActions.emplace_back(action);
+}
+
+void FlowstateEditor::UndoAction(int steps)
+{
+	while (steps-- > 0 && !m_undoActions.empty())
+	{
+		m_undoActions.back()->Undo();
+		m_redoActions.emplace_back(m_undoActions.back());
+		m_undoActions.pop_back();
+	}
+}
+
+void FlowstateEditor::RedoAction(int steps)
+{
+	while (steps-- > 0 && !m_redoActions.empty())
+	{
+		m_redoActions.back()->Redo();
+		m_undoActions.emplace_back(m_redoActions.back());
+		m_redoActions.pop_back();
+	}
+}
+
+void FlowstateEditor::ClearUndoActions()
+{
+	for (EditorActionBase* undoAction : m_undoActions)
+	{
+		delete undoAction;
+	}
+	m_undoActions.clear();
+}
+
+void FlowstateEditor::ClearRedoActions()
+{
+	for (EditorActionBase* redoAction : m_redoActions)
+	{
+		delete redoAction;
+	}
+	m_redoActions.clear();
 }

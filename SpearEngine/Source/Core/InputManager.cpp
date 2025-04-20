@@ -22,6 +22,11 @@ namespace Spear
 		}
 	}
 
+	void InputManager::AllowImguiKeyboardConsumption(bool allowConsumption)
+	{
+		m_imguiKeyboardConsumption = allowConsumption;
+	}
+
 	void InputManager::RefreshInput(int mousewheelInput)
 	{
 		// Refresh Cursor state
@@ -55,7 +60,7 @@ namespace Spear
 			else
 			{
 				// Update KeyBinding
-				UpdateInputState(ImGui::GetIO().WantCaptureKeyboard ? false : rawKeyState[m_inputBindings[i]], &m_inputStates[i]);
+				UpdateInputState(ImGui::GetIO().WantCaptureKeyboard && m_imguiKeyboardConsumption ? false : rawKeyState[m_inputBindings[i]], &m_inputStates[i]);
 			}
 		}
 	}

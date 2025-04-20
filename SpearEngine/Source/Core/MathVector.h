@@ -3,8 +3,8 @@
 #include <fstream>
 
 struct ImVec2;
-struct EditorExposer;
-struct EditorManipulator;
+struct ExposedPropertyData;
+struct PropertyManipulator;
 
 template <typename T>
 struct Vector2
@@ -25,9 +25,9 @@ struct Vector2
 		stream >> obj.y;
 		return stream;
 	};
-	Vector2<T>& operator<<(EditorExposer& editor);
-	const Vector2<T>& operator>>(EditorManipulator& extractor) const;
-	Vector2<T>& operator<<(EditorManipulator& inserter);
+	Vector2<T>& operator<<(ExposedPropertyData& editor);
+	Vector2<T>& operator<<(PropertyManipulator& inserter);
+	const Vector2<T>& operator>>(PropertyManipulator& deleter) const;
 
 	Vector2(){};
 	Vector2(T inVal) : x{ inVal }, y{ inVal }{};
@@ -90,9 +90,9 @@ struct Vector3
 		stream >> obj.z;
 		return stream;
 	};
-	Vector3<T>& operator<<(EditorExposer& editor);
-	const Vector3<T>& operator>>(EditorManipulator& extractor) const;
-	Vector3<T>& operator<<(EditorManipulator& inserter);
+	Vector3<T>& operator<<(ExposedPropertyData& editor);
+	Vector3<T>& operator<<(PropertyManipulator& inserter);
+	const Vector3<T>& operator>>(PropertyManipulator& deleter) const;
 
 	Vector3() {};
 	Vector3(T inVal) : x{ inVal }, y{ inVal }, z{ inVal } {};

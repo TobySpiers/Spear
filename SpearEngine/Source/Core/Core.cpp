@@ -88,7 +88,6 @@ namespace Spear
 		float deltaTime{1.f / targetFPS };
 		const u64 targetFrequency = SDL_GetPerformanceFrequency()/targetFPS;
 
-		ImGuiIO& imguiIO = ImGui::GetIO();
 		while (!m_shutdown)
 		{
 			frameStart = SDL_GetPerformanceCounter();

@@ -22,54 +22,54 @@ void Serializer::Deserialize(std::ifstream& stream, std::string& string)
     }
 }
 
-const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const int& arg)
+void Serializer::DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const int& arg)
 {
-    return &arg;
+    DeletePropertyDataInternal<int>(allocatedData);
 }
 
-const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const float& arg)
+void Serializer::DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const float& arg)
 {
-    return &arg;
+    DeletePropertyDataInternal<float>(allocatedData);
 }
 
-const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const double& arg)
+void Serializer::DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const double& arg)
 {
-    return &arg;
+    DeletePropertyDataInternal<double>(allocatedData);
 }
 
-const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const bool& arg)
+void Serializer::DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const bool& arg)
 {
-    return &arg;
+    DeletePropertyDataInternal<bool>(allocatedData);
 }
 
-const void* Serializer::GetProperty(const std::vector<int>& propertyChain, int step, const std::string& arg)
+void Serializer::DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const std::string& arg)
 {
-    return &arg;
+    DeletePropertyDataInternal<std::string>(allocatedData);
 }
 
-void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, int& arg)
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, int& arg)
 {
-    arg = *static_cast<const int*>(newValue);
+    SetPropertyInternal(newValue, arg, outPropertyData);
 }
 
-void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, float& arg)
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, float& arg)
 {
-    arg = *static_cast<const float*>(newValue);
+    SetPropertyInternal(newValue, arg, outPropertyData);
 }
 
-void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, double& arg)
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, double& arg)
 {
-    arg = *static_cast<const double*>(newValue);
+    SetPropertyInternal(newValue, arg, outPropertyData);
 }
 
-void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, bool& arg)
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, bool& arg)
 {
-    arg = *static_cast<const bool*>(newValue);
+    SetPropertyInternal(newValue, arg, outPropertyData);
 }
 
-void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, std::string& arg)
+void Serializer::SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, std::string& arg)
 {
-    arg = *static_cast<const std::string*>(newValue);
+    SetPropertyInternal(newValue, arg, outPropertyData);
 }
 
 bool Serializer::ExposeCategory(const char* category)
@@ -120,27 +120,97 @@ std::string Serializer::GetPropertyName(const char* propertyNames, int propertyI
     return std::string(propertyNames + strIndex, strLength);
 }
 
-bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, int& data)
+bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyName, int& data)
 {
-    return ImGui::InputInt(propertyName, &data);
+    int cachedData = data;
+    if (ImGui::InputInt(propertyName, &data))
+    {
+        propertyData.SetOldValue(cachedData);
+        propertyData.SetNewValue(data);
+        propertyData.modifiedPropertyName = propertyName;
+        return true;
+    }
+    return false;
 }
 
-bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, float& data)
+bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyName, float& data)
 {
-    return ImGui::InputFloat(propertyName, &data);
+    float cachedData = data;
+    if (ImGui::InputFloat(propertyName, &data))
+    {
+        propertyData.SetOldValue(cachedData);
+        propertyData.SetNewValue(data);
+        propertyData.modifiedPropertyName = propertyName;
+        return true;
+    }
+    return false;
 }
 
-bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, double& data)
+bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyName, double& data)
 {
-    return ImGui::InputDouble(propertyName, &data);
+    double cachedData = data;
+    if (ImGui::InputDouble(propertyName, &data))
+    {
+        propertyData.SetOldValue(cachedData);
+        propertyData.SetNewValue(data);
+        propertyData.modifiedPropertyName = propertyName;
+        return true;
+    }
+    return false;
 }
 
-bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, bool& data)
+bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyName, bool& data)
 {
-    return ImGui::Checkbox(propertyName, &data);
+    bool cachedData = data;
+    if (ImGui::Checkbox(propertyName, &data))
+    {
+        propertyData.SetOldValue(cachedData);
+        propertyData.SetNewValue(data);
+        propertyData.modifiedPropertyName = propertyName;
+        return true;
+    }
+    return false;
 }
 
-bool Serializer::Expose(std::vector<int>& outPropertyChain, const char* propertyName, std::string& data)
+bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyName, std::string& data)
 {
-    return ImGui::InputText(propertyName, &data);
+    std::string cachedData = data;
+    if (ImGui::InputText(propertyName, &data))
+    {
+        propertyData.SetOldValue(cachedData);
+        propertyData.SetNewValue(data);
+        propertyData.modifiedPropertyName = propertyName;
+        return true;
+    }
+    return false;
+}
+
+ExposedPropertyData::ExposedPropertyData(GameObject* object)
+    : m_object(object)
+{
+    object->PopulateEditorPanel(*this);
+}
+
+void ExposedPropertyData::CleanUp()
+{
+    if (WasModified())
+    {
+        m_object->DeletePropertyData(m_oldValue, propertyChain);
+        m_object->DeletePropertyData(m_newValue, propertyChain);
+    }
+    ASSERT(m_oldValue == nullptr);
+    ASSERT(m_newValue == nullptr);
+}
+
+ModifiedPropertyData::ModifiedPropertyData(GameObject* object, const ExposedPropertyData& refProperty)
+    : m_object(object), m_propertyChain(&refProperty.propertyChain)
+{}
+
+void ModifiedPropertyData::CleanUp()
+{
+    if (m_oldValue != nullptr)
+    {
+        m_object->DeletePropertyData(m_oldValue, *m_propertyChain);
+    }
+    ASSERT(m_oldValue == nullptr);
 }

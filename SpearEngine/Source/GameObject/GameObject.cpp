@@ -161,21 +161,21 @@ void GameObject::DeregisterPtr(GameObjectPtrBase* ptr)
 	trackedPtrs.erase(ptr);
 }
 
-void GameObject::PopulateEditorPanel(std::vector<int>& outPropertyChain)
+void GameObject::PopulateEditorPanel(ExposedPropertyData& propertyData)
 {
-	EXPOSE_PROPERTIES(outPropertyChain, m_position);
+	EXPOSE_PROPERTIES(propertyData, m_position);
 }
 
-const void* GameObject::GetProperty(const std::vector<int>& propertyChain, int step) const
+void GameObject::SetProperty(const void* value, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step)
 {
 	const int propertyId = propertyChain[propertyChain.size() - step];
-	RETURN_PROPERTY(propertyChain, step + 1, propertyId, m_position);
+	SET_PROPERTY(value, propertyChain, outPropertyData, step + 1, propertyId, m_position);
 }
 
-void GameObject::SetProperty(const void* value, const std::vector<int>& propertyChain, int step)
+void GameObject::DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step) const
 {
 	const int propertyId = propertyChain[propertyChain.size() - step];
-	SET_PROPERTY(value, propertyChain, step + 1, propertyId, m_position);
+	DELETE_PROPERTY_DATA(allocatedData, propertyChain, step, propertyId, m_position);
 }
 
 void GameObject::DrawInEditor(const Vector3f& position, float zoom) const

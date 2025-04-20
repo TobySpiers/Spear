@@ -13,6 +13,8 @@ namespace Spear
 		~InputManager(){};
 
 		void ConfigureInputBindings(int* bindings, int totalBindings);
+		void AllowImguiKeyboardConsumption(bool allowConsumption);
+
 		void RefreshInput(int mousewheelInput);
 		void ClearMouseInput();
 		void ClearKeyInput();
@@ -64,6 +66,8 @@ namespace Spear
 		int m_inputBindings[KEYBINDINGS_LIMIT] = {}; // bind ENUM INTs to SDL_SCANCODEs
 		int m_inputStates[KEYBINDINGS_LIMIT] = {}; // bind ENUM INTS to InputState vals
 		u8 m_bindingsSize{ 0 };
+
+		bool m_imguiKeyboardConsumption{true};
 
 	};
 };

@@ -11,12 +11,12 @@
 #define DESERIALIZE(inStream, ...) Serializer::ForwardArgsToSerializers([&](auto& arg) { Serializer::Deserialize(inStream, arg); }, __VA_ARGS__);
 
 // Macros to simplify exposing serialized variables in the editor
-#define EXPOSE_PROPERTIES(outPropertyChain, ...)\
-int i{0}; Serializer::ForwardArgsToSerializers([&](auto& arg) { Serializer::ExposeInEditor(outPropertyChain, #__VA_ARGS__, i++, arg); }, __VA_ARGS__);
-#define RETURN_PROPERTY(propertyChain, step, propertyId, ...)\
-int i{0}; const void* property{nullptr}; Serializer::ForwardArgsToSerializers([&](auto& arg) { if(i++ == propertyId) { property = Serializer::GetProperty(propertyChain, step, arg); }}, __VA_ARGS__); return property;
-#define SET_PROPERTY(newValue, propertyChain, step, propertyId, ...)\
-int i{0}; Serializer::ForwardArgsToSerializers([&](auto& arg) { if(i++ == propertyId) { Serializer::SetProperty(newValue, propertyChain, step, arg); }}, __VA_ARGS__);
+#define EXPOSE_PROPERTIES(propertyData, ...)\
+int i{0}; Serializer::ForwardArgsToSerializers([&](auto& arg) { Serializer::ExposeInEditor(propertyData, #__VA_ARGS__, i++, arg); }, __VA_ARGS__);
+#define SET_PROPERTY(newValue, propertyChain, outPropertyData, step, propertyId, ...)\
+int i{0}; Serializer::ForwardArgsToSerializers([&](auto& arg) { if(i++ == propertyId) { Serializer::SetProperty(newValue, propertyChain, outPropertyData, step, arg); }}, __VA_ARGS__);
+#define DELETE_PROPERTY_DATA(allocatedData, propertyChain, step, propertyId, ...)\
+int i{0}; Serializer::ForwardArgsToSerializers([&](auto& arg) { if(i++ == propertyId) { Serializer::DeletePropertyData(allocatedData, propertyChain, step, arg); }}, __VA_ARGS__);
 
 // Macro adding serialization support via insertion/extraction operators ( << & >> )
 #define SERIALIZABLE_BASE(Class, ...)\
@@ -39,39 +39,39 @@ friend std::ifstream& operator>>(std::ifstream& stream, Class& obj)\
     obj.Deserialize(stream);\
     return stream;\
 }\
-virtual void ExposeToEditor(std::vector<int>& outPropertyChain)\
+virtual void ExposeToEditor(ExposedPropertyData& propertyData)\
 {\
     if(Serializer::ExposeCategory(#Class))\
     {\
-        EXPOSE_PROPERTIES(outPropertyChain, __VA_ARGS__);\
+        EXPOSE_PROPERTIES(propertyData, __VA_ARGS__);\
         Serializer::PopCategory();\
     }\
 }\
-virtual const void* GetProperty(const std::vector<int>& propertyChain, int step) const\
+virtual void SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step)\
 {\
 	const int propertyId = propertyChain[propertyChain.size() - step];\
     ASSERT(propertyId != -1);\
-	RETURN_PROPERTY(propertyChain, step + 1, propertyId, __VA_ARGS__);\
+	SET_PROPERTY(newValue, propertyChain, outPropertyData, step + 1, propertyId, __VA_ARGS__);\
 }\
-virtual void SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step)\
+virtual void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step) const\
 {\
-	const int propertyId = propertyChain[propertyChain.size() - step];\
+    const int propertyId = propertyChain[propertyChain.size() - step];\
     ASSERT(propertyId != -1);\
-	SET_PROPERTY(newValue, propertyChain, step + 1, propertyId, __VA_ARGS__);\
+    DELETE_PROPERTY_DATA(allocatedData, propertyChain, step + 1, propertyId, __VA_ARGS__);\
 }\
-Class& operator<<(EditorExposer& editor)\
+Class& operator<<(ExposedPropertyData& editor)\
 {\
-    ExposeToEditor(*editor.outPropertyChain);\
+    ExposeToEditor(editor);\
     return *this;\
 }\
-const Class& operator>>(EditorManipulator& extractor) const\
+Class& operator<<(PropertyManipulator& inserter)\
 {\
-    extractor.value = GetProperty(*extractor.propertyChain, extractor.step);\
+    SetProperty(inserter.value, *inserter.propertyChain, inserter.outPropertyData, inserter.step);\
     return *this;\
 }\
-Class& operator<<(EditorManipulator& inserter)\
+const Class& operator>>(PropertyManipulator& deleter) const\
 {\
-    SetProperty(inserter.value, *inserter.propertyChain, inserter.step);\
+    DeletePropertyData(*deleter.allocatedValue, *deleter.propertyChain, deleter.step);\
     return *this;\
 }\
 
@@ -98,71 +98,132 @@ friend std::ifstream& operator>>(std::ifstream& stream, Class& obj)\
     obj.PostDeserialize();\
     return stream;\
 }\
-virtual void ExposeToEditor(std::vector<int>& outPropertyChain) override\
+virtual void ExposeToEditor(ExposedPropertyData& propertyData) override\
 {\
     if(Serializer::ExposeCategory(#Class))\
     {\
-        EXPOSE_PROPERTIES(outPropertyChain, __VA_ARGS__);\
-        const size_t cachedSize = outPropertyChain.size();\
-        BaseClass::ExposeToEditor(outPropertyChain);\
-        if(outPropertyChain.size() > cachedSize)\
+        EXPOSE_PROPERTIES(propertyData, __VA_ARGS__);\
+        const size_t cachedSize = propertyData.propertyChain.size();\
+        BaseClass::ExposeToEditor(propertyData);\
+        if(propertyData.propertyChain.size() > cachedSize)\
         {\
-            outPropertyChain.emplace_back(-1);\
+            propertyData.propertyChain.emplace_back(-1);\
         }\
         Serializer::PopCategory();\
     }\
 }\
-virtual const void* GetProperty(const std::vector<int>& propertyChain, int step) const override\
-{\
-	const int propertyId = propertyChain[propertyChain.size() - step];\
-	if(propertyId == -1)\
-	{\
-		return BaseClass::GetProperty(propertyChain, step + 1);\
-	}\
-	RETURN_PROPERTY(propertyChain, step + 1, propertyId, __VA_ARGS__);\
-}\
-virtual void SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step) override\
+virtual void SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step) override\
 {\
 	const int propertyId = propertyChain[propertyChain.size() - step];\
     if(propertyId == -1)\
 	{\
-		BaseClass::SetProperty(newValue, propertyChain, step + 1);\
+		BaseClass::SetProperty(newValue, propertyChain, outPropertyData, step + 1);\
         return;\
 	}\
-	SET_PROPERTY(newValue, propertyChain, step + 1, propertyId, __VA_ARGS__);\
+	SET_PROPERTY(newValue, propertyChain, outPropertyData, step + 1, propertyId, __VA_ARGS__);\
 }\
-Class& operator<<(EditorExposer& editor)\
+virtual void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step) const\
 {\
-    ExposeToEditor(*editor.outPropertyChain);\
+    const int propertyId = propertyChain[propertyChain.size() - step];\
+    if(propertyId == -1)\
+	{\
+		BaseClass::DeletePropertyData(allocatedData, propertyChain, step + 1);\
+        return;\
+	}\
+    DELETE_PROPERTY_DATA(allocatedData, propertyChain, step + 1, propertyId, __VA_ARGS__);\
+}\
+Class& operator<<(ExposedPropertyData& editor)\
+{\
+    ExposeToEditor(editor);\
     return *this;\
 }\
-const Class& operator>>(EditorManipulator& extractor) const\
+Class& operator<<(PropertyManipulator& inserter)\
 {\
-    extractor.value = GetProperty(*extractor.propertyChain, extractor.step);\
+    SetProperty(inserter.value, *inserter.propertyChain, inserter.outPropertyData, inserter.step);\
     return *this;\
 }\
-Class& operator<<(EditorManipulator& inserter)\
+const Class& operator>>(PropertyManipulator& deleter) const\
 {\
-    SetProperty(inserter.value, *inserter.propertyChain, inserter.step);\
+    DeletePropertyData(*deleter.allocatedValue, *deleter.propertyChain, deleter.step);\
     return *this;\
 }\
 
 struct GameObjectPtrBase;
 
-// Used to generically expose variables to ImGui panels in Level Editor using '<<' operator
-struct EditorExposer
+// Used to generically expose GameObject properties to ImGui panels
+class ExposedPropertyData
 {
+public:
+    ExposedPropertyData(GameObject* object);
+
     std::string propertyName;
-    std::vector<int>* outPropertyChain{nullptr};
-    bool modified{false};
+    std::vector<int> propertyChain;
+    std::string modifiedPropertyName;
+
+    template <typename T>
+    void SetOldValue(const T& oldValue)
+    {
+        ASSERT(!m_oldValue);
+        m_oldValue = new T(oldValue);
+        ASSERT(m_oldValue);
+    };
+
+    template <typename T>
+    void SetNewValue(const T& newValue)
+    {
+        ASSERT(!m_newValue);
+        m_newValue = new T(newValue);
+        ASSERT(m_newValue);
+    };
+
+    bool WasModified() const {return m_newValue != nullptr || m_oldValue != nullptr;}
+    GameObject* GetObject() const {ASSERT(m_object); return m_object;}
+    const void* GetOldValue() const {ASSERT(m_oldValue); return m_oldValue;}
+    const void* GetNewValue() const {ASSERT(m_newValue); return m_newValue;}
+    void CleanUp();
+
+private:
+    GameObject* m_object{nullptr};
+
+    // Heap allocated - CleanUp must be called to destroy correctly!
+    const void* m_oldValue{nullptr};
+    const void* m_newValue{nullptr};
+};
+
+class ModifiedPropertyData
+{
+public:
+    ModifiedPropertyData(GameObject* object, const ExposedPropertyData& refProperty);
+
+    template <typename T>
+    void SetOldValue(const T& oldValue)
+    {
+        ASSERT(!m_oldValue);
+        m_oldValue = new T(oldValue);
+        ASSERT(m_oldValue);
+    };
+
+    GameObject* GetObject() const {ASSERT(m_object); return m_object;}
+    const void* GetOldValue() const {ASSERT(m_oldValue); return m_oldValue;}
+    void CleanUp();
+
+private:
+    GameObject* m_object{nullptr};
+    const std::vector<int>* m_propertyChain{nullptr};
+
+    // Heap allocated - CleanUp must be called to destroy correctly!
+    const void* m_oldValue{nullptr};
 };
 
 // Used to generically get/set property values in Level Editor using '<<' and '>>' operators
-struct EditorManipulator
+class PropertyManipulator
 {
-    const std::vector<int>* propertyChain{nullptr};
-    int step{0};
+public:
+    const std::vector<int>* propertyChain;
+    int step{1};
     const void* value{nullptr};
+    const void** allocatedValue{nullptr};
+    ModifiedPropertyData* outPropertyData{nullptr};
 };
 
 namespace Serializer
@@ -191,61 +252,75 @@ namespace Serializer
 
     // Expose-to-editor generic custom type
     template <typename T>
-    bool Expose(std::vector<int>& outPropertyChain, const std::string& propertyName, T& data)
+    bool Expose(ExposedPropertyData& propertyData, const std::string& propertyName, T& data)
     {
-        EditorExposer editor{};
-        editor.propertyName = propertyName;
-        editor.outPropertyChain = &outPropertyChain;
-        editor.modified = false;
+        propertyData.propertyName = propertyName;
 
-        const size_t cachedSize{outPropertyChain.size()};
-        data << editor;
-        return editor.modified || outPropertyChain.size() > cachedSize;
+        size_t cachedSize = propertyData.propertyChain.size();
+        data << propertyData;
+        return propertyData.propertyChain.size() > cachedSize;
     }
     // Expose-to-editor specialisations
-    bool Expose(std::vector<int>& outPropertyChain, const char* propertyName, int& data);
-    bool Expose(std::vector<int>& outPropertyChain, const char* propertyName, float& data);
-    bool Expose(std::vector<int>& outPropertyChain, const char* propertyName, double& data);
-    bool Expose(std::vector<int>& outPropertyChain, const char* propertyName, bool& data);
-    bool Expose(std::vector<int>& outPropertyChain, const char* propertyName, std::string& data);
+    bool Expose(ExposedPropertyData& propertyData, const char* propertyName, int& data);
+    bool Expose(ExposedPropertyData& propertyData, const char* propertyName, float& data);
+    bool Expose(ExposedPropertyData& propertyData, const char* propertyName, double& data);
+    bool Expose(ExposedPropertyData& propertyData, const char* propertyName, bool& data);
+    bool Expose(ExposedPropertyData& propertyData, const char* propertyName, std::string& data);
 
-    // GetProperty generic custom type
+    // DeletePropertyData unhandled custom type
     template <typename T>
-    const void* GetProperty(const std::vector<int>& propertyChain, int step, const T& arg)
+    void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const T& arg)
     {
-        EditorManipulator extractor{};
-        extractor.propertyChain = &propertyChain;
-        extractor.step = step;
-        extractor.value = nullptr;
+        PropertyManipulator deleter;
+        deleter.propertyChain = &propertyChain;
+        deleter.step = step;
+        deleter.allocatedValue = &allocatedData;
 
-        arg >> extractor;
-
-        return extractor.value;
+        arg >> deleter;
     }
-    // GetProperty specialisation
-    const void* GetProperty(const std::vector<int>& propertyChain, int step, const int& arg);
-    const void* GetProperty(const std::vector<int>& propertyChain, int step, const float& arg);
-    const void* GetProperty(const std::vector<int>& propertyChain, int step, const double& arg);
-    const void* GetProperty(const std::vector<int>& propertyChain, int step, const bool& arg);
-    const void* GetProperty(const std::vector<int>& propertyChain, int step, const std::string& arg);
-
-    // SetProperty generic custom type
+    // DeletePropertyData handled types
+    void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const int& arg);
+    void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const float& arg);
+    void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const double& arg);
+    void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const bool& arg);
+    void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step, const std::string& arg);
     template <typename T>
-    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, T& arg)
+    void DeletePropertyDataInternal(const void*& allocatedData)
     {
-        EditorManipulator inserter{0};
-        inserter.propertyChain = &propertyChain;
-        inserter.step = step;
-        inserter.value = newValue;
-
-        arg << inserter;
+        const T* typedData = static_cast<const T*>(allocatedData);
+        delete typedData;
+        allocatedData = nullptr;
     }
-    // SetProperty specialisation
-    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, int& arg);
-    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, float& arg);
-    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, double& arg);
-    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, bool& arg);
-    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, int step, std::string& arg);
+
+    // SetProperty unhandled custom type
+    template <typename T>
+    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, T& arg)
+    {
+        PropertyManipulator setter;
+        setter.propertyChain = &propertyChain;
+        setter.step = step;
+        setter.value = newValue;
+        setter.outPropertyData = outPropertyData;
+
+        arg << setter;
+    }
+    // SetProperty handled types
+    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, int& arg);
+    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, float& arg);
+    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, double& arg);
+    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, bool& arg);
+    void SetProperty(const void* newValue, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step, std::string& arg);
+    template <typename T>
+    void SetPropertyInternal(const void* newValue, T& property, ModifiedPropertyData* outPropertyData)
+    {
+        if (outPropertyData)
+        {
+            outPropertyData->SetOldValue(property);
+        }
+        const T* newValueAsType = static_cast<const T*>(newValue);
+        ASSERT(newValueAsType != nullptr);
+        property = *newValueAsType;
+    }
 
 
     bool ExposeCategory(const char* category);
@@ -254,12 +329,12 @@ namespace Serializer
     std::string GetPropertyName(const char* propertyNames, int propertyIndex);
 
     template <typename T>
-    void ExposeInEditor(std::vector<int>& outPropertyChain, const char* propertyNames, int propertyId, T& data)
+    void ExposeInEditor(ExposedPropertyData& propertyData, const char* propertyNames, int propertyId, T& data)
     {
         const std::string propertyName = GetPropertyName(propertyNames, propertyId);
-        if (Expose(outPropertyChain, propertyName.c_str(), data))
+        if (Expose(propertyData, propertyName.c_str(), data))
         {
-            outPropertyChain.emplace_back(propertyId);
+            propertyData.propertyChain.emplace_back(propertyId);
         }
     }
 }

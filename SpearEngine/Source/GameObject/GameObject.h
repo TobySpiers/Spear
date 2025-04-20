@@ -9,6 +9,9 @@
 
 // Note: built-in serialization does not currently support pointers. If needed, this must be handled manually via OnSerialize overrides.
 
+class ExposedPropertyData;
+class ModifiedPropertyData;
+
 enum class eGameObjectTickState
 {
 	TickEnabled,
@@ -40,9 +43,9 @@ class GameObject
 	virtual void OnPostSerialize() {};
 
 	// Editor
-	virtual void PopulateEditorPanel(std::vector<int>& outPropertyChain);
-	virtual const void* GetProperty(const std::vector<int>& propertyChain, int step = 1) const;
-	virtual void SetProperty(const void* value, const std::vector<int>& propertyChain, int step = 1);
+	virtual void PopulateEditorPanel(ExposedPropertyData& propertyData);
+	virtual void SetProperty(const void* value, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData = nullptr, int step = 1);
+	virtual void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step = 1) const;
 	virtual void DrawInEditor(const Vector3f& position, float zoom) const;
 	virtual void DrawInEditorHovered(const Vector3f& position, float zoom) const;
 	virtual void DrawInEditorSelected(const Vector3f& position, float zoom) const;

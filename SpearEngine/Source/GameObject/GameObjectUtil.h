@@ -34,34 +34,35 @@ virtual const char* GetClassName() const override\
 {\
 	return #classname;\
 }\
-virtual void PopulateEditorPanel(std::vector<int>& outPropertyChain)\
+virtual void PopulateEditorPanel(ExposedPropertyData& propertyData)\
 {\
-	const size_t cachedSize = outPropertyChain.size();\
-	Super::PopulateEditorPanel(outPropertyChain);\
-	if(outPropertyChain.size() > cachedSize)\
+	const size_t cachedSize = propertyData.propertyChain.size();\
+	Super::PopulateEditorPanel(propertyData);\
+	if(propertyData.propertyChain.size() > cachedSize)\
 	{\
-		outPropertyChain.emplace_back(-1);\
+		propertyData.propertyChain.emplace_back(-1);\
 	}\
-	EXPOSE_PROPERTIES(outPropertyChain, __VA_ARGS__);\
+	EXPOSE_PROPERTIES(propertyData, __VA_ARGS__);\
 }\
-virtual const void* GetProperty(const std::vector<int>& propertyChain, int step = 1) const override\
+virtual void SetProperty(const void* value, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData = nullptr, int step = 1) override\
 {\
 	const int propertyId = propertyChain[propertyChain.size() - step];\
 	if(propertyId == -1)\
 	{\
-		return Super::GetProperty(propertyChain, step + 1);\
-	}\
-	RETURN_PROPERTY(propertyChain, step + 1, propertyId, __VA_ARGS__);\
-}\
-virtual void SetProperty(const void* value, const std::vector<int>& propertyChain, int step = 1) override\
-{\
-	const int propertyId = propertyChain[propertyChain.size() - step];\
-	if(propertyId == -1)\
-	{\
-		Super::SetProperty(value, propertyChain, step + 1);\
+		Super::SetProperty(value, propertyChain, outPropertyData, step + 1);\
 		return;\
 	}\
-	SET_PROPERTY(value, propertyChain, step + 1, propertyId, __VA_ARGS__);\
+	SET_PROPERTY(value, propertyChain, outPropertyData, step + 1, propertyId, __VA_ARGS__);\
+}\
+virtual void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step = 1) const override\
+{\
+	const int propertyId = propertyChain[propertyChain.size() - step];\
+	if(propertyId == -1)\
+	{\
+		Super::DeletePropertyData(allocatedData, propertyChain, step + 1);\
+		return;\
+	}\
+	DELETE_PROPERTY_DATA(allocatedData, propertyChain, step + 1, propertyId, __VA_ARGS__);\
 }\
 static bool s_factoryRegistered;\
 

@@ -7,6 +7,7 @@
 #include <unordered_set>
 
 class GameObject;
+class EditorActionBase;
 
 class FlowstateEditor : public Spear::Flowstate
 {
@@ -23,6 +24,9 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_CTRL,
 		INPUT_ALT,
 		INPUT_SHIFT,
+
+		INPUT_Z,
+		INPUT_Y,
 
 		INPUT_APPLY,
 		INPUT_CLEAR,
@@ -104,6 +108,7 @@ class FlowstateEditor : public Spear::Flowstate
 	void MakePanel_Visibility();
 	void MakePanel_Details_Tile();
 	void MakePanel_Details_Object();
+	void MakePanel_UndoRedo();
 
 	bool MakePopup_TextureSelect(int& outValue, const char* popupId);
 
@@ -123,6 +128,7 @@ class FlowstateEditor : public Spear::Flowstate
 
 	void ProcessInput();
 	bool ProcessInput_DragView();
+	bool ProcessInput_UndoRedo();
 
 	// Tiles - Editor Input
 	bool ProcessInput_Tiles_FloodSelect();
@@ -170,9 +176,22 @@ public:
 	// Opens saved data using supplied level name
 	void OpenLevel(const char* levelName);
 
+	// Commits an EditorAction to the Undo/Redo pipeline
+	void CommitAction(EditorActionBase* action);
+
+	// Undoes the requested number of EditorActions
+	void UndoAction(int steps = 1);
+
+	// Redoes the requested number of EditorActions
+	void RedoAction(int steps = 1);
+
+	void ClearUndoActions();
+	void ClearRedoActions();
 private:
 	// State
 	int m_editorMode{ EditorMode::MODE_TILES };
+	std::vector<EditorActionBase*> m_undoActions;
+	std::vector<EditorActionBase*> m_redoActions;
 
 	// File
 	EditorMapData* m_map{nullptr};

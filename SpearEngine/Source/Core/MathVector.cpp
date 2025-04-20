@@ -13,35 +13,41 @@ template struct Vector3<float>;
 template struct Vector3<double>;
 
 template<typename T>
-Vector2<T>& Vector2<T>::operator<<(EditorExposer& editor)
+Vector2<T>& Vector2<T>::operator<<(ExposedPropertyData& propertyData)
 {
 	const T cachedX = x;
 	const T cachedY = y;
 
+	bool bModified{false};
 	if constexpr (std::is_same_v<T, int>)
 	{
-		editor.modified = ImGui::InputInt2(editor.propertyName.c_str(), &x);
+		bModified = ImGui::InputInt2(propertyData.propertyName.c_str(), &x);
 	}
 	else if constexpr (std::is_same_v<T, float>)
 	{
-		editor.modified = ImGui::InputFloat2(editor.propertyName.c_str(), &x);
+		bModified = ImGui::InputFloat2(propertyData.propertyName.c_str(), &x);
 	}
 	else
 	{
-		ImGui::Text(editor.propertyName.c_str());
+		ImGui::Text(propertyData.propertyName.c_str());
 		ImGui::SameLine();
 		ImGui::Text(" | ERROR: Unhandled Vector2<T> type");
 	}
 
-	if (editor.modified)
+	if (bModified)
 	{
+		propertyData.modifiedPropertyName = propertyData.propertyName;
 		if (cachedX != x)
 		{
-			editor.outPropertyChain->emplace_back(0);
+			propertyData.propertyChain.emplace_back(0);
+			propertyData.SetOldValue(cachedX);
+			propertyData.SetNewValue(x);
 		}
 		else
 		{
-			editor.outPropertyChain->emplace_back(1);
+			propertyData.propertyChain.emplace_back(1);
+			propertyData.SetOldValue(cachedY);
+			propertyData.SetNewValue(y);
 		}
 	}
 
@@ -49,64 +55,67 @@ Vector2<T>& Vector2<T>::operator<<(EditorExposer& editor)
 }
 
 template<typename T>
-const Vector2<T>& Vector2<T>::operator>>(EditorManipulator& extractor) const
+Vector2<T>& Vector2<T>::operator<<(PropertyManipulator& setter)
 {
-	switch ((*extractor.propertyChain)[0])
+	switch ((*setter.propertyChain)[0])
 	{
-		case 0: extractor.value = &x; break;
-		case 1: extractor.value = &y; break;
-		default: ASSERT(false); break;
-	}
-	return *this;
-}
-
-template<typename T>
-Vector2<T>& Vector2<T>::operator<<(EditorManipulator& inserter)
-{
-	switch ((*inserter.propertyChain)[0])
-	{
-	case 0: x = *static_cast<const T*>(inserter.value); break;
-	case 1: y = *static_cast<const T*>(inserter.value); break;
+	case 0: Serializer::SetPropertyInternal<T>(setter.value, x, setter.outPropertyData); break;
+	case 1: Serializer::SetPropertyInternal<T>(setter.value, y, setter.outPropertyData);; break;
 	default: ASSERT(false); break;
 	}
 	return *this;
 }
 
 template<typename T>
-inline Vector3<T>& Vector3<T>::operator<<(EditorExposer& editor)
+const Vector2<T>& Vector2<T>::operator>>(PropertyManipulator& deleter) const
+{
+	Serializer::DeletePropertyDataInternal<T>(*deleter.allocatedValue);
+	return *this;
+}
+
+template<typename T>
+inline Vector3<T>& Vector3<T>::operator<<(ExposedPropertyData& propertyData)
 {
 	const T cachedX = x;
 	const T cachedY = y;
 	const T cachedZ = z;
 
+	bool bModified{false};
 	if constexpr (std::is_same_v<T, int>)
 	{
-		editor.modified = ImGui::InputInt3(editor.propertyName.c_str(), &x);
+		bModified = ImGui::InputInt3(propertyData.propertyName.c_str(), &x);
 	}
 	else if constexpr (std::is_same_v<T, float>)
 	{
-		editor.modified = ImGui::InputFloat3(editor.propertyName.c_str(), &x);
+		bModified = ImGui::InputFloat3(propertyData.propertyName.c_str(), &x);
 	}
 	else
 	{
-		ImGui::Text(editor.propertyName.c_str());
+		ImGui::Text(propertyData.propertyName.c_str());
 		ImGui::SameLine();
 		ImGui::Text(" | ERROR: Unhandled Vector3<T> type");
 	}
 
-	if (editor.modified)
+	if (bModified)
 	{
+		propertyData.modifiedPropertyName = propertyData.propertyName;
 		if (cachedX != x)
 		{
-			editor.outPropertyChain->emplace_back(0);
+			propertyData.propertyChain.emplace_back(0);
+			propertyData.SetOldValue(cachedX);
+			propertyData.SetNewValue(x);
 		}
 		else if(cachedY != y)
 		{
-			editor.outPropertyChain->emplace_back(1);
+			propertyData.propertyChain.emplace_back(1);
+			propertyData.SetOldValue(cachedY);
+			propertyData.SetNewValue(y);
 		}
 		else
 		{
-			editor.outPropertyChain->emplace_back(2);
+			propertyData.propertyChain.emplace_back(2);
+			propertyData.SetOldValue(cachedZ);
+			propertyData.SetNewValue(z);
 		}
 	}
 
@@ -114,28 +123,22 @@ inline Vector3<T>& Vector3<T>::operator<<(EditorExposer& editor)
 }
 
 template<typename T>
-const Vector3<T>& Vector3<T>::operator>>(EditorManipulator& extractor) const
+Vector3<T>& Vector3<T>::operator<<(PropertyManipulator& setter)
 {
-	switch ((*extractor.propertyChain)[0])
+	switch ((*setter.propertyChain)[0])
 	{
-	case 0: extractor.value = &x; break;
-	case 1: extractor.value = &y; break;
-	case 2: extractor.value = &z; break;
+	case 0: Serializer::SetPropertyInternal<T>(setter.value, x, setter.outPropertyData); break;
+	case 1: Serializer::SetPropertyInternal<T>(setter.value, y, setter.outPropertyData); break;
+	case 2: Serializer::SetPropertyInternal<T>(setter.value, z, setter.outPropertyData); break;
 	default: ASSERT(false); break;
 	}
 	return *this;
 }
 
 template<typename T>
-Vector3<T>& Vector3<T>::operator<<(EditorManipulator& inserter)
+const Vector3<T>& Vector3<T>::operator>>(PropertyManipulator& deleter) const
 {
-	switch ((*inserter.propertyChain)[0])
-	{
-	case 0: x = *static_cast<const T*>(inserter.value); break;
-	case 1: y = *static_cast<const T*>(inserter.value); break;
-	case 2: z = *static_cast<const T*>(inserter.value); break;
-	default: ASSERT(false); break;
-	}
+	Serializer::DeletePropertyDataInternal<T>(*deleter.allocatedValue);
 	return *this;
 }
 
