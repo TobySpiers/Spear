@@ -1,10 +1,11 @@
 #include "EditorAction_ModifyProperties.h"
 #include <Core/Core.h>
 
-EditorAction_ModifyProperties::EditorAction_ModifyProperties(GameObject* gameObject, size_t secondaryObjectsNum)
-    : primaryProperty(gameObject)
+EditorAction_ModifyProperties::EditorAction_ModifyProperties(std::unordered_set<GameObject*>& objects)
+    : primaryProperty(*objects.begin())
 {
-    secondaryProperties.reserve(secondaryObjectsNum);
+    secondaryProperties.reserve(objects.size() - 1);
+    m_objects = objects; // intentional copy
 }
 
 EditorAction_ModifyProperties::~EditorAction_ModifyProperties()
@@ -17,7 +18,27 @@ EditorAction_ModifyProperties::~EditorAction_ModifyProperties()
     primaryProperty.CleanUp();
 }
 
-bool EditorAction_ModifyProperties::WasObjectModified() const
+void EditorAction_ModifyProperties::Expose()
+{
+    primaryProperty.Expose();
+    if (IsModificationComplete())
+    {
+        for (GameObject* obj : m_objects)
+        {
+            if (obj != *m_objects.begin())
+            {
+                ModifySecondaryObject(obj);
+            }
+        }
+    }
+}
+
+bool EditorAction_ModifyProperties::IsModificationInProgress() const
+{
+    return primaryProperty.IsModifying();
+}
+
+bool EditorAction_ModifyProperties::IsModificationComplete() const
 {
     return primaryProperty.WasModified();
 }
@@ -28,7 +49,7 @@ void EditorAction_ModifyProperties::ModifySecondaryObject(GameObject* obj)
     obj->SetProperty(primaryProperty.GetNewValue(), primaryProperty.propertyChain, &secondaryProperties.back());
 }
 
-void EditorAction_ModifyProperties::Undo()
+void EditorAction_ModifyProperties::Undo(std::unordered_set<GameObject*>& outSelectedObjects)
 {
     primaryProperty.GetObject()->SetProperty(primaryProperty.GetOldValue(), primaryProperty.propertyChain);
 
@@ -36,9 +57,11 @@ void EditorAction_ModifyProperties::Undo()
     {
         secondaryProperty.GetObject()->SetProperty(secondaryProperty.GetOldValue(), primaryProperty.propertyChain);
     }
+
+    outSelectedObjects = m_objects;
 }
 
-void EditorAction_ModifyProperties::Redo()
+void EditorAction_ModifyProperties::Redo(std::unordered_set<GameObject*>& outSelectedObjects)
 {
     primaryProperty.GetObject()->SetProperty(primaryProperty.GetNewValue(), primaryProperty.propertyChain);
 
@@ -46,6 +69,8 @@ void EditorAction_ModifyProperties::Redo()
     {
         secondaryProperty.GetObject()->SetProperty(primaryProperty.GetNewValue(), primaryProperty.propertyChain);
     }
+
+    outSelectedObjects = m_objects;
 }
 
 std::string EditorAction_ModifyProperties::ActionName()

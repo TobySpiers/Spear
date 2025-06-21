@@ -18,36 +18,54 @@ Vector2<T>& Vector2<T>::operator<<(ExposedPropertyData& propertyData)
 	const T cachedX = x;
 	const T cachedY = y;
 
-	bool bModified{false};
+	bool bModifying = false;
+	bool bModified = false;
 	if constexpr (std::is_same_v<T, int>)
 	{
-		bModified = ImGui::InputInt2(propertyData.propertyName.c_str(), &x);
+		bModifying = ImGui::InputInt2(propertyData.propertyName.c_str(), &x);
+		bModified = ImGui::IsItemDeactivatedAfterEdit();
 	}
 	else if constexpr (std::is_same_v<T, float>)
 	{
-		bModified = ImGui::InputFloat2(propertyData.propertyName.c_str(), &x);
+		bModifying = ImGui::InputFloat2(propertyData.propertyName.c_str(), &x);
+		bModified = ImGui::IsItemDeactivatedAfterEdit();
 	}
 	else
 	{
 		ImGui::Text(propertyData.propertyName.c_str());
 		ImGui::SameLine();
 		ImGui::Text(" | ERROR: Unhandled Vector2<T> type");
+		return *this;
+	}
+
+	if (bModifying)
+	{
+		if (!propertyData.IsModifying())
+		{
+			propertyData.modifiedPropertyName = propertyData.propertyName;
+			if (cachedX != x)
+			{
+				propertyData.propertyChain.emplace_back(0);
+				propertyData.SetOldValue(cachedX);
+			}
+			else
+			{
+				propertyData.propertyChain.emplace_back(1);
+				propertyData.SetOldValue(cachedY);
+			}
+		}
 	}
 
 	if (bModified)
 	{
-		propertyData.modifiedPropertyName = propertyData.propertyName;
-		if (cachedX != x)
+		switch (propertyData.propertyChain.front())
 		{
-			propertyData.propertyChain.emplace_back(0);
-			propertyData.SetOldValue(cachedX);
-			propertyData.SetNewValue(x);
-		}
-		else
-		{
-			propertyData.propertyChain.emplace_back(1);
-			propertyData.SetOldValue(cachedY);
-			propertyData.SetNewValue(y);
+			case 0:
+				propertyData.SetNewValue(x);
+				break;
+			case 1:
+				propertyData.SetNewValue(y);
+				break;
 		}
 	}
 
@@ -80,42 +98,62 @@ inline Vector3<T>& Vector3<T>::operator<<(ExposedPropertyData& propertyData)
 	const T cachedY = y;
 	const T cachedZ = z;
 
-	bool bModified{false};
+	bool bModifying = false;
+	bool bModified = false;
 	if constexpr (std::is_same_v<T, int>)
 	{
-		bModified = ImGui::InputInt3(propertyData.propertyName.c_str(), &x);
+		bModifying = ImGui::InputInt3(propertyData.propertyName.c_str(), &x);
+		bModified = ImGui::IsItemDeactivatedAfterEdit();
 	}
 	else if constexpr (std::is_same_v<T, float>)
 	{
-		bModified = ImGui::InputFloat3(propertyData.propertyName.c_str(), &x);
+		bModifying = ImGui::InputFloat3(propertyData.propertyName.c_str(), &x);
+		bModified = ImGui::IsItemDeactivatedAfterEdit();
 	}
 	else
 	{
 		ImGui::Text(propertyData.propertyName.c_str());
 		ImGui::SameLine();
 		ImGui::Text(" | ERROR: Unhandled Vector3<T> type");
+		return *this;
+	}
+
+	if (bModifying)
+	{
+		if (!propertyData.IsModifying())
+		{
+			propertyData.modifiedPropertyName = propertyData.propertyName;
+			if (cachedX != x)
+			{
+				propertyData.propertyChain.emplace_back(0);
+				propertyData.SetOldValue(cachedX);
+			}
+			else if(cachedY != y)
+			{
+				propertyData.propertyChain.emplace_back(1);
+				propertyData.SetOldValue(cachedY);
+			}
+			else
+			{
+				propertyData.propertyChain.emplace_back(2);
+				propertyData.SetOldValue(cachedZ);
+			}
+		}
 	}
 
 	if (bModified)
 	{
-		propertyData.modifiedPropertyName = propertyData.propertyName;
-		if (cachedX != x)
+		switch (propertyData.propertyChain.front())
 		{
-			propertyData.propertyChain.emplace_back(0);
-			propertyData.SetOldValue(cachedX);
+		case 0:
 			propertyData.SetNewValue(x);
-		}
-		else if(cachedY != y)
-		{
-			propertyData.propertyChain.emplace_back(1);
-			propertyData.SetOldValue(cachedY);
+			break;
+		case 1:
 			propertyData.SetNewValue(y);
-		}
-		else
-		{
-			propertyData.propertyChain.emplace_back(2);
-			propertyData.SetOldValue(cachedZ);
+			break;
+		case 2:
 			propertyData.SetNewValue(z);
+			break;
 		}
 	}
 

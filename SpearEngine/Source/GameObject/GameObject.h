@@ -19,6 +19,13 @@ enum class eGameObjectTickState
 	TickDisabled,
 };
 
+enum class eGameObjectLifeState
+{
+	Active, // object is alive and usable
+	EditorDestroy, // (editor-only): object is psuedo destroyed (exists but hidden/inactive), kept in memory for simple undo/redo
+	PendingDestroy, // object is pending destroy and will no longer exist
+};
+
 // Base class for any type of GameObject. Derived classes must use included GAMEOBJECT_SERIALIZABLE and GAMEOBJECT_REGISTER macros.
 // Constructors/destructors CAN be used to configure initial data - this will not interfere with serialization/deserialization.
 // Constructors/destructors MUST NOT be used to create/destroy GameObjects - this should be performed inside OnCreated/OnDestroy functions.
@@ -49,6 +56,8 @@ class GameObject
 	virtual void DrawInEditor(const Vector3f& position, float zoom) const;
 	virtual void DrawInEditorHovered(const Vector3f& position, float zoom) const;
 	virtual void DrawInEditorSelected(const Vector3f& position, float zoom) const;
+	void SetDestroyedInEditor(bool bDestroyed = true);
+	bool IsDestroyedInEditor() const;
 
 	// Native ---
 
@@ -125,7 +134,7 @@ private:
 
 	eGameObjectTickState tickState{ eGameObjectTickState::TickDisabled };
 	eGameObjectTickState drawState{ eGameObjectTickState::TickDisabled };
-	bool bPendingDestroy{ false };
+	eGameObjectLifeState lifeState{ eGameObjectLifeState::Active };
 };
 
 template<typename T>

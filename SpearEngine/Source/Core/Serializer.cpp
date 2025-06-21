@@ -125,9 +125,15 @@ bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyN
     int cachedData = data;
     if (ImGui::InputInt(propertyName, &data))
     {
-        propertyData.SetOldValue(cachedData);
+        if (!propertyData.IsModifying())
+        {
+            propertyData.SetOldValue(cachedData);
+            propertyData.modifiedPropertyName = propertyName;
+        }
+    }
+    if(ImGui::IsItemDeactivatedAfterEdit())
+    {
         propertyData.SetNewValue(data);
-        propertyData.modifiedPropertyName = propertyName;
         return true;
     }
     return false;
@@ -138,9 +144,15 @@ bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyN
     float cachedData = data;
     if (ImGui::InputFloat(propertyName, &data))
     {
-        propertyData.SetOldValue(cachedData);
+        if (!propertyData.IsModifying())
+        {
+            propertyData.SetOldValue(cachedData);
+            propertyData.modifiedPropertyName = propertyName;
+        }
+    }
+    if (ImGui::IsItemDeactivatedAfterEdit())
+    {
         propertyData.SetNewValue(data);
-        propertyData.modifiedPropertyName = propertyName;
         return true;
     }
     return false;
@@ -151,9 +163,15 @@ bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyN
     double cachedData = data;
     if (ImGui::InputDouble(propertyName, &data))
     {
-        propertyData.SetOldValue(cachedData);
+        if (!propertyData.IsModifying())
+        {
+            propertyData.SetOldValue(cachedData);
+            propertyData.modifiedPropertyName = propertyName;
+        }
+    }
+    if (ImGui::IsItemDeactivatedAfterEdit())
+    {
         propertyData.SetNewValue(data);
-        propertyData.modifiedPropertyName = propertyName;
         return true;
     }
     return false;
@@ -177,9 +195,15 @@ bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyN
     std::string cachedData = data;
     if (ImGui::InputText(propertyName, &data))
     {
-        propertyData.SetOldValue(cachedData);
+        if(!propertyData.IsModifying())
+        {
+            propertyData.SetOldValue(cachedData);
+            propertyData.modifiedPropertyName = propertyName;
+        }
+    }
+    if (ImGui::IsItemDeactivatedAfterEdit())
+    {
         propertyData.SetNewValue(data);
-        propertyData.modifiedPropertyName = propertyName;
         return true;
     }
     return false;
@@ -187,8 +211,11 @@ bool Serializer::Expose(ExposedPropertyData& propertyData, const char* propertyN
 
 ExposedPropertyData::ExposedPropertyData(GameObject* object)
     : m_object(object)
+{ }
+
+void ExposedPropertyData::Expose()
 {
-    object->PopulateEditorPanel(*this);
+    m_object->PopulateEditorPanel(*this);
 }
 
 void ExposedPropertyData::CleanUp()

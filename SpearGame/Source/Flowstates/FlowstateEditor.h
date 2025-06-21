@@ -8,6 +8,7 @@
 
 class GameObject;
 class EditorActionBase;
+class EditorAction_ModifyProperties;
 
 class FlowstateEditor : public Spear::Flowstate
 {
@@ -228,5 +229,5 @@ private:
 	Vector2f m_draggedObjectDeltaToMouse{0.f, 0.f};
 	const float m_hoverRadiusSqr{.1f};
 	bool m_dragSelectingObjects{false};
-
+	EditorAction_ModifyProperties* m_modifyObjectsAction{nullptr};
 };

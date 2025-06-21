@@ -155,6 +155,7 @@ class ExposedPropertyData
 {
 public:
     ExposedPropertyData(GameObject* object);
+    void Expose();
 
     std::string propertyName;
     std::vector<int> propertyChain;
@@ -176,7 +177,8 @@ public:
         ASSERT(m_newValue);
     };
 
-    bool WasModified() const {return m_newValue != nullptr || m_oldValue != nullptr;}
+    bool IsModifying() const {return m_oldValue != nullptr;}
+    bool WasModified() const {return m_newValue != nullptr && m_oldValue != nullptr;}
     GameObject* GetObject() const {ASSERT(m_object); return m_object;}
     const void* GetOldValue() const {ASSERT(m_oldValue); return m_oldValue;}
     const void* GetNewValue() const {ASSERT(m_newValue); return m_newValue;}

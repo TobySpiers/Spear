@@ -180,6 +180,11 @@ void GameObject::DeletePropertyData(const void*& allocatedData, const std::vecto
 
 void GameObject::DrawInEditor(const Vector3f& position, float zoom) const
 {
+	if(lifeState != eGameObjectLifeState::Active)
+	{
+		return;
+	}
+
 	Spear::Renderer::LinePolyData icon;
 	icon.segments = 8;
 	icon.colour = Colour4f::White();
@@ -191,6 +196,11 @@ void GameObject::DrawInEditor(const Vector3f& position, float zoom) const
 
 void GameObject::DrawInEditorHovered(const Vector3f& position, float zoom) const
 {
+	if (lifeState != eGameObjectLifeState::Active)
+	{
+		return;
+	}
+
 	Spear::Renderer::LinePolyData icon;
 	icon.segments = 4;
 	icon.colour = Colour4f::White();
@@ -203,6 +213,11 @@ void GameObject::DrawInEditorHovered(const Vector3f& position, float zoom) const
 
 void GameObject::DrawInEditorSelected(const Vector3f& position, float zoom) const
 {
+	if (lifeState != eGameObjectLifeState::Active)
+	{
+		return;
+	}
+
 	Spear::Renderer::LinePolyData icon;
 	icon.segments = 8;
 	icon.colour = Colour4f::Cyan();
@@ -335,9 +350,20 @@ bool GameObject::IsDrawEnabled() const
 	return drawState == eGameObjectTickState::TickEnabled;
 }
 
+void GameObject::SetDestroyedInEditor(bool bDestroyed)
+{
+	ASSERT(!IsPendingDestroy());
+	lifeState = bDestroyed ? eGameObjectLifeState::EditorDestroy : eGameObjectLifeState::Active;
+}
+
+bool GameObject::IsDestroyedInEditor() const
+{
+	return lifeState == eGameObjectLifeState::EditorDestroy;
+}
+
 void GameObject::Destroy()
 {
-	if (!bPendingDestroy)
+	if (!IsPendingDestroy())
 	{
 		if (IsSafeToDestroy())
 		{
@@ -349,12 +375,12 @@ void GameObject::Destroy()
 			SetDrawEnabled(false);
 		}
 		
-		bPendingDestroy = true;
+		lifeState = eGameObjectLifeState::PendingDestroy;
 	}
 }
 bool GameObject::IsPendingDestroy() const
 {
-	return bPendingDestroy;
+	return lifeState == eGameObjectLifeState::PendingDestroy;
 }
 
 bool GameObject::IsSafeToDestroy() const

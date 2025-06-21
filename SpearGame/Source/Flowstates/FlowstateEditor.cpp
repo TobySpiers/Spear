@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <imgui_internal.h>
 #include "Editor/EditorAction_ModifyProperties.h"
+#include "Editor/EditorAction_CreateObject.h"
 
 
 void FlowstateEditor::ResetEditor()
@@ -380,6 +381,11 @@ GameObject* FlowstateEditor::MousePosToObject()
 	GameObject* result{nullptr};
 	for (GameObject* object : gameObjects)
 	{
+		if (object->IsDestroyedInEditor())
+		{
+			continue;
+		}
+
 		const float proximity = (object->GetPosition().XY() - worldPos).LengthSqr();
 		if (proximity < bestProximity)
 		{
@@ -602,9 +608,12 @@ bool FlowstateEditor::ProcessInput_Objects_Select()
 			const std::vector<GameObject*>& gameObjects = GameObject::GetAllObjects();
 			for (GameObject* object : gameObjects)
 			{
-				if (object->GetPosition().XY().IsBetween(firstMousePos, curMousePos))
+				if(!object->IsDestroyedInEditor())
 				{
-					m_selectedObjects.insert(object);
+					if (object->GetPosition().XY().IsBetween(firstMousePos, curMousePos))
+					{
+						m_selectedObjects.insert(object);
+					}
 				}
 			}
 		}
@@ -623,10 +632,11 @@ bool FlowstateEditor::ProcessInput_Objects_Create()
 	if (input.MiddleClickRelease())
 	{
 		m_selectedObjects.clear();
-		GameObject::ConstructorFuncPtr ObjectConstructor = GameObject::ObjectConstructors()->at(m_objectConstructorId).second;
-		GameObject* newObj = ObjectConstructor();
-		newObj->SetPosition(MousePosToWorldPos());
-		m_selectedObjects.insert(newObj);
+
+		EditorAction_CreateObject* CreateAction = new EditorAction_CreateObject(m_objectConstructorId, MousePosToWorldPos());
+		m_selectedObjects.insert(CreateAction->GetCreatedObject());
+
+		CommitAction(CreateAction);
 	}
 
 	return false;
@@ -940,27 +950,25 @@ void FlowstateEditor::MakePanel_Details_Object()
 
 	if (bUniformType)
 	{
-		// Expose selected object for editing in ImGui, encapsulated within an EditorAction
-		EditorAction_ModifyProperties* modifyPropertiesAction = new EditorAction_ModifyProperties(selectedObject, m_selectedObjects.size() - 1);
-
-		// If object was modified, apply modification to other selected objects too
-		if (modifyPropertiesAction->WasObjectModified())
+		if (!m_modifyObjectsAction)
 		{
-			for (GameObject* obj : m_selectedObjects)
-			{
-				if (obj != selectedObject)
-				{
-					modifyPropertiesAction->ModifySecondaryObject(obj);
-				}
-			}
-
-			// Register this action with the m_undoActions array. Deleted when removed from Redo & Undo lists.
-			CommitAction(modifyPropertiesAction);
+			m_modifyObjectsAction = new EditorAction_ModifyProperties(m_selectedObjects);
 		}
-		else
+
+		// Expose selected objects for editing in ImGui, encapsulated within an EditorAction
+		m_modifyObjectsAction->Expose();
+
+		if (m_modifyObjectsAction->IsModificationComplete())
 		{
-			// If no property modifications were made, we have no reason to hang onto the EditorAction
-			delete modifyPropertiesAction;
+			// If objects were modified, handover ownership of Action to the Undo pipeline (this deletes Action for us when appropriate)
+			CommitAction(m_modifyObjectsAction);
+			m_modifyObjectsAction = nullptr;
+		}
+		else if(!m_modifyObjectsAction->IsModificationInProgress())
+		{
+			// If no modifications were made, delete the Action ourselves (this is a fairly lazy approach to avoid worrying about situations where m_selectedObjects may be different next frame)
+			delete m_modifyObjectsAction;
+			m_modifyObjectsAction = nullptr;
 		}
 	}
 	else
@@ -1353,7 +1361,7 @@ void FlowstateEditor::UndoAction(int steps)
 {
 	while (steps-- > 0 && !m_undoActions.empty())
 	{
-		m_undoActions.back()->Undo();
+		m_undoActions.back()->Undo(m_selectedObjects);
 		m_redoActions.emplace_back(m_undoActions.back());
 		m_undoActions.pop_back();
 	}
@@ -1363,7 +1371,7 @@ void FlowstateEditor::RedoAction(int steps)
 {
 	while (steps-- > 0 && !m_redoActions.empty())
 	{
-		m_redoActions.back()->Redo();
+		m_redoActions.back()->Redo(m_selectedObjects);
 		m_undoActions.emplace_back(m_redoActions.back());
 		m_redoActions.pop_back();
 	}
