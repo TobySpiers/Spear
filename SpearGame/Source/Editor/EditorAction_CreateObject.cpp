@@ -10,6 +10,11 @@ EditorAction_CreateObject::EditorAction_CreateObject(int objectConstructorId, co
 
 EditorAction_CreateObject::~EditorAction_CreateObject()
 {
+	if (m_ownedObject->IsDestroyedInEditor())
+	{
+		m_ownedObject->Destroy();
+		GameObject::FlushPendingDestroys(); // since editor does not tick GameObjects, we need to manually flush destroyed objects
+	}
 }
 
 void EditorAction_CreateObject::Undo(std::unordered_set<GameObject*>& outSelectedObjects)

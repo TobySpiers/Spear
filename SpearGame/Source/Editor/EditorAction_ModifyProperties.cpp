@@ -1,7 +1,7 @@
 #include "EditorAction_ModifyProperties.h"
 #include <Core/Core.h>
 
-EditorAction_ModifyProperties::EditorAction_ModifyProperties(std::unordered_set<GameObject*>& objects)
+EditorAction_ModifyProperties::EditorAction_ModifyProperties(const std::unordered_set<GameObject*>& objects)
     : primaryProperty(*objects.begin())
 {
     secondaryProperties.reserve(objects.size() - 1);

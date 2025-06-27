@@ -78,6 +78,9 @@ class GameObject
 	void SetDrawEnabled(bool bShouldDraw);
 	bool IsDrawEnabled() const;
 
+	// Returns true if Object is not PendingDestroy and not marked DestroyedInEditor.
+	bool IsValid() const;
+
 	// Marks object as PendingDestroy. Destruction may not occur for several GlobalTicks. If immediate destruction is needed, call FlushPendingDestroys() afterwards.
 	void Destroy();
 	bool IsPendingDestroy() const;

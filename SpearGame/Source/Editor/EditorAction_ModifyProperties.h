@@ -6,7 +6,7 @@
 class EditorAction_ModifyProperties : public EditorActionBase
 {
 public:
-	EditorAction_ModifyProperties(std::unordered_set<GameObject*>& objects);
+	EditorAction_ModifyProperties(const std::unordered_set<GameObject*>& objects);
 	~EditorAction_ModifyProperties();
 
 	void Expose();

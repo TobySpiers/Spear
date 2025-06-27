@@ -70,7 +70,7 @@ void GameObject::FlushPendingDestroys()
 	for (int i = s_drawList.size() - 1; i >= 0; i--)
 	{
 		GameObject* obj = s_drawList[i];
-		if (!obj->IsDrawEnabled())
+		if(obj->IsPendingDestroy() && obj->IsDrawEnabled())
 		{
 			DisableDraw_Internal(obj, i);
 		}
@@ -79,7 +79,7 @@ void GameObject::FlushPendingDestroys()
 	for (int i = s_tickList.size() - 1; i >= 0; i--)
 	{
 		GameObject* obj = s_tickList[i];
-		if (!obj->IsTickEnabled())
+		if(obj->IsPendingDestroy() && obj->IsTickEnabled())
 		{
 			DisableTick_Internal(obj, i);
 		}
@@ -241,24 +241,42 @@ void GameObject::GlobalSerialize(const char* filename)
 void GameObject::GlobalSerialize(std::ofstream& file)
 {
 	// Save out num objects to expect on deserialization
-	file << s_allocatedObjects.size() << std::endl;
+	int totalObjects = 0;
+	for (const GameObject* obj : s_allocatedObjects)
+	{
+		if (obj->IsValid())
+		{
+			totalObjects++;
+		}
+	}
+
+	file << totalObjects << std::endl;
 
 	// Prep all GameObjects
 	for (GameObject* obj : s_allocatedObjects)
 	{
-		obj->OnPreSerialize();
+		if (obj->IsValid())
+		{
+			obj->OnPreSerialize();
+		}
 	}
 
 	// Serialize each object
 	for (const GameObject* obj : s_allocatedObjects)
 	{
-		obj->Serialize(file);
+		if (obj->IsValid())
+		{
+			obj->Serialize(file);
+		}
 	}
 
 	// Restore all GameObjects
 	for (GameObject* obj : s_allocatedObjects)
 	{
-		obj->OnPostSerialize();
+		if (obj->IsValid())
+		{
+			obj->OnPostSerialize();
+		}
 	}
 }
 
@@ -287,6 +305,9 @@ void GameObject::GlobalDeserialize(std::ifstream& file)
 		GameObject* obj = deserializeType(file);
 		obj->internalId = s_allocatedObjects.size();
 		s_allocatedObjects.push_back(obj);
+
+		ASSERT(obj->IsValid());
+
 		if (obj->IsTickEnabled())
 		{
 			RegisterTickingObject(obj);
@@ -348,6 +369,11 @@ void GameObject::SetDrawEnabled(bool bShouldDraw)
 bool GameObject::IsDrawEnabled() const
 {
 	return drawState == eGameObjectTickState::TickEnabled;
+}
+
+bool GameObject::IsValid() const
+{
+	return !IsPendingDestroy() && !IsDestroyedInEditor();
 }
 
 void GameObject::SetDestroyedInEditor(bool bDestroyed)

@@ -16,6 +16,7 @@
 #include <imgui_internal.h>
 #include "Editor/EditorAction_ModifyProperties.h"
 #include "Editor/EditorAction_CreateObject.h"
+#include <Editor/EditorAction_DeleteObjects.h>
 
 
 void FlowstateEditor::ResetEditor()
@@ -647,18 +648,16 @@ bool FlowstateEditor::ProcessInput_Objects_Delete()
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 	if (input.InputRelease(INPUT_DELETE))
 	{
-		for (GameObject* obj : m_selectedObjects)
+		if(m_selectedObjects.size())
 		{
-			obj->Destroy();
-		}
-		if (m_selectedObjects.contains(m_hoveredObject))
-		{
-			m_hoveredObject = nullptr;
-		}
-		m_selectedObjects.clear();
+			CommitAction(new EditorAction_DeleteObjects(m_selectedObjects));
 
-		// Since we are not ticking GameObjects while in editor, we need to manually flush destroyed objects.
-		GameObject::FlushPendingDestroys();
+			if (m_selectedObjects.contains(m_hoveredObject))
+			{
+				m_hoveredObject = nullptr;
+			}
+			m_selectedObjects.clear();
+		}
 	}
 
 	return false;
@@ -766,12 +765,12 @@ void FlowstateEditor::MakePanel_Editor_Tiles()
 	int temp{0};
 	ImGui::SeparatorText("TODO (Unimplemented)");
 	ImGui::Text("Roof Distances: ");
-	ImGui::InputInt("Upper Roof", &temp);
-	ImGui::InputInt("Lower Roof", &temp);
+	ImGui::InputInt("Outer Roof", &temp);
+	ImGui::InputInt("Inner Roof", &temp);
 
 	ImGui::Text("Floor Distances: ");
-	ImGui::InputInt("Upper Floor", &temp);
-	ImGui::InputInt("Lower Floor", &temp);
+	ImGui::InputInt("Inner Floor", &temp);
+	ImGui::InputInt("Outer Floor", &temp);
 
 	ImGui::Text("Brush");
 	ImGui::InputInt("Brush Size", &temp);
