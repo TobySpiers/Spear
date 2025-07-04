@@ -115,6 +115,11 @@ Vector2i Raycaster::GetResolution()
 	return Vector2i(m_rayConfig.xResolution, m_rayConfig.yResolution);
 }
 
+MapData* Raycaster::GetMap()
+{
+	return m_map;
+}
+
 void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 {
 	START_PROFILE("2D Raycasting");
@@ -309,6 +314,9 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		// unit vectors representing directions to form left/right edge of FoV
 		m_frame.fovMinAngle = Vector2f(cos(angle - halfFov), sin(angle - halfFov));
 		m_frame.fovMaxAngle = Vector2f(cos(angle + halfFov), sin(angle + halfFov));		
+
+		m_frame.planeHeights.x = m_map->planeHeights[PLANE_HEIGHT_INNER];
+		m_frame.planeHeights.y = m_map->planeHeights[PLANE_HEIGHT_OUTER];
 	}
 
 	if (!m_bSoftwareRendering)
@@ -349,16 +357,18 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 				rayPitch = (y - (m_rayConfig.yResolution / 2)) - m_frame.viewPitch;
 			}
 
-			// Horizontal distance from the camera to the floor for the current row.
+			// Forward distance from the camera to hit the floor for the current row.
 			// 0.5 is the z position exactly in the middle between floor and ceiling.
 			float rowDistance[2];
-			rowDistance[0] = m_frame.viewHeight / rayPitch;
-			rowDistance[1] = rowDistance[0] * 2;
+			const float defaultDistance = m_frame.viewHeight / rayPitch;
+			rowDistance[0] = defaultDistance * m_frame.planeHeights.x;
+			rowDistance[1] = defaultDistance * m_frame.planeHeights.y;
 
 			// Vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' horizontally by 1 ray)
 			Vector2f rayStep[2];
-			rayStep[0] = rowDistance[0] * (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
-			rayStep[1] = rayStep[0] * 2;
+			const Vector2f rayPixelWidth = (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
+			rayStep[0] = rowDistance[0] * rayPixelWidth;
+			rayStep[1] = rowDistance[1] * rayPixelWidth;
 
 			// endpoint of first ray in row (left)
 			// essentially the 'left-most ray' along a length (depth) of rowDistance

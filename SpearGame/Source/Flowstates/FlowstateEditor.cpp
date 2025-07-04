@@ -16,7 +16,8 @@
 #include <imgui_internal.h>
 #include "Editor/EditorAction_ModifyProperties.h"
 #include "Editor/EditorAction_CreateObject.h"
-#include <Editor/EditorAction_DeleteObjects.h>
+#include "Editor/EditorAction_DeleteObjects.h"
+#include "Editor/EditorAction_DragReposition.h"
 
 
 void FlowstateEditor::ResetEditor()
@@ -315,14 +316,12 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 		}
 		if (input.InputHold(INPUT_ZOOM_IN) || mouseWheel > 0)
 		{
-			m_camZoom *= 1.1f;
+			ModifyZoom(1.1f);
 		}
-		if (input.InputHold(INPUT_ZOOM_OUT) || mouseWheel < 0)
+		else if (input.InputHold(INPUT_ZOOM_OUT) || mouseWheel < 0)
 		{
-			m_camZoom *= 0.9f;
+			ModifyZoom(0.9f);
 		}
-		m_camZoom = std::min(m_camZoom, 3.f);
-		m_camZoom = std::max(m_camZoom, 0.75f);
 	}
 
 	// Save / Load
@@ -511,7 +510,7 @@ bool FlowstateEditor::ProcessInput_Tiles_Select()
 	}
 	else if (input.ClickHold())
 	{
-		if (input.InputHold(INPUT_SHIFT))
+		if (!input.InputHold(INPUT_SHIFT))
 		{
 			m_ongoingClickSelection.clear();
 			const Vector2i diff{ m_hoveredTile - m_clickOrigin };
@@ -576,7 +575,8 @@ bool FlowstateEditor::ProcessInput_Objects_Select()
 			if (!input.InputHold(INPUT_CTRL))
 			{
 				m_draggingObject = m_hoveredObject;
-				m_draggedObjectDeltaToMouse = m_hoveredObject->GetPosition().XY() - MousePosToWorldPos().ToFloat();
+				m_draggedObjectDeltaToMouse = m_draggingObject->GetPosition().XY() - MousePosToWorldPos().ToFloat();
+				m_draggedObjectStartPosition = m_draggingObject->GetPosition().XY();
 			}
 		}
 		return true;
@@ -600,7 +600,15 @@ bool FlowstateEditor::ProcessInput_Objects_Select()
 	}
 	else if (input.ClickRelease())
 	{
-		if (!m_draggingObject)
+		if (m_draggingObject)
+		{
+			const Vector2f totalDelta = m_draggingObject->GetPosition().XY() - m_draggedObjectStartPosition;
+			if (totalDelta != Vector2f::ZeroVector)
+			{
+				CommitAction(new EditorAction_DragReposition(m_selectedObjects, m_draggingObject->GetPosition().XY() - m_draggedObjectStartPosition));
+			}
+		}
+		else
 		{
 			// Drag Select - Commit
 			const Vector2f firstMousePos = ScreenPosToWorldPos(m_clickOrigin.ToFloat());
@@ -748,6 +756,20 @@ void FlowstateEditor::CommitSelection()
 	m_ongoingClickSelection.clear();
 }
 
+void FlowstateEditor::ModifyZoom(float factor)
+{
+	const float cachedZoom{m_camZoom};
+	m_camZoom *= factor;
+	m_camZoom = std::min(m_camZoom, m_zoomMax);
+	m_camZoom = std::max(m_camZoom, m_zoomMin);
+
+	if (cachedZoom != m_camZoom)
+	{
+		const Vector2f anchor = Spear::InputManager::Get().GetMousePos().ToFloat();
+		m_camOffset = anchor - (anchor - m_camOffset) * (m_camZoom / cachedZoom);
+	}
+}
+
 void FlowstateEditor::MakePanel_Editor_Tiles()
 {
 	ImGui::SeparatorText("Tile Editor");
@@ -760,25 +782,15 @@ void FlowstateEditor::MakePanel_Editor_Tiles()
 		m_map->SetSize(mapWidth, mapHeight);
 	}
 
-	// TOOD: This should be part of MapData so different maps can use unique offsets (small offsets for road & pavement vs. large offsets for canyons etc.)
-	// Maybe units represent 'tiles' so 1 = aligned to first tile, 2 equals aligned to 2nd tile, 1.5 is in middle, etc.
-	int temp{0};
-	ImGui::SeparatorText("TODO (Unimplemented)");
-	ImGui::Text("Roof Distances: ");
-	ImGui::InputInt("Outer Roof", &temp);
-	ImGui::InputInt("Inner Roof", &temp);
-
-	ImGui::Text("Floor Distances: ");
-	ImGui::InputInt("Inner Floor", &temp);
-	ImGui::InputInt("Outer Floor", &temp);
-
-	ImGui::Text("Brush");
-	ImGui::InputInt("Brush Size", &temp);
+	ImGui::SeparatorText("Plane Heights");
+	ImGui::InputFloat("Inner", &m_map->planeHeights[PLANE_HEIGHT_INNER]);
+	ImGui::InputFloat("Outer", &m_map->planeHeights[PLANE_HEIGHT_OUTER]);
 }
 
 void FlowstateEditor::MakePanel_Editor_Objects()
 {
 	ImGui::SeparatorText("Object Picker");
+	ImGui::Text("(Middle-Click to Place Objects!)");
 	std::vector<std::pair<const char*, GameObject::ConstructorFuncPtr>> ObjectConstructors = *GameObject::ObjectConstructors();
 
 	if (ImGui::BeginListBox("Object"))

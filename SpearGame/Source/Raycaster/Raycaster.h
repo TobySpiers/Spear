@@ -23,6 +23,7 @@ public:
 	static void ApplyConfig(const RaycasterConfig& config);
 	static void ApplyFovModifier(float newFov);
 	static Vector2i GetResolution();
+	static MapData* GetMap();
 
 	static void Draw2DGrid(const Vector2f& pos, const float angle);
 	static void Draw3DGrid(const Vector2f& pos, float pitch, const float angle);
@@ -78,6 +79,9 @@ private:
 		
 		Vector2f	raySpacingDir;		// direction to space rays horizontally for walls
 		float		raySpacingLength;	// spacing to use between each ray
+		
+		float		padding;
+		Vector2f	planeHeights;	// height of inner and outer floor/roof planes
 	};
 	static RaycastFrameData m_frame;
 

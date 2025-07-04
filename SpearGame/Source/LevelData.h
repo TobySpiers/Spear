@@ -30,6 +30,14 @@ enum eCollisionMask : int
 	COLL_SOLID	= 1 << 1,
 };
 
+enum ePlaneHeight : u8
+{
+	PLANE_HEIGHT_OUTER,
+	PLANE_HEIGHT_INNER,
+
+	PLANE_HEIGHTS_TOTAL
+};
+
 struct GridNode
 {
 	// CAUTION - CHANGES MADE TO THIS STRUCT MUST BE REFLECTED IN RAYCASTER COMPUTE SHADER FILES
@@ -57,6 +65,7 @@ struct EditorMapData
 	Vector2i playerStart{ 5, 5 };
 	int gridWidth{ 10 };
 	int gridHeight{ 10 };
+	float planeHeights[PLANE_HEIGHTS_TOTAL] = { 2.f, 1.f };
 	GridNode gridNodes[MAP_WIDTH_MAX_SUPPORTED * MAP_HEIGHT_MAX_SUPPORTED];
 
 	void SetSize(int width, int height);
@@ -71,8 +80,10 @@ struct MapData
 	const GridNode* GetNode(int x, int y) const;
 	bool CollisionSearchDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos = nullptr, bool* out_bVerticalHit = nullptr) const;
 
+	std::string mapName{ "Untitled" };
 	Vector2i playerStart{ 5, 5 };
 	int gridWidth{10};
 	int gridHeight{10};
+	float planeHeights[PLANE_HEIGHTS_TOTAL] = { 2.f, 1.f };
 	GridNode* pNodes{nullptr};
 };

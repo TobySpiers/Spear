@@ -44,9 +44,12 @@ struct FrameData
 	
 	vec2 fovMinAngle;
 	vec2 fovMaxAngle;
-	
-	vec2 raySpacingDir;
+		
+	vec2 raySpacingDir;	
 	float raySpacingLength;
+	
+	float padding;
+	vec2 planeHeights;
 };
 
 // UBOs
@@ -112,13 +115,15 @@ void main()
 	// Horizontal distance from the camera to the floor for the current row.
 	// 0.5 is the z position exactly in the middle between floor and ceiling.
 	float rowDistance[2];
-	rowDistance[0] = frame.viewHeight / rayPitch;
-	rowDistance[1] = rowDistance[0] * 2;
+	const float defaultDistance = frame.viewHeight / rayPitch;
+	rowDistance[0] = defaultDistance * frame.planeHeights.x;
+	rowDistance[1] = defaultDistance * frame.planeHeights.y;
 	
 	// vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' horizontally by 1 ray)
 	vec2 rayStep[2];
-	rayStep[0] = rowDistance[0] * (frame.fovMaxAngle - frame.fovMinAngle) / rayConfig.xResolution;
-	rayStep[1] = rayStep[0] * 2;
+	const vec2 rayPixelWidth = (frame.fovMaxAngle - frame.fovMinAngle) / rayConfig.xResolution;
+	rayStep[0] = rowDistance[0] * rayPixelWidth;
+	rayStep[1] = rowDistance[1] * rayPixelWidth;
 	
 	// endpoint of first ray in row (left)
 	// essentially the 'left-most ray' along a length (depth) of rowDistance

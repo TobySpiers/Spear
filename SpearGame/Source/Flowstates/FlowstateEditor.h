@@ -144,6 +144,8 @@ class FlowstateEditor : public Spear::Flowstate
 	void FloodSelect(const Vector2i& origin);
 	void CommitSelection();
 
+	void ModifyZoom(float factor);
+
 public:
 	FlowstateEditor() {};
 	virtual ~FlowstateEditor() {};
@@ -202,6 +204,8 @@ private:
 	// Camera
 	Vector2f m_camOffset{400.f, 200.f};
 	float m_camZoom{1.f};
+	const float m_zoomMin{0.75f};
+	const float m_zoomMax{3.f};
 
 	// Hud
 	float m_menuTexturesScrollSpeed{ 20.f };
@@ -227,6 +231,7 @@ private:
 	GameObject* m_hoveredObject{nullptr};
 	GameObject* m_draggingObject{nullptr};
 	Vector2f m_draggedObjectDeltaToMouse{0.f, 0.f};
+	Vector2f m_draggedObjectStartPosition{0.f, 0.f};
 	const float m_hoverRadiusSqr{.1f};
 	bool m_dragSelectingObjects{false};
 	EditorAction_ModifyProperties* m_modifyObjectsAction{nullptr};

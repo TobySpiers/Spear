@@ -17,6 +17,9 @@ void PanelRaycaster::MakePanel()
 		ImGui::SliderFloat("2D Scale", &rayConfig.scale2D, 1.f, 200.f);
 		ImGui::SliderFloat("Corrective Pixel Depth Tolerance", &rayConfig.correctivePixelDepthTolerance, 0.f, 0.1f, "%.4f");
 		ImGui::Checkbox("Highlight Corrective Pixels", &rayConfig.highlightCorrectivePixels);
+
+		ImGui::SliderFloat("Plane Height (Inner)", &Raycaster::GetMap()->planeHeights[PLANE_HEIGHT_INNER], 0.f, 20.f);
+		ImGui::SliderFloat("Plane Height (Outer)", &Raycaster::GetMap()->planeHeights[PLANE_HEIGHT_OUTER], 0.f, 20.f);
 	}
 	ImGui::SeparatorText("RENDERING:");
 	{

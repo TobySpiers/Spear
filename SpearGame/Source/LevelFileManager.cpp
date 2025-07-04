@@ -14,6 +14,7 @@ void LevelFileManager::EditorSaveLevel(const EditorMapData& rMapData)
 	file	<< rMapData.gridWidth << std::endl
 			<< rMapData.gridHeight << std::endl;
 
+	// Write PlayerStart
 	Serialize(rMapData.playerStart, file);
 
 	// Write grid to file
@@ -26,21 +27,31 @@ void LevelFileManager::EditorSaveLevel(const EditorMapData& rMapData)
 		}
 	}
 
+	// Write map name
 	file << rMapData.mapName << std::endl;
 
+	// Write floor/roof heights
+	for (int i = 0; i < PLANE_HEIGHTS_TOTAL; i++)
+	{
+		file << rMapData.planeHeights[i] << std::endl;
+	}
+
+	// Write GameObjects
 	GameObject::GlobalSerialize(file);
 }
 
 void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMapData)
 {
-	// Read width/height header
 	std::ifstream file(GetFilePath(levelName));
+
+	// Read width/height header
 	std::string width, height;
 	std::getline(file, width);
 	std::getline(file, height);
 	rMapData.gridWidth = std::stoi(width);
 	rMapData.gridHeight = std::stoi(height);
 
+	// Read PlayerStart
 	Deserialize(rMapData.playerStart, file);
 
 	// Read grid
@@ -54,8 +65,18 @@ void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMa
 		}
 	}
 
+	// Read map name
 	std::getline(file, rMapData.mapName);
 
+	// Read floor/roof heights
+	std::string planeHeight;
+	for (int i = 0; i < PLANE_HEIGHTS_TOTAL; i++)
+	{
+		std::getline(file, planeHeight);
+		rMapData.planeHeights[i] = std::stoi(planeHeight);
+	}
+
+	// Read GameObjects
 	GameObject::GlobalDeserialize(file);
 }
 
@@ -88,4 +109,18 @@ void LevelFileManager::LoadLevel(const char* levelName, MapData& rMapData)
 			Deserialize(node, file);
 		}
 	}
+
+	// Read map name
+	std::getline(file, rMapData.mapName);
+
+	// Read floor/roof heights
+	std::string planeHeight;
+	for (int i = 0; i < PLANE_HEIGHTS_TOTAL; i++)
+	{
+		std::getline(file, planeHeight);
+		rMapData.planeHeights[i] = std::stoi(planeHeight);
+	}
+
+	// Read GameObjects
+	GameObject::GlobalDeserialize(file);
 }
