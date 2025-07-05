@@ -42,7 +42,10 @@ void FlowstateGame::StateEnter()
 
 	// Load world textures
 	m_worldTextures.InitialiseFromDirectory("../Assets/TILESETS/64");
-	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_worldTextures, 500);
+	Spear::Renderer::Get().CreateSpriteBatch(m_worldTextures, 500);
+
+	m_spriteTextures.InitialiseFromDirectory("../Assets/SPRITES/SpriteSet1");
+	Spear::Renderer::Get().CreateSpriteBatch(m_spriteTextures, 100);
 
 	// Load world
 	LevelFileManager::LoadLevel("Test.level", m_gameState.mapData);

@@ -89,7 +89,7 @@ class GameObject
 	// Forces immediate destruction for all PendingDestroy objects.
 	static void FlushPendingDestroys();
 
-	Vector3f GetPosition() const { return m_position; }
+	const Vector3f& GetPosition() const { return m_position; }
 	void SetPosition(const Vector3f& position) { m_position = position; }
 
 private:

@@ -4,6 +4,14 @@
 
 struct RaycasterConfig;
 
+struct RaycastSprite
+{
+	Vector2f spritePos{ Vector2f::ZeroVector };
+	Vector2i size{ 500, 500 };
+	int height{ 0 };
+	int textureId{ 0 };
+};
+
 // class to cast and render rays
 class Raycaster
 {
@@ -16,6 +24,8 @@ class Raycaster
 		RAY_HIT_SIDE
 	};
 
+	static constexpr int RAYCAST_SPRITE_LIMIT{ 100 };
+
 public:
 	//static void SubmitNewGrid(u8 width, u8 height, const s8* pWorldIds, const u8* pRoofIds);
 	static void Init(MapData& map);
@@ -24,6 +34,9 @@ public:
 	static void ApplyFovModifier(float newFov);
 	static Vector2i GetResolution();
 	static MapData* GetMap();
+
+	static RaycastSprite* CreateSprite(int textureId, const Vector2f& pos);
+	static void ClearSprite(RaycastSprite* sprite);
 
 	static void Draw2DGrid(const Vector2f& pos, const float angle);
 	static void Draw3DGrid(const Vector2f& pos, float pitch, const float angle);
@@ -34,6 +47,8 @@ private:
 
 	static void Draw3DGridCPU(const Vector2f& pos, float pitch, const float angle);
 	static void Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle);
+
+	static void Draw3DSprites(const Vector2f& pos, float pitch, const float angle);
 
 	// ImGui Panel
 	static PanelRaycaster debugPanel;
@@ -52,6 +67,9 @@ private:
 	static int m_softwareRenderingThreads;
 	static int XResolutionPerThread();
 	static int YResolutionPerThread();
+
+	static RaycastSprite m_sprites[RAYCAST_SPRITE_LIMIT];
+	static int m_spriteCount;
 
 	// For storing internal per-frame data
 	struct RaycastFrameData

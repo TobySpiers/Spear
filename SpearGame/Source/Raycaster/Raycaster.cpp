@@ -17,9 +17,11 @@ GLuint* Raycaster::m_bgTexRGBA{nullptr};
 GLfloat* Raycaster::m_bgTexDepth{nullptr};
 MapData* Raycaster::m_map{ nullptr };
 RaycasterConfig Raycaster::m_rayConfig;
+RaycastSprite Raycaster::m_sprites[Raycaster::RAYCAST_SPRITE_LIMIT];
+int Raycaster::m_spriteCount{0};
 Raycaster::RaycastFrameData Raycaster::m_frame;
 Raycaster::RaycastComputeShader Raycaster::m_computeShader;
-bool Raycaster::m_bSoftwareRendering{false};
+bool Raycaster::m_bSoftwareRendering{true};
 int Raycaster::m_softwareRenderingThreads{15};
 
 constexpr float FOV_MIN{ 35.f };
@@ -118,6 +120,27 @@ Vector2i Raycaster::GetResolution()
 MapData* Raycaster::GetMap()
 {
 	return m_map;
+}
+
+RaycastSprite* Raycaster::CreateSprite(int textureId, const Vector2f& pos)
+{
+	ASSERT(m_spriteCount < RAYCAST_SPRITE_LIMIT);
+	RaycastSprite* newSprite = &m_sprites[m_spriteCount++];
+	newSprite->textureId = textureId;
+	newSprite->spritePos = pos;
+	return newSprite;
+}
+
+void Raycaster::ClearSprite(RaycastSprite* sprite)
+{
+	const int index = sprite - m_sprites;
+	ASSERT(index >= 0 && index < m_spriteCount);
+
+	m_spriteCount--;
+	if (m_spriteCount > 0)
+	{
+		m_sprites[index] = m_sprites[m_spriteCount];
+	}
 }
 
 void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
@@ -310,6 +333,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		// Ray angle/spacing data
 		m_frame.raySpacingDir = m_frame.viewForward.Normal() * -1; // 'Normal' as in 'perpendicular': gives us sideways direction
 		m_frame.raySpacingLength = m_frame.screenPlaneVector.Length() / m_rayConfig.xResolution;
+		m_frame.screenPlaneVector = Normalize(m_frame.screenPlaneVector);
 
 		// unit vectors representing directions to form left/right edge of FoV
 		m_frame.fovMinAngle = Vector2f(cos(angle - halfFov), sin(angle - halfFov));
@@ -804,6 +828,8 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 	RaycastWallsTaskHandle.WaitForTaskComplete();
 	END_PROFILE("Raycast Walls")
 
+	Draw3DSprites(inPos, inPitch, angle);
+
 	START_PROFILE("Raycast Upload")
 	// Upload Raycast image for this frame
 	renderer.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
@@ -929,4 +955,87 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, NULL);
 
 	END_PROFILE("Compute Shader")
+}
+
+void Raycaster::Draw3DSprites(const Vector2f& playerPos, float pitch, const float angle)
+{
+	const Spear::TextureBase* pSpriteTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(1);
+
+	for (int i = 0; i < m_spriteCount; i++)
+	{
+		const RaycastSprite& sprite = m_sprites[i];
+
+		Vector2f relativePosition = sprite.spritePos - playerPos;
+
+		float forwardDot = Dot(relativePosition, m_frame.viewForward);
+		float rightDot = Dot(relativePosition, m_frame.screenPlaneVector);
+		if (forwardDot < 0.f)
+		{
+			continue;
+		}
+
+		float halfFOV = m_frame.fov / 2.f;
+		float halfViewWidth = tanf(halfFOV) * forwardDot;
+		if (std::abs(rightDot) > halfViewWidth)
+		{
+			continue;
+		}
+
+		float screenPercent = (rightDot / halfViewWidth) * 0.5f + 0.5f;
+		screenPercent = std::clamp(screenPercent, 0.f, 1.f);
+
+		float depth = { Projection(relativePosition, m_frame.viewForward * m_rayConfig.farClip).Length() };
+
+		Vector2i spriteSize{sprite.size};
+		spriteSize /= depth;
+		const float renderDepth = depth / m_rayConfig.farClip;
+		const Vector2i screenPos{ int(m_rayConfig.xResolution * screenPercent), ((m_rayConfig.yResolution / 2) + int(m_frame.viewPitch) + int(sprite.height / depth)) };
+
+		const Vector2i screenStart = screenPos - (spriteSize / 2);
+		const Vector2i screenEnd = screenPos + (spriteSize / 2);
+
+		const SDL_Surface* pSpriteTexture = pSpriteTextures->GetSDLSurface(sprite.textureId);
+		for (int x = screenStart.x; x <= screenEnd.x; x++)
+		{
+			if (x < 0 || x >= m_rayConfig.xResolution)
+			{
+				continue;
+			}
+
+			// NOTE: In some raycasters, it is only necessary to check depth once per vertical strip of a sprite
+			// Because this raycaster supports cutout walls (fences etc.), we have to depth test every pixel :(
+			for (int y = screenStart.y; y <= screenEnd.y; y++)
+			{
+				if (y < 0 || y >= m_rayConfig.yResolution)
+				{
+					continue;
+				}
+
+				int screenIndex = x + (y * m_rayConfig.xResolution);
+				if (renderDepth < m_bgTexDepth[screenIndex])
+				{
+					int texX = (float(x - screenStart.x) / (screenEnd.x - screenStart.x)) * pSpriteTexture->w;
+					int texY = pSpriteTexture->h - (float(y - screenStart.y) / (screenEnd.y - screenStart.y)) * (pSpriteTexture->h - 1);
+
+
+					Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pSpriteTexture->pixels) + (texY * pSpriteTexture->pitch) + (texX * pSpriteTexture->format->BytesPerPixel));
+					Uint8 r, g, b, a;
+					SDL_GetRGBA(*pixel, pSpriteTexture->format, &r, &g, &b, &a);
+					if (!a)
+					{
+						continue;
+					}
+
+					GLuint& colByte = m_bgTexRGBA[screenIndex];
+					colByte = 0;
+					colByte |= (r << 0);
+					colByte |= (g << 8);
+					colByte |= (b << 16);
+					colByte |= (a << 24);
+
+					m_bgTexDepth[screenIndex] = renderDepth;
+				}
+			}
+		}
+	}
 }

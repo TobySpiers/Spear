@@ -26,6 +26,7 @@ public:
 
 private:
 	Spear::TextureArray m_worldTextures;
+	Spear::TextureArray m_spriteTextures;
 	GameState m_gameState;
 
 	enum DebugInputModes

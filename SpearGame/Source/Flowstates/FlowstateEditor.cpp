@@ -973,6 +973,8 @@ void FlowstateEditor::MakePanel_Details_Object()
 
 	if (bUniformType)
 	{
+		ImGui::SeparatorText(selectedObject->GetClassName());
+
 		if (!m_modifyObjectsAction)
 		{
 			m_modifyObjectsAction = new EditorAction_ModifyProperties(m_selectedObjects);

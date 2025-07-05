@@ -16,7 +16,7 @@ struct Vector2
 
 	friend std::ofstream& operator<<(std::ofstream& stream, const Vector2<T>& obj)
 	{
-		stream << obj.x << obj.y;
+		stream << obj.x << " " << obj.y << " ";
 		return stream;
 	}
 	friend std::ifstream& operator>>(std::ifstream& stream, Vector2<T>& obj)
@@ -83,7 +83,7 @@ struct Vector3
 
 	friend std::ofstream& operator<<(std::ofstream& stream, const Vector3<T>& obj)
 	{
-		stream << obj.x << " " << obj.y << " " << obj.z;
+		stream << obj.x << " " << obj.y << " " << obj.z << " ";
 		return stream;
 	}
 	friend std::ifstream& operator>>(std::ifstream& stream, Vector3<T>& obj)
