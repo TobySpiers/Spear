@@ -52,13 +52,14 @@ void FlowstateEditor::StateEnter()
 	config[INPUT_ALT] = SDL_SCANCODE_LALT;
 	config[INPUT_SHIFT] = SDL_SCANCODE_LSHIFT;
 
+	config[INPUT_N] = SDL_SCANCODE_N;
+	config[INPUT_S] = SDL_SCANCODE_S;
 	config[INPUT_Z] = SDL_SCANCODE_Z;
 	config[INPUT_Y] = SDL_SCANCODE_Y;
 
 	config[INPUT_APPLY] = SDL_BUTTON_LEFT;
 	config[INPUT_CLEAR] = SDL_BUTTON_RIGHT;
 	config[INPUT_QUIT] = SDL_SCANCODE_ESCAPE;
-	config[INPUT_MODIFIER] = SDL_SCANCODE_LCTRL;
 
 	config[INPUT_DELETE] = SDL_SCANCODE_DELETE;
 
@@ -76,9 +77,6 @@ void FlowstateEditor::StateEnter()
 	config[INPUT_FACE_EAST] = SDL_SCANCODE_RIGHT;
 	config[INPUT_FACE_SOUTH] = SDL_SCANCODE_DOWN;
 	config[INPUT_FACE_WEST] = SDL_SCANCODE_LEFT;
-	
-	config[INPUT_SAVE] = SDL_SCANCODE_S;
-	config[INPUT_LOAD] = SDL_SCANCODE_L;
 
 	Spear::ServiceLocator::GetInputManager().ConfigureInputBindings(config, INPUT_COUNT);
 	Spear::ServiceLocator::GetInputManager().AllowImguiKeyboardConsumption(false);
@@ -99,6 +97,8 @@ void FlowstateEditor::StateEnter()
 
 int FlowstateEditor::StateUpdate(float deltaTime)
 {
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+
 	bool bRequestQuit = false;
 
 	if(m_saveCooldown > 0.f)
@@ -153,10 +153,16 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Mode"))
+		if (ImGui::BeginMenu("Edit"))
 		{
-			bool test = false;
-			ImGui::MenuItem("Tile", nullptr, &test);
+			if (ImGui::MenuItem("Undo", "Ctrl+Z", nullptr, m_undoActions.size() > 0))
+			{
+				UndoAction();
+			}
+			if (ImGui::MenuItem("Redo", "Ctrl+Y", nullptr, m_redoActions.size() > 0))
+			{
+				RedoAction();
+			}
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
@@ -164,6 +170,25 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	if (selectedModal)
 	{
 		ImGui::OpenPopup(selectedModal);
+	}
+	else if (input.InputHold(INPUT_CTRL))
+	{
+		// Modal menu keyboard shortcuts
+		if (input.InputRelease(INPUT_N))
+		{
+			ImGui::OpenPopup(modal_NewLevel);
+		}
+		else if (input.InputRelease(INPUT_S))
+		{
+			if (input.InputHold(INPUT_ALT))
+			{
+				ImGui::OpenPopup(modal_SaveAs);
+			}
+			else
+			{
+				SaveLevel();
+			}
+		}
 	}
 
 	if (ImGui::BeginPopupModal(modal_NewLevel, NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -229,13 +254,13 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	ImGui::Begin("Editor");
 	ImGui::Text("Mode: ");
 	ImGui::SameLine();
-	if (ImGui::SmallButton("(M) Map"))
+	if (ImGui::SmallButton("Map"))
 	{
 		m_selectedObjects.clear();
 		m_editorMode = MODE_TILES;
 	}
 	ImGui::SameLine();
-	if (ImGui::SmallButton("(O) Object"))
+	if (ImGui::SmallButton("Object"))
 	{
 		m_selectedTiles.clear();
 		m_editorMode = MODE_OBJECTS;
@@ -269,7 +294,6 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	ImGui::End();
 
 	// Cache mouse info
-	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 	m_hoveredTile = MousePosToGridIndex();
 	m_hoveredTileValid = ValidTile(m_hoveredTile);
 	m_hoveredObject = MousePosToObject();
@@ -288,16 +312,10 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 		}
 	}
 
-	// Deprecating...? Keyboard Camera Controls
-	const int mouseWheel = input.Wheel();
-	const float zoomSpeed{10.f};
-	float scrollSpeed{1000.f};
-	if (input.InputHold(INPUT_SHIFT))
+	// Keyboard camera scroll
+	if (!input.InputHold(INPUT_CTRL))
 	{
-		scrollSpeed = 2000.f;
-	}
-	if(!input.InputHold(INPUT_MODIFIER))
-	{ 
+		float scrollSpeed{ 1000.f };
 		if (input.InputHold(INPUT_SCROLL_LEFT))
 		{
 			m_camOffset.x += scrollSpeed * deltaTime;
@@ -314,24 +332,17 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 		{
 			m_camOffset.y -= scrollSpeed * deltaTime;
 		}
-		if (input.InputHold(INPUT_ZOOM_IN) || mouseWheel > 0)
-		{
-			ModifyZoom(1.1f);
-		}
-		else if (input.InputHold(INPUT_ZOOM_OUT) || mouseWheel < 0)
-		{
-			ModifyZoom(0.9f);
-		}
 	}
 
-	// Save / Load
-	if (input.InputHold(INPUT_MODIFIER) && input.InputStart(INPUT_SAVE))
+	// Handle zoom
+	const int mouseWheel = input.Wheel();
+	if (input.InputHold(INPUT_ZOOM_IN) || mouseWheel > 0)
 	{
-		SaveLevel();
+		ModifyZoom(1.1f);
 	}
-	else if (input.InputHold(INPUT_MODIFIER) && input.InputHold(INPUT_LOAD))
+	else if (input.InputHold(INPUT_ZOOM_OUT) || mouseWheel < 0)
 	{
-		OpenLevel("Test.level");
+		ModifyZoom(0.9f);
 	}
 
 	// Quit
@@ -790,10 +801,9 @@ void FlowstateEditor::MakePanel_Editor_Tiles()
 void FlowstateEditor::MakePanel_Editor_Objects()
 {
 	ImGui::SeparatorText("Object Picker");
-	ImGui::Text("(Middle-Click to Place Objects!)");
 	std::vector<std::pair<const char*, GameObject::ConstructorFuncPtr>> ObjectConstructors = *GameObject::ObjectConstructors();
 
-	if (ImGui::BeginListBox("Object"))
+	if (ImGui::BeginListBox("##ObjectList"))
 	{
 		for (int i = 0; i < ObjectConstructors.size(); i++)
 		{
@@ -811,6 +821,8 @@ void FlowstateEditor::MakePanel_Editor_Objects()
 		}
 		ImGui::EndListBox();
 	}
+
+	ImGui::Text("(Middle-Click to Place Objects!)");
 }
 
 void FlowstateEditor::MakePanel_Visibility()

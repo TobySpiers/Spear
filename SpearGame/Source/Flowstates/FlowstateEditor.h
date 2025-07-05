@@ -26,13 +26,14 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_ALT,
 		INPUT_SHIFT,
 
+		INPUT_N,
+		INPUT_S,
 		INPUT_Z,
 		INPUT_Y,
 
 		INPUT_APPLY,
 		INPUT_CLEAR,
 		INPUT_QUIT,
-		INPUT_MODIFIER,
 
 		INPUT_DELETE,
 
@@ -51,9 +52,6 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_FACE_EAST,
 		INPUT_FACE_SOUTH,
 		INPUT_FACE_WEST,
-
-		INPUT_SAVE,
-		INPUT_LOAD,
 
 		INPUT_COUNT
 	};
