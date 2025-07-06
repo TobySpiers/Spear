@@ -160,14 +160,14 @@ template <typename T>
 Vector3<T> Normalize(const Vector3<T>& vec) { return vec / vec.Length(); };
 
 template <typename T>
-Vector2<T> NormalizeNonZero(const Vector2<T>& vec) { return vec.Length() ? vec / vec.Length() : vec; };
+Vector2<T> NormalizeNonZero(const Vector2<T>& vec) { const float length = vec.Length(); return length ? vec / length : vec; };
 template <typename T>
-Vector3<T> NormalizeNonZero(const Vector3<T>& vec) { return vec.Length() ? vec / vec.Length() : vec; };
+Vector3<T> NormalizeNonZero(const Vector3<T>& vec) { const float length = vec.Length(); return length ? vec / length : vec; };
 
 template <typename T>
-Vector2<T> Projection(const Vector2<T>& vecToProject, const Vector2<T>& vecTarget) { return Normalize(vecTarget) * Dot(vecToProject, Normalize(vecTarget)); };
+Vector2<T> Projection(const Vector2<T>& vecToProject, const Vector2<T>& vecTarget) { const Vector2<T> normalizedVecToTarget = Normalize(vecTarget); return normalizedVecToTarget * Dot(vecToProject, normalizedVecToTarget); };
 template <typename T>
-Vector3<T> Projection(const Vector3<T>& vecToProject, const Vector3<T>& vecTarget) { return Normalize(vecTarget) * Dot(vecToProject, Normalize(vecTarget)); };
+Vector3<T> Projection(const Vector3<T>& vecToProject, const Vector3<T>& vecTarget) { const Vector3<T> normalizedVecToTarget = Normalize(vecTarget); return normalizedVecToTarget * Dot(vecToProject, normalizedVecToTarget); };
 
 template <typename T>
 Vector2<T> Reflection(const Vector2<T>& vecToReflect, const Vector2<T>& vecSurface) { return (vecToReflect - (2.f * Projection(vecToReflect, vecSurface.Normal()))); };
