@@ -79,6 +79,7 @@ class FlowstateEditor : public Spear::Flowstate
 	enum EditorBatches
 	{
 		BATCH_MAP,
+		BATCH_SPRITESET_1,
 	};
 
 	enum OngoingClick
@@ -123,6 +124,7 @@ class FlowstateEditor : public Spear::Flowstate
 	Vector2f MousePosToWorldPos();
 	Vector2f ScreenPosToWorldPos(const Vector2f& screenPos);
 	Vector2f WorldPosToScreenPos(const Vector2f& worldPos);
+	Vector2f GameObjectWorldPosOffset() const {return Vector2f(0.5f); }; // since editor tiles are drawn from center rather than topleft, we need to offset gameobjects by half a tile
 	GameObject* MousePosToObject();
 
 	void ProcessInput();
@@ -208,6 +210,7 @@ private:
 	// Hud
 	float m_menuTexturesScrollSpeed{ 20.f };
 	Spear::TextureArray m_mapTextures;
+	Spear::TextureArray m_spriteTextures;
 
 	// Colours
 	const float m_fadedTileOpacity = 0.5f;
@@ -230,7 +233,6 @@ private:
 	GameObject* m_draggingObject{nullptr};
 	Vector2f m_draggedObjectDeltaToMouse{0.f, 0.f};
 	Vector2f m_draggedObjectStartPosition{0.f, 0.f};
-	const float m_hoverRadiusSqr{.1f};
 	bool m_dragSelectingObjects{false};
 	EditorAction_ModifyProperties* m_modifyObjectsAction{nullptr};
 };

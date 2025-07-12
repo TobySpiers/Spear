@@ -48,6 +48,11 @@ struct Vector2
 	Vector2<T> operator/(const float& scalar) const { return Vector2<T>(x / scalar, y / scalar); };
 	Vector2<T> operator/=(const float& scalar) { *this = *this / scalar; return *this; };
 
+	Vector2<T> operator*(const Vector2<T>& scalars) const {return Vector2<T>(x * scalars.x, y * scalars.y); };
+	Vector2<T> operator*=(const Vector2<T>& scalars) {*this = *this * scalars; return *this;}
+	Vector2<T> operator/(const Vector2<T>& scalars) const { return Vector2<T>(x / scalars.x, y / scalars.y); };
+	Vector2<T> operator/=(const Vector2<T>& scalars) { *this = *this / scalars; return *this; }
+
 	// vector operators
 	Vector2<T> operator+(const Vector2<T>& other) const { return Vector2<T>(x + other.x, y + other.y); };
 	Vector2<T> operator+=(const Vector2<T>& other) { *this = *this + other; return *this; };
@@ -160,9 +165,9 @@ template <typename T>
 Vector3<T> Normalize(const Vector3<T>& vec) { return vec / vec.Length(); };
 
 template <typename T>
-Vector2<T> NormalizeNonZero(const Vector2<T>& vec) { const float length = vec.Length(); return length ? vec / length : vec; };
+Vector2<T> NormalizeNonZero(const Vector2<T>& vec) { const float length = vec.Length(); return length ? vec / length : Vector2<T>(0); };
 template <typename T>
-Vector3<T> NormalizeNonZero(const Vector3<T>& vec) { const float length = vec.Length(); return length ? vec / length : vec; };
+Vector3<T> NormalizeNonZero(const Vector3<T>& vec) { const float length = vec.Length(); return length ? vec / length : Vector2<T>(0); };
 
 template <typename T>
 Vector2<T> Projection(const Vector2<T>& vecToProject, const Vector2<T>& vecTarget) { const Vector2<T> normalizedVecToTarget = Normalize(vecTarget); return normalizedVecToTarget * Dot(vecToProject, normalizedVecToTarget); };

@@ -21,9 +21,16 @@ enum class eGameObjectTickState
 
 enum class eGameObjectLifeState
 {
-	Active, // object is alive and usable
+	Active, // object is alive and usable (default)
 	EditorDestroy, // (editor-only): object is psuedo destroyed (exists but hidden/inactive), kept in memory for simple undo/redo
-	PendingDestroy, // object is pending destroy and will no longer exist
+	PendingDestroy, // object is pending destroy and will no longer exist in a frame or two
+};
+
+enum class eGameObjectEditorViewMode
+{
+	Default,
+	Hovered,
+	Selected
 };
 
 // Base class for any type of GameObject. Derived classes must use included GAMEOBJECT_SERIALIZABLE and GAMEOBJECT_REGISTER macros.
@@ -37,25 +44,13 @@ class GameObject
 	public:
 	template<typename T> static T* Create();
 
-	// Implementable ---
-
-	virtual void OnCreated() {};
-	virtual void OnTick(float deltaTime) {};
-	virtual void OnDraw() const {};
-	virtual void OnDestroy() {};
-
-	// Order of operations when deserializing: DefaultConstructor -> Variable Assignment From File -> OnDeserialize -> OnCreated
-	virtual void OnDeserialize() {};
-	virtual void OnPreSerialize() {};
-	virtual void OnPostSerialize() {};
-
-	// Editor
+	// Editor functionality
+	void DrawInEditor(const Vector3f& position, float zoom, bool bSelected, bool bHovered);
 	virtual void PopulateEditorPanel(ExposedPropertyData& propertyData);
 	virtual void SetProperty(const void* value, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData = nullptr, int step = 1);
 	virtual void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step = 1) const;
-	virtual void DrawInEditor(const Vector3f& position, float zoom) const;
-	virtual void DrawInEditorHovered(const Vector3f& position, float zoom) const;
-	virtual void DrawInEditorSelected(const Vector3f& position, float zoom) const;
+
+	virtual float GetEditorHoverRadius(float zoom);
 	void SetDestroyedInEditor(bool bDestroyed = true);
 	bool IsDestroyedInEditor() const;
 
@@ -104,6 +99,19 @@ protected:
 	
 	GameObject() {};
 	virtual ~GameObject();
+
+	// Implementable behaviours ---
+
+	virtual void OnCreated() {};
+	virtual void OnTick(float deltaTime) {};
+	virtual void OnDraw() const {};
+	virtual void OnEditorDraw(const Vector3f& position, float zoom);
+	virtual void OnDestroy() {};
+
+	// Order of operations when deserializing: DefaultConstructor -> Variable Assignment From File -> OnDeserialize -> OnCreated
+	virtual void OnDeserialize() {};
+	virtual void OnPreSerialize() {};
+	virtual void OnPostSerialize() {};
 
 	virtual void Serialize(std::ofstream& os) const = 0;
 	virtual void Serialize_Internal(std::ofstream& os) const;

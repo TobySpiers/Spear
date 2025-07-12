@@ -12,7 +12,7 @@ void PanelRaycaster::MakePanel()
 		ImGui::SliderInt("Internal Resolution (X)", &rayConfig.xResolution, 10, 4000);
 		ImGui::SliderInt("Internal Resolution (Y)", &rayConfig.yResolution, 10, 4000);
 		ImGui::SliderFloat("Far Clip", &rayConfig.farClip, 1.f, 200.f);
-		ImGui::SliderFloat("Field Of View", &rayConfig.fieldOfView, 35.f, 95.f);
+		ImGui::SliderFloat("Field Of View", &rayConfig.fieldOfView, 35.f, 120.f);
 		ImGui::SliderInt("Ray Encounter Limit", &rayConfig.rayEncounterLimit, 1, 50);
 		ImGui::SliderFloat("2D Scale", &rayConfig.scale2D, 1.f, 200.f);
 		ImGui::SliderFloat("Corrective Pixel Depth Tolerance", &rayConfig.correctivePixelDepthTolerance, 0.f, 0.1f, "%.4f");

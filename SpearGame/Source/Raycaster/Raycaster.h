@@ -7,7 +7,7 @@ struct RaycasterConfig;
 struct RaycastSprite
 {
 	Vector2f spritePos{ Vector2f::ZeroVector };
-	Vector2i size{ 500, 500 };
+	Vector2f size{ 500, 500 };
 	int height{ 0 };
 	int textureId{ 0 };
 };
@@ -98,7 +98,7 @@ private:
 		Vector2f	raySpacingDir;		// direction to space rays horizontally for walls
 		float		raySpacingLength;	// spacing to use between each ray
 		
-		float		padding;
+		float		fovSpriteMultiplier{1.f};
 		Vector2f	planeHeights;	// height of inner and outer floor/roof planes
 	};
 	static RaycastFrameData m_frame;

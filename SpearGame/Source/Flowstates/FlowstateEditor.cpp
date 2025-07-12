@@ -86,7 +86,11 @@ void FlowstateEditor::StateEnter()
 
 	// Load map textures
 	m_mapTextures.InitialiseFromDirectory("../Assets/TILESETS/64");
-	Spear::ServiceLocator::GetScreenRenderer().CreateSpriteBatch(m_mapTextures, 64 * 64);
+	Spear::Renderer::Get().CreateSpriteBatch(m_mapTextures, 64 * 64);
+
+	// Load sprite textures
+	m_spriteTextures.InitialiseFromDirectory("../Assets/SPRITES/SpriteSet1");
+	Spear::Renderer::Get().CreateSpriteBatch(m_spriteTextures, 500);
 
 	// Disable automatic ImGui handling - Editor handles ImGui manually
 	Spear::ImguiManager& imguiManager = Spear::ImguiManager::Get();
@@ -303,7 +307,7 @@ int FlowstateEditor::StateUpdate(float deltaTime)
 	// ObjectClass tooltips
 	if (m_editorMode == MODE_OBJECTS)
 	{
-		if(m_hoveredObject)
+		if(m_hoveredObject && !m_draggingObject)
 		{
 			ImGui::SetNextWindowPos(input.GetMousePos() + Vector2i(10, 10));
 			ImGui::BeginTooltip();
@@ -385,10 +389,10 @@ Vector2f FlowstateEditor::WorldPosToScreenPos(const Vector2f& worldPos)
 
 GameObject* FlowstateEditor::MousePosToObject()
 {
-	const Vector2f worldPos = MousePosToWorldPos();
+	const Vector2f worldPos = MousePosToWorldPos() + GameObjectWorldPosOffset();
 
 	const std::vector<GameObject*>& gameObjects = GameObject::GetAllObjects();
-	float bestProximity{m_hoverRadiusSqr};
+	float bestProximity{FLT_MAX};
 	GameObject* result{nullptr};
 	for (GameObject* object : gameObjects)
 	{
@@ -398,7 +402,8 @@ GameObject* FlowstateEditor::MousePosToObject()
 		}
 
 		const float proximity = (object->GetPosition().XY() - worldPos).LengthSqr();
-		if (proximity < bestProximity)
+		float requiredProximity = object->GetEditorHoverRadius(m_camZoom) / MapSpacing();
+		if (proximity < requiredProximity && proximity < bestProximity)
 		{
 			result = object;
 			bestProximity = proximity;
@@ -622,8 +627,8 @@ bool FlowstateEditor::ProcessInput_Objects_Select()
 		else
 		{
 			// Drag Select - Commit
-			const Vector2f firstMousePos = ScreenPosToWorldPos(m_clickOrigin.ToFloat());
-			const Vector2f curMousePos = MousePosToWorldPos();
+			const Vector2f firstMousePos = ScreenPosToWorldPos(m_clickOrigin.ToFloat()) + GameObjectWorldPosOffset();
+			const Vector2f curMousePos = MousePosToWorldPos() + GameObjectWorldPosOffset();
 
 			const std::vector<GameObject*>& gameObjects = GameObject::GetAllObjects();
 			for (GameObject* object : gameObjects)
@@ -653,7 +658,7 @@ bool FlowstateEditor::ProcessInput_Objects_Create()
 	{
 		m_selectedObjects.clear();
 
-		EditorAction_CreateObject* CreateAction = new EditorAction_CreateObject(m_objectConstructorId, MousePosToWorldPos());
+		EditorAction_CreateObject* CreateAction = new EditorAction_CreateObject(m_objectConstructorId, MousePosToWorldPos() + GameObjectWorldPosOffset());
 		m_selectedObjects.insert(CreateAction->GetCreatedObject());
 
 		CommitAction(CreateAction);
@@ -1290,25 +1295,21 @@ void FlowstateEditor::StateRender()
 		const Vector2f selectionBoxEnd = MousePosToWorldPos();
 		for (GameObject* object : gameObjects)
 		{
-			const Vector3f editorPosition = m_camOffset + (object->GetPosition().XY() * MapSpacing());
+			const Vector3f editorPosition = (m_camOffset + (object->GetPosition().XY() - GameObjectWorldPosOffset()) * MapSpacing());
 
-			if (m_selectedObjects.contains(object))
+			bool bSelected = m_editorMode == MODE_OBJECTS && m_selectedObjects.contains(object);
+			bool bHovered = m_editorMode == MODE_OBJECTS && m_hoveredObject == object && !m_draggingObject && !m_dragSelectingObjects;
+			if (!bHovered)
 			{
-				object->DrawInEditorSelected(editorPosition, m_camZoom);
-			}
-			else
-			{
-				object->DrawInEditor(editorPosition, m_camZoom);
-			}
-
-			if (m_editorMode == MODE_OBJECTS && m_dragSelectingObjects)
-			{
-				if (object->GetPosition().XY().IsBetween(selectionBoxStart, selectionBoxEnd))
+				if (m_editorMode == MODE_OBJECTS && m_dragSelectingObjects)
 				{
-					object->DrawInEditorHovered(editorPosition, m_camZoom);
+					bHovered = (object->GetPosition().XY().IsBetween(selectionBoxStart + GameObjectWorldPosOffset(), selectionBoxEnd + GameObjectWorldPosOffset()));
 				}
 			}
+
+			object->DrawInEditor(editorPosition, m_camZoom, bSelected, bHovered);
 		}
+
 		if(m_editorMode == MODE_OBJECTS)
 		{
 			if (m_dragSelectingObjects)
@@ -1317,11 +1318,6 @@ void FlowstateEditor::StateRender()
 				box.start = m_clickOrigin.ToFloat();
 				box.end = Spear::InputManager::Get().GetMousePos().ToFloat();
 				rend.AddLineBox(box);
-			}
-
-			if (m_hoveredObject)
-			{
-				m_hoveredObject->DrawInEditorHovered(m_camOffset + (m_hoveredObject->GetPosition().XY() * MapSpacing()), m_camZoom);
 			}
 		}
 	}

@@ -25,7 +25,7 @@ bool Raycaster::m_bSoftwareRendering{true};
 int Raycaster::m_softwareRenderingThreads{15};
 
 constexpr float FOV_MIN{ 35.f };
-constexpr float FOV_MAX{ 95.f };
+constexpr float FOV_MAX{ 120.f };
 
 void Raycaster::RecreateBackgroundArrays(int width, int height)
 {
@@ -90,8 +90,8 @@ void Raycaster::ApplyFovModifier(float fovModifier)
 	const float fovMod = std::clamp(fovModifier, fovModMin, fovModMax);
 	const float fovResult = m_rayConfig.fieldOfView + fovMod;
 
-	// FoV naturally affects floor/ceiling height but not wall height... This LUT approximates sensible wall height adjustments
-	// There is probably a simple formula to express this as a curve but the current approach works well enough
+	// FoV naturally affects floor/ceiling height but not wall height... These LUTs approximate sensible wall height and sprite widths
+	// There is probably a simple formula to express these as a curve but the current approach works well enough
 	// Perhaps not an ideal solution but solves the problem with a negligible performance cost
 	// Maybe something to revisit at a later date
 	constexpr int fovWallHeightLUTSize{ 9 };
@@ -104,11 +104,33 @@ void Raycaster::ApplyFovModifier(float fovModifier)
 		{75.f, 1.f},
 		{90.f, 0.888f},
 		{105.f, 0.777f},
-		{120.f, 0.63f},
+		{120.f, 0.63f}
+	};
+	constexpr int fovSpriteLUTSize{18};
+	const Vector2f fovSpriteLUT[fovSpriteLUTSize] = {
+		{35.f, 1.59f},
+		{40.f, 1.37f},
+		{45.f, 1.21f},
+		{50.f, 1.07f},
+		{55.f, 0.96f},
+		{60.f, 0.87f},
+		{65.f, 0.79f},
+		{70.f, 0.72f},
+		{75.f, 0.65f},
+		{80.f, 0.6f},
+		{85.f, 0.55f},
+		{90.f, 0.5f},
+		{95.f, 0.46f},
+		{100.f, 0.42f},
+		{105.f, 0.385f},
+		{110.f, 0.35f},
+		{115.f, 0.32f},
+		{120.f, 0.29f}
 	};
 
 	// Update cached data
 	m_frame.fovWallMultiplier = Lerp(fovResult, fovWallHeightLUT, fovWallHeightLUTSize);
+	m_frame.fovSpriteMultiplier = Lerp(fovResult, fovSpriteLUT, fovSpriteLUTSize);
 	m_frame.fov = TO_RADIANS(fovResult);
 }
 
@@ -992,11 +1014,13 @@ void Raycaster::Draw3DSprites(const Vector2f& playerPos, float pitch, const floa
 		// ScreenPos.Y is middle of screen (yResolution / 2), shifted by viewPitch (vertical look), with spriteHeight (scaled by distance) applied
 		const Vector2i screenPos{ int(m_rayConfig.xResolution * screenPercent), ((m_rayConfig.yResolution / 2) + int(m_frame.viewPitch) + int(sprite.height / forwardDistance)) };
 
-		// Calculate sprite size scaled by distance
-		Vector2i spriteSize{sprite.size};
-		spriteSize /= forwardDistance;
-		const Vector2i screenStart = screenPos - (spriteSize / 2);
-		const Vector2i screenEnd = screenPos + (spriteSize / 2);
+		// Calculate sprite size scaled by distance/resolution/fov
+		Vector2f spriteSize = ((sprite.size / forwardDistance) * Vector2f(m_rayConfig.xResolution * m_frame.fovSpriteMultiplier, m_rayConfig.yResolution * (m_frame.fovWallMultiplier / 2))); 
+
+		// Calculate edges based on size
+		Vector2i screenStart = screenPos - (spriteSize / 2).ToInt();
+		Vector2i screenEnd = screenPos + (spriteSize / 2).ToInt();
+
 		if (screenEnd.x < 0 || screenStart.x >= m_rayConfig.xResolution)
 		{
 			continue;

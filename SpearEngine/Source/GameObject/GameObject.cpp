@@ -178,13 +178,28 @@ void GameObject::DeletePropertyData(const void*& allocatedData, const std::vecto
 	DELETE_PROPERTY_DATA(allocatedData, propertyChain, step, propertyId, m_position);
 }
 
-void GameObject::DrawInEditor(const Vector3f& position, float zoom) const
+void GameObject::DrawInEditor(const Vector3f& position, float zoom, bool bSelected, bool bHovered)
 {
-	if(lifeState != eGameObjectLifeState::Active)
+	// Check object is not pending destroy/editor destroyed
+	if (IsValid())
 	{
-		return;
+		OnEditorDraw(position, zoom);
+		if (bHovered || bSelected)
+		{
+			Spear::Renderer::LinePolyData icon;
+			icon.segments = 4;
+			icon.colour = bSelected ? Colour4f::Cyan() : Colour4f::White();
+			icon.pos = position.XY();
+			icon.radius = GetEditorHoverRadius(zoom);
+			icon.depth = position.z;
+			icon.rotation = TO_RADIANS(45.f);
+			Spear::Renderer::Get().AddLinePoly(icon);
+		}
 	}
+}
 
+void GameObject::OnEditorDraw(const Vector3f& position, float zoom)
+{
 	Spear::Renderer::LinePolyData icon;
 	icon.segments = 8;
 	icon.colour = Colour4f::White();
@@ -194,37 +209,9 @@ void GameObject::DrawInEditor(const Vector3f& position, float zoom) const
 	Spear::Renderer::Get().AddLinePoly(icon);
 }
 
-void GameObject::DrawInEditorHovered(const Vector3f& position, float zoom) const
+float GameObject::GetEditorHoverRadius(float zoom)
 {
-	if (lifeState != eGameObjectLifeState::Active)
-	{
-		return;
-	}
-
-	Spear::Renderer::LinePolyData icon;
-	icon.segments = 4;
-	icon.colour = Colour4f::White();
-	icon.pos = position.XY();
-	icon.radius = zoom * 15.f;
-	icon.depth = position.z;
-	icon.rotation = TO_RADIANS(45.f);
-	Spear::Renderer::Get().AddLinePoly(icon);
-}
-
-void GameObject::DrawInEditorSelected(const Vector3f& position, float zoom) const
-{
-	if (lifeState != eGameObjectLifeState::Active)
-	{
-		return;
-	}
-
-	Spear::Renderer::LinePolyData icon;
-	icon.segments = 8;
-	icon.colour = Colour4f::Cyan();
-	icon.pos = position.XY();
-	icon.radius = zoom * 10.f;
-	icon.depth = position.z;
-	Spear::Renderer::Get().AddLinePoly(icon);
+	return zoom * 20;
 }
 
 const char* GameObject::GetClassName() const
