@@ -40,12 +40,9 @@ void FlowstateGame::StateEnter()
 	audio.InitSoundsFromFolder("../ASSETS/SFX/");				// Load SFX from folder
 	audio.GlobalPlayStream("../ASSETS/MUSIC/Ambience1.mp3");	// Test file streaming
 
-	// Load world textures
-	m_worldTextures.InitialiseFromDirectory("../Assets/TILESETS/64");
-	Spear::Renderer::Get().CreateSpriteBatch(m_worldTextures, 500);
-
-	m_spriteTextures.InitialiseFromDirectory("../Assets/SPRITES/SpriteSet1");
-	Spear::Renderer::Get().CreateSpriteBatch(m_spriteTextures, 100);
+	// Load globally used textures (map/sprites)
+	// If any game-specific texture batches are required, these can be loaded separately after
+	GlobalTextureBatches::InitialiseBatches(m_textures);
 
 	// Load world
 	LevelFileManager::LoadLevel("Test.level", m_gameState.mapData);

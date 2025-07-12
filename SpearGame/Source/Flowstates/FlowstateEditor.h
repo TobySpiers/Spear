@@ -3,6 +3,7 @@
 #include "Graphics/TextureArray.h"
 #include "Graphics/TextureFont.h"
 #include "LevelData.h"
+#include "GlobalTextureBatches.h"
 
 #include <unordered_set>
 
@@ -117,8 +118,8 @@ class FlowstateEditor : public Spear::Flowstate
 	// Tile Helpers
 	Vector2i MousePosToGridIndex();
 	bool ValidTile(const Vector2i& index);
-	float MapSpacing() { return m_camZoom * m_mapTextures.GetWidth(); };
-	float TileRadius(){return m_camZoom * (m_mapTextures.GetWidth() * 0.5f);};
+	float MapSpacing() { return m_camZoom * m_textures[GlobalTextureBatches::BATCH_TILESET_1].GetWidth(); };
+	float TileRadius(){return m_camZoom * (m_textures[GlobalTextureBatches::BATCH_TILESET_1].GetWidth() * 0.5f);};
 
 	// Object Helpers
 	Vector2f MousePosToWorldPos();
@@ -190,7 +191,11 @@ public:
 
 	void ClearUndoActions();
 	void ClearRedoActions();
+
 private:
+	// Graphics
+	Spear::TextureArray m_textures[GlobalTextureBatches::BATCH_TOTALS];
+
 	// State
 	int m_editorMode{ EditorMode::MODE_TILES };
 	std::vector<EditorActionBase*> m_undoActions;
@@ -209,8 +214,6 @@ private:
 
 	// Hud
 	float m_menuTexturesScrollSpeed{ 20.f };
-	Spear::TextureArray m_mapTextures;
-	Spear::TextureArray m_spriteTextures;
 
 	// Colours
 	const float m_fadedTileOpacity = 0.5f;

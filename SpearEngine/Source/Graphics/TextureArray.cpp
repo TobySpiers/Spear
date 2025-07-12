@@ -168,7 +168,7 @@ namespace Spear
 		return true;
 	}
 
-	GLuint TextureArray::GetTextureViewForLayer(int layer)
+	GLuint TextureArray::GetTextureViewForLayer(int layer) const
 	{
 		if (layer >= 0 && layer < m_textureViews.size())
 		{

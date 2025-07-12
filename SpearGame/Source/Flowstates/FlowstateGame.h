@@ -2,6 +2,7 @@
 #include "Core/FlowstateManager.h"
 #include "Graphics/TextureArray.h"
 #include "GameState.h"
+#include "GlobalTextureBatches.h"
 
 class FlowstateGame : public Spear::Flowstate
 {
@@ -25,8 +26,7 @@ public:
 	void StateExit() override;
 
 private:
-	Spear::TextureArray m_worldTextures;
-	Spear::TextureArray m_spriteTextures;
+	Spear::TextureArray m_textures[GlobalTextureBatches::BATCH_TOTALS];
 	GameState m_gameState;
 
 	enum DebugInputModes

@@ -84,13 +84,9 @@ void FlowstateEditor::StateEnter()
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
 
-	// Load map textures
-	m_mapTextures.InitialiseFromDirectory("../Assets/TILESETS/64");
-	Spear::Renderer::Get().CreateSpriteBatch(m_mapTextures, 64 * 64);
-
-	// Load sprite textures
-	m_spriteTextures.InitialiseFromDirectory("../Assets/SPRITES/SpriteSet1");
-	Spear::Renderer::Get().CreateSpriteBatch(m_spriteTextures, 500);
+	// Load globally used textures (map/sprites)
+	// If any editor-specific texture batches are required, these can be loaded separately after
+	GlobalTextureBatches::InitialiseBatches(m_textures);
 
 	// Disable automatic ImGui handling - Editor handles ImGui manually
 	Spear::ImguiManager& imguiManager = Spear::ImguiManager::Get();
@@ -873,32 +869,34 @@ void FlowstateEditor::MakePanel_Details_Tile()
 	
 	ImGui::SeparatorText("Texture Settings");
 
+	Spear::TextureArray* tileTextures = &m_textures[GlobalTextureBatches::BATCH_TILESET_1];
+
 	const char* strRoofA = "Roof (Far)";
-	ImGui::ImageButton(strRoofA, m_mapTextures.GetTextureViewForLayer(commonNode.texIdRoof[1]), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	ImGui::ImageButton(strRoofA, tileTextures->GetTextureViewForLayer(commonNode.texIdRoof[1]), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
 	bool modifiedRoofA = MakePopup_TextureSelect(commonNode.texIdRoof[1], strRoofA);
 	ImGui::SameLine();
 	ImGui::Text(strRoofA);
 
 	const char* strRoofB = "Roof (Near)";
-	ImGui::ImageButton(strRoofB, m_mapTextures.GetTextureViewForLayer(commonNode.texIdRoof[0]), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	ImGui::ImageButton(strRoofB, tileTextures->GetTextureViewForLayer(commonNode.texIdRoof[0]), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
 	bool modifiedRoofB = MakePopup_TextureSelect(commonNode.texIdRoof[0], strRoofB);
 	ImGui::SameLine();
 	ImGui::Text(strRoofB);
 
 	const char* strWall = "Wall";
-	ImGui::ImageButton(strWall, m_mapTextures.GetTextureViewForLayer(commonNode.texIdWall), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	ImGui::ImageButton(strWall, tileTextures->GetTextureViewForLayer(commonNode.texIdWall), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
 	bool modifiedWall = MakePopup_TextureSelect(commonNode.texIdWall, strWall);
 	ImGui::SameLine();
 	ImGui::Text(strWall);
 
 	const char* strFloorA = "Floor (Near)";
-	ImGui::ImageButton(strFloorA, m_mapTextures.GetTextureViewForLayer(commonNode.texIdFloor[0]), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	ImGui::ImageButton(strFloorA, tileTextures->GetTextureViewForLayer(commonNode.texIdFloor[0]), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
 	bool modifiedFloorA = MakePopup_TextureSelect(commonNode.texIdFloor[0], strFloorA);
 	ImGui::SameLine();
 	ImGui::Text(strFloorA);
 
 	const char* strFloorB = "Floor (Far)";
-	ImGui::ImageButton(strFloorB, m_mapTextures.GetTextureViewForLayer(commonNode.texIdFloor[1]), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+	ImGui::ImageButton(strFloorB, tileTextures->GetTextureViewForLayer(commonNode.texIdFloor[1]), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
 	bool modifiedFloorB = MakePopup_TextureSelect(commonNode.texIdFloor[1], strFloorB);
 	ImGui::SameLine();
 	ImGui::Text(strFloorB);
@@ -1034,11 +1032,13 @@ bool FlowstateEditor::MakePopup_TextureSelect(int& outValue, const char* popupId
 	}
 
 	bool valueChanged = false;
+	Spear::TextureArray* mapTextures = &m_textures[GlobalTextureBatches::BATCH_TILESET_1];
+
 	if (ImGui::BeginPopup(popupId, ImGuiWindowFlags_NoMove))
 	{
-		for (int i = 0; i < m_mapTextures.GetDepth(); i++)
+		for (int i = 0; i < mapTextures->GetDepth(); i++)
 		{
-			ImGui::Image(m_mapTextures.GetTextureViewForLayer(i), ImVec2(m_mapTextures.GetWidth(), m_mapTextures.GetHeight()));
+			ImGui::Image(mapTextures->GetTextureViewForLayer(i), ImVec2(mapTextures->GetWidth(), mapTextures->GetHeight()));
 			if (ImGui::IsItemClicked())
 			{
 				valueChanged = outValue != i;

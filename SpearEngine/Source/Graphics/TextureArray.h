@@ -18,7 +18,7 @@ namespace Spear
 		bool SetDataFromArrayRGBA(GLuint slot, float* pPixels, int width, int height);
 
 		// For accessing a single layer as an individual texture
-		GLuint GetTextureViewForLayer(int layer = 0);
+		virtual GLuint GetTextureViewForLayer(int layer = 0) const override;
 
 		// TextureBase Overrides
 		void FreeTexture() override;

@@ -9,6 +9,7 @@
 #include "Raycaster.h"
 #include "RaycasterConfig.h"
 #include "LevelFileManager.h"
+#include "GlobalTextureBatches.h"
 #include <algorithm>
 
 PanelRaycaster Raycaster::debugPanel;
@@ -983,7 +984,7 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 
 void Raycaster::Draw3DSprites(const Vector2f& playerPos, float pitch, const float angle)
 {
-	const Spear::TextureBase* pSpriteTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(1);
+	const Spear::TextureBase* pSpriteTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(GlobalTextureBatches::BATCH_SPRITESET_1);
 
 	for (int i = 0; i < m_spriteCount; i++)
 	{

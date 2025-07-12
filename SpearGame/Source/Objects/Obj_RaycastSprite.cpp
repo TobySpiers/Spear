@@ -6,7 +6,7 @@ GAMEOBJECT_REGISTER(Obj_RaycastSprite)
 
 void Obj_RaycastSprite::OnCreated()
 {
-	m_raycastSprite = Raycaster::CreateSprite(m_spriteId, GetPosition().XY());
+	m_raycastSprite = Raycaster::CreateSprite(m_texture.SpriteId(), GetPosition().XY());
 	RefreshSpriteData();
 
 	SetTickEnabled(true);
@@ -28,9 +28,9 @@ void Obj_RaycastSprite::OnEditorDraw(const Vector3f& position, float zoom)
 	Spear::Renderer::SpriteData sprite;
 	sprite.pos = position.XY();
 	sprite.size = Vector2f(zoom, zoom) * m_spriteSize;
-	sprite.texLayer = m_spriteId;
+	sprite.texLayer = m_texture.SpriteId();
 	sprite.depth = position.z;
-	Spear::Renderer::Get().AddSprite(sprite, m_spriteBatch);
+	Spear::Renderer::Get().AddSprite(sprite, GlobalTextureBatches::BATCH_SPRITESET_1);
 }
 
 float Obj_RaycastSprite::GetEditorHoverRadius(float zoom)

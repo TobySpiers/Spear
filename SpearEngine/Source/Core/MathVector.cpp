@@ -78,7 +78,7 @@ Vector2<T>& Vector2<T>::operator<<(PropertyManipulator& setter)
 	switch ((*setter.propertyChain)[0])
 	{
 	case 0: Serializer::SetPropertyInternal<T>(setter.value, x, setter.outPropertyData); break;
-	case 1: Serializer::SetPropertyInternal<T>(setter.value, y, setter.outPropertyData);; break;
+	case 1: Serializer::SetPropertyInternal<T>(setter.value, y, setter.outPropertyData); break;
 	default: ASSERT(false); break;
 	}
 	return *this;

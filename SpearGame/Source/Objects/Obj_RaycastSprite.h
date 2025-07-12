@@ -1,11 +1,13 @@
 #pragma once
 #include "GameObject/GameObject.h"
+#include "GlobalTextureBatches.h"
+#include <Graphics/TextureProperty.h>
 
 struct RaycastSprite;
 
 class Obj_RaycastSprite : public GameObject
 {
-	GAMEOBJECT_SERIALISABLE(Obj_RaycastSprite, GameObject, m_spriteBatch, m_spriteId, m_spriteHeight, m_spriteSize)
+	GAMEOBJECT_SERIALISABLE(Obj_RaycastSprite, GameObject, m_texture, m_spriteHeight, m_spriteSize)
 
 public:
 
@@ -19,9 +21,9 @@ public:
 private:
 	void RefreshSpriteData();
 
+	Spear::TextureProperty<GlobalTextureBatches::BATCH_SPRITESET_1> m_texture;
+
 	RaycastSprite* m_raycastSprite{nullptr};
 	Vector2f m_spriteSize{1, 1};
-	int m_spriteBatch{0};
-	int m_spriteId{0};
-	int m_spriteHeight{0};
+	float m_spriteHeight{0};
 };
