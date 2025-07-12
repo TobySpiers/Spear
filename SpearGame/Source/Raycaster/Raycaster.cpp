@@ -912,8 +912,8 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 
 	auto RaycastSpritesTask = [](int taskId)
 	{
-		const Vector2i cutoffMin(XResolutionPerThread() * taskId, 0);
-		const Vector2i cutoffMax(XResolutionPerThread() * (taskId + 1), m_rayConfig.yResolution);
+		const Vector2i cutoffMin(0, YResolutionPerThread() * taskId);
+		const Vector2i cutoffMax(m_rayConfig.xResolution, YResolutionPerThread() * (taskId + 1));
 
 		const Spear::TextureBase* pSpriteTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(GlobalTextureBatches::BATCH_SPRITESET_1);
 
