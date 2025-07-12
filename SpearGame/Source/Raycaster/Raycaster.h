@@ -45,6 +45,7 @@ private:
 	static void RecreateBackgroundArrays(int width, int height);
 	static void ClearRaycasterArrays();
 
+	static void PreProcessSprites();
 	static void Draw3DGridCPU(const Vector2f& pos, float pitch, const float angle);
 	static void Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle);
 
@@ -102,6 +103,16 @@ private:
 		Vector2f	planeHeights;	// height of inner and outer floor/roof planes
 	};
 	static RaycastFrameData m_frame;
+
+	struct RaycastSpriteData
+	{
+		int numToRender{0};
+		Vector2i spriteStart[RAYCAST_SPRITE_LIMIT];
+		Vector2i spriteEnd[RAYCAST_SPRITE_LIMIT];
+		int spriteTex[RAYCAST_SPRITE_LIMIT];
+		float spriteDepth[RAYCAST_SPRITE_LIMIT];
+	};
+	static RaycastSpriteData m_frameSprites;
 
 	struct RaycastComputeShader
 	{

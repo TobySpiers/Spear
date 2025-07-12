@@ -21,9 +21,10 @@ RaycasterConfig Raycaster::m_rayConfig;
 RaycastSprite Raycaster::m_sprites[Raycaster::RAYCAST_SPRITE_LIMIT];
 int Raycaster::m_spriteCount{0};
 Raycaster::RaycastFrameData Raycaster::m_frame;
+Raycaster::RaycastSpriteData Raycaster::m_frameSprites;
 Raycaster::RaycastComputeShader Raycaster::m_computeShader;
 bool Raycaster::m_bSoftwareRendering{true};
-int Raycaster::m_softwareRenderingThreads{15};
+int Raycaster::m_softwareRenderingThreads{30};
 
 constexpr float FOV_MIN{ 35.f };
 constexpr float FOV_MAX{ 120.f };
@@ -366,6 +367,9 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		m_frame.planeHeights.y = m_map->planeHeights[PLANE_HEIGHT_OUTER];
 	}
 
+	// Format sprite data into screen coordinates
+	PreProcessSprites();
+
 	if (!m_bSoftwareRendering)
 	{
 		Draw3DGridCompute(inPos, inPitch, angle);
@@ -373,6 +377,61 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 	else
 	{
 		Draw3DGridCPU(inPos, inPitch, angle);
+	}
+}
+
+void Raycaster::PreProcessSprites()
+{
+	m_frameSprites.numToRender = 0;
+	for (int i = 0; i < m_spriteCount; i++)
+	{
+		const RaycastSprite& sprite = m_sprites[i];
+		const Vector2f relativePosition = sprite.spritePos - m_frame.viewPos;
+
+		// NOTE: m_frame.viewForward is a unit vector
+		// Dot product of relativePosition with viewForward gives us the forward depth to the sprite
+		const float forwardDistance = Dot(relativePosition, m_frame.viewForward);
+		if (forwardDistance < 0.f)
+		{
+			continue;
+		}
+
+		// NOTE: m_frame.screenPlaneVector is a unit vector
+		// Dot product of relativePosition with screenPlaneVector gives us the horizonal distance to the sprite from viewForward (midscreen)
+		const float rightDistance = Dot(relativePosition, m_frame.screenPlaneVector);
+
+		// SohCahToa (Toa) also means: tan(angle) * adjacentLength = oppositeLength
+		// in this case, 'angle' is half our fov, and 'adjacent' is our forward distance = this results in the horizontal distance from viewForward to screen's edge
+		const float halfViewWidth = tanf(m_frame.fov / 2.f) * forwardDistance;
+
+		// Convert halfViewWidth and rightDistance into a range between -1 and +1, then convert that into a percentage from 0.f to 1.f
+		float screenPercent = (rightDistance / halfViewWidth);
+		screenPercent = (screenPercent * 0.5f) + 0.5f;
+
+		// ScreenPos.X is simply screenPercent multiplied by xResolution
+		// ScreenPos.Y is middle of screen (yResolution / 2), shifted by viewPitch (vertical look), with spriteHeight (scaled by distance) applied
+		const Vector2i screenPos{ int(m_rayConfig.xResolution * screenPercent), ((m_rayConfig.yResolution / 2) + int(m_frame.viewPitch) + int(sprite.height / forwardDistance)) };
+
+		// Calculate sprite size scaled by distance/resolution/fov
+		Vector2f spriteSize = ((sprite.size / forwardDistance) * Vector2f(m_rayConfig.xResolution * m_frame.fovSpriteMultiplier, m_rayConfig.yResolution * (m_frame.fovWallMultiplier / 2)));
+
+		// Calculate edges based on size
+		Vector2i screenStart = screenPos - (spriteSize / 2).ToInt();
+		Vector2i screenEnd = screenPos + (spriteSize / 2).ToInt();
+
+		if (screenEnd.x < 0 || screenStart.x >= m_rayConfig.xResolution)
+		{
+			continue;
+		}
+
+		const float renderDepth = forwardDistance / m_rayConfig.farClip;
+
+		const int spId = m_frameSprites.numToRender;
+		m_frameSprites.spriteStart[spId] = screenStart;
+		m_frameSprites.spriteEnd[spId] = screenEnd;
+		m_frameSprites.spriteTex[spId] = sprite.textureId;
+		m_frameSprites.spriteDepth[spId] = renderDepth;
+		m_frameSprites.numToRender++;
 	}
 }
 
@@ -851,8 +910,54 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 	RaycastWallsTaskHandle.WaitForTaskComplete();
 	END_PROFILE("Raycast Walls")
 
+	auto RaycastSpritesTask = [](int taskId)
+	{
+		const Vector2i cutoffMin(XResolutionPerThread() * taskId, 0);
+		const Vector2i cutoffMax(XResolutionPerThread() * (taskId + 1), m_rayConfig.yResolution);
+
+		const Spear::TextureBase* pSpriteTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(GlobalTextureBatches::BATCH_SPRITESET_1);
+
+		for (int i = 0; i < m_frameSprites.numToRender; i++)
+		{
+			const SDL_Surface* pSpriteTexture = pSpriteTextures->GetSDLSurface(m_frameSprites.spriteTex[i]);
+
+			for (int y = std::max(cutoffMin.y, m_frameSprites.spriteStart[i].y); y <= std::min(m_frameSprites.spriteEnd[i].y, cutoffMax.y - 1); y++)
+			{
+				for (int x = std::max(cutoffMin.x, m_frameSprites.spriteStart[i].x); x <= std::min(m_frameSprites.spriteEnd[i].x, cutoffMax.x - 1); x++)
+				{
+					int screenIndex = x + (y * m_rayConfig.xResolution);
+					if (m_frameSprites.spriteDepth[i] < m_bgTexDepth[screenIndex])
+					{
+						int texX = (float(x - m_frameSprites.spriteStart[i].x) / (m_frameSprites.spriteEnd[i].x - m_frameSprites.spriteStart[i].x)) * pSpriteTexture->w;
+						int texY = pSpriteTexture->h - (float(y - m_frameSprites.spriteStart[i].y) / (m_frameSprites.spriteEnd[i].y - m_frameSprites.spriteStart[i].y)) * (pSpriteTexture->h - 1);
+
+						Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pSpriteTexture->pixels) + (texY * pSpriteTexture->pitch) + (texX * pSpriteTexture->format->BytesPerPixel));
+						Uint8 r, g, b, a;
+						SDL_GetRGBA(*pixel, pSpriteTexture->format, &r, &g, &b, &a);
+						if (!a)
+						{
+							continue;
+						}
+
+						GLuint& colByte = m_bgTexRGBA[screenIndex];
+						colByte = 0;
+						colByte |= (r << 0);
+						colByte |= (g << 8);
+						colByte |= (b << 16);
+						colByte |= (a << 24);
+
+						m_bgTexDepth[screenIndex] = m_frameSprites.spriteDepth[i];
+					}
+				}
+			}
+		}
+
+		return 0;
+	};
 	START_PROFILE("Raycast Sprites")
-	Draw3DSprites(inPos, inPitch, angle);
+	Spear::TaskHandle RaycastSpritesTaskHandle;
+	threader.DispatchTaskDistributed(RaycastSpritesTask, &RaycastSpritesTaskHandle, m_softwareRenderingThreads);
+	RaycastSpritesTaskHandle.WaitForTaskComplete();
 	END_PROFILE("Raycast Sprites")
 
 	START_PROFILE("Raycast Upload")
@@ -980,85 +1085,4 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, NULL);
 
 	END_PROFILE("Compute Shader")
-}
-
-void Raycaster::Draw3DSprites(const Vector2f& playerPos, float pitch, const float angle)
-{
-	const Spear::TextureBase* pSpriteTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(GlobalTextureBatches::BATCH_SPRITESET_1);
-
-	for (int i = 0; i < m_spriteCount; i++)
-	{
-		const RaycastSprite& sprite = m_sprites[i];
-		const Vector2f relativePosition = sprite.spritePos - playerPos;
-
-		// NOTE: m_frame.viewForward is a unit vector
-		// Dot product of relativePosition with viewForward gives us the forward depth to the sprite
-		const float forwardDistance = Dot(relativePosition, m_frame.viewForward);
-		if (forwardDistance < 0.f)
-		{
-			continue;
-		}
-
-		// NOTE: m_frame.screenPlaneVector is a unit vector
-		// Dot product of relativePosition with screenPlaneVector gives us the horizonal distance to the sprite from viewForward (midscreen)
-		const float rightDistance = Dot(relativePosition, m_frame.screenPlaneVector);
-
-		// SohCahToa (Toa) also means: tan(angle) * adjacentLength = oppositeLength
-		// in this case, 'angle' is half our fov, and 'adjacent' is our forward distance = this results in the horizontal distance from viewForward to screen's edge
-		const float halfViewWidth = tanf(m_frame.fov / 2.f) * forwardDistance;
-
-		// Convert halfViewWidth and rightDistance into a range between -1 and +1, then convert that into a percentage from 0.f to 1.f
-		float screenPercent = (rightDistance / halfViewWidth);
-		screenPercent = (screenPercent * 0.5f) + 0.5f;
-
-		// ScreenPos.X is simply screenPercent multiplied by xResolution
-		// ScreenPos.Y is middle of screen (yResolution / 2), shifted by viewPitch (vertical look), with spriteHeight (scaled by distance) applied
-		const Vector2i screenPos{ int(m_rayConfig.xResolution * screenPercent), ((m_rayConfig.yResolution / 2) + int(m_frame.viewPitch) + int(sprite.height / forwardDistance)) };
-
-		// Calculate sprite size scaled by distance/resolution/fov
-		Vector2f spriteSize = ((sprite.size / forwardDistance) * Vector2f(m_rayConfig.xResolution * m_frame.fovSpriteMultiplier, m_rayConfig.yResolution * (m_frame.fovWallMultiplier / 2))); 
-
-		// Calculate edges based on size
-		Vector2i screenStart = screenPos - (spriteSize / 2).ToInt();
-		Vector2i screenEnd = screenPos + (spriteSize / 2).ToInt();
-
-		if (screenEnd.x < 0 || screenStart.x >= m_rayConfig.xResolution)
-		{
-			continue;
-		}
-
-		const float renderDepth = forwardDistance / m_rayConfig.farClip;
-		const SDL_Surface* pSpriteTexture = pSpriteTextures->GetSDLSurface(sprite.textureId);
-		for (int y = std::max(0, screenStart.y); y <= std::min(screenEnd.y, m_rayConfig.yResolution - 1); y++)
-		{
-			// NOTE: In some raycasters, it is only necessary to check depth once per vertical strip of a sprite
-			// Because this raycaster supports cutout walls (fences etc.), we have to depth test every pixel :(
-			for (int x = std::max(0, screenStart.x); x <= std::min(screenEnd.x, m_rayConfig.xResolution - 1); x++)
-			{
-				int screenIndex = x + (y * m_rayConfig.xResolution);
-				if (renderDepth < m_bgTexDepth[screenIndex])
-				{
-					int texX = (float(x - screenStart.x) / (screenEnd.x - screenStart.x)) * pSpriteTexture->w;
-					int texY = pSpriteTexture->h - (float(y - screenStart.y) / (screenEnd.y - screenStart.y)) * (pSpriteTexture->h - 1);
-
-					Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pSpriteTexture->pixels) + (texY * pSpriteTexture->pitch) + (texX * pSpriteTexture->format->BytesPerPixel));
-					Uint8 r, g, b, a;
-					SDL_GetRGBA(*pixel, pSpriteTexture->format, &r, &g, &b, &a);
-					if (!a)
-					{
-						continue;
-					}
-
-					GLuint& colByte = m_bgTexRGBA[screenIndex];
-					colByte = 0;
-					colByte |= (r << 0);
-					colByte |= (g << 8);
-					colByte |= (b << 16);
-					colByte |= (a << 24);
-
-					m_bgTexDepth[screenIndex] = renderDepth;
-				}
-			}
-		}
-	}
 }
