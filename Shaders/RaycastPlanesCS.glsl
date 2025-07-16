@@ -48,8 +48,16 @@ struct FrameData
 	vec2 raySpacingDir;	
 	float raySpacingLength;
 	
-	float padding;
+	float fovSpriteMultiplier;
 	vec2 planeHeights;
+};
+
+struct SpriteData
+{
+	ivec2 spriteStart;
+	ivec2 spriteEnd;
+	int spriteTex;
+	float spriteDepth;
 };
 
 // UBOs
@@ -61,9 +69,12 @@ layout(rgba8, binding = 0) uniform image2D outTexture;
 layout(r32f, binding = 1) uniform image2D outDepth;
 layout(std430, binding = 2) buffer GridNodes { GridNode nodes[]; };
 layout(binding = 3) uniform sampler2DArray worldTextures;
+layout(binding = 4) uniform sampler2DArray spriteTextures;
+layout(std430, binding = 5) buffer SpritesData { SpriteData spriteData[]; };
 
 // UNIFORMS
 layout(location = 0) uniform ivec2 gridDimensions;
+layout(location = 1) uniform int spriteCount;
 
 // eLevelTexture definitions
 const int TEX_NONE = -1;
@@ -144,6 +155,7 @@ void main()
 	rayEnd[1] += rayStep[1] * screen.x;
 	
 	// Prevent drawing textures behind camera
+	float curDepth = rayConfig.farClip;
 	if (rowDistance[0] > 0)
 	{
 		for (int layer = 0; layer < 2; layer++)
@@ -178,9 +190,38 @@ void main()
 										
 					imageStore(outTexture, screen, texel);
 					imageStore(outDepth, screen, vec4(rayDepth[layer], 0, 0, 0));
+					curDepth = rayDepth[layer];
 
 					// We're drawing the planes nearest-first, so break this loop as soon as we draw a pixel (ie. no need to calculate pixels BEHIND this)
 					break;
+				}
+			}
+		}
+	}
+	
+	// Draw any sprite data needed at this position
+	ivec3 spriteTexSize = textureSize(spriteTextures, 0);
+	for(int i = 0; i < spriteCount; i++)
+	{
+		if(spriteData[i].spriteStart.x <= screen.x && spriteData[i].spriteEnd.x >= screen.x)
+		{
+			if(spriteData[i].spriteStart.y <= screen.y && spriteData[i].spriteEnd.y >= screen.y)
+			{
+				if(spriteData[i].spriteDepth < curDepth)
+				{			
+					float texX = spriteTexSize.x * (float(screen.x - spriteData[i].spriteStart.x) / (spriteData[i].spriteEnd.x - spriteData[i].spriteStart.x));
+					float texY = spriteTexSize.y - ((spriteTexSize.y - 1) * (float(screen.y - spriteData[i].spriteStart.y) / (spriteData[i].spriteEnd.y - spriteData[i].spriteStart.y)));
+					
+					vec3 texCoord = vec3(texX / spriteTexSize.x, texY / spriteTexSize.y, spriteData[i].spriteTex);
+					vec4 texel = texture(spriteTextures, texCoord);
+					if(texel.a == 0)
+					{
+						continue;
+					}
+				
+					imageStore(outTexture, screen, texel);
+					imageStore(outDepth, screen, vec4(spriteData[i].spriteDepth, 0, 0, 0));
+					curDepth = spriteData[i].spriteDepth;
 				}
 			}
 		}

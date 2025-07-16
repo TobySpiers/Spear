@@ -21,9 +21,10 @@ RaycasterConfig Raycaster::m_rayConfig;
 RaycastSprite Raycaster::m_sprites[Raycaster::RAYCAST_SPRITE_LIMIT];
 int Raycaster::m_spriteCount{0};
 Raycaster::RaycastFrameData Raycaster::m_frame;
-Raycaster::RaycastSpriteData Raycaster::m_frameSprites;
+Raycaster::RaycastSpriteData Raycaster::m_frameSprites[RAYCAST_SPRITE_LIMIT];
+int Raycaster::m_numSpritesToRender{0};
 Raycaster::RaycastComputeShader Raycaster::m_computeShader;
-bool Raycaster::m_bSoftwareRendering{true};
+bool Raycaster::m_bSoftwareRendering{false};
 int Raycaster::m_softwareRenderingThreads{30};
 
 constexpr float FOV_MIN{ 35.f };
@@ -382,7 +383,7 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 
 void Raycaster::PreProcessSprites()
 {
-	m_frameSprites.numToRender = 0;
+	m_numSpritesToRender = 0;
 	for (int i = 0; i < m_spriteCount; i++)
 	{
 		const RaycastSprite& sprite = m_sprites[i];
@@ -426,13 +427,17 @@ void Raycaster::PreProcessSprites()
 
 		const float renderDepth = forwardDistance / m_rayConfig.farClip;
 
-		const int spId = m_frameSprites.numToRender;
-		m_frameSprites.spriteStart[spId] = screenStart;
-		m_frameSprites.spriteEnd[spId] = screenEnd;
-		m_frameSprites.spriteTex[spId] = sprite.textureId;
-		m_frameSprites.spriteDepth[spId] = renderDepth;
-		m_frameSprites.numToRender++;
+		const int spId = m_numSpritesToRender++;
+		m_frameSprites[spId].spriteStart = screenStart;
+		m_frameSprites[spId].spriteEnd = screenEnd;
+		m_frameSprites[spId].spriteTex = sprite.textureId;
+		m_frameSprites[spId].spriteDepth = renderDepth;
 	}
+
+	// Sort sprites so furthest are rendered first - useful if we want to support transparency
+	std::sort(m_frameSprites, m_frameSprites + m_numSpritesToRender, [](const RaycastSpriteData& a, const RaycastSpriteData& b) {
+		return a.spriteDepth > b.spriteDepth;
+	});
 }
 
 void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float angle)
@@ -917,19 +922,19 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 
 		const Spear::TextureBase* pSpriteTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(GlobalTextureBatches::BATCH_SPRITESET_1);
 
-		for (int i = 0; i < m_frameSprites.numToRender; i++)
+		for (int i = 0; i < m_numSpritesToRender; i++)
 		{
-			const SDL_Surface* pSpriteTexture = pSpriteTextures->GetSDLSurface(m_frameSprites.spriteTex[i]);
+			const SDL_Surface* pSpriteTexture = pSpriteTextures->GetSDLSurface(m_frameSprites[i].spriteTex);
 
-			for (int y = std::max(cutoffMin.y, m_frameSprites.spriteStart[i].y); y <= std::min(m_frameSprites.spriteEnd[i].y, cutoffMax.y - 1); y++)
+			for (int y = std::max(cutoffMin.y, m_frameSprites[i].spriteStart.y); y <= std::min(m_frameSprites[i].spriteEnd.y, cutoffMax.y - 1); y++)
 			{
-				for (int x = std::max(cutoffMin.x, m_frameSprites.spriteStart[i].x); x <= std::min(m_frameSprites.spriteEnd[i].x, cutoffMax.x - 1); x++)
+				for (int x = std::max(cutoffMin.x, m_frameSprites[i].spriteStart.x); x <= std::min(m_frameSprites[i].spriteEnd.x, cutoffMax.x - 1); x++)
 				{
 					int screenIndex = x + (y * m_rayConfig.xResolution);
-					if (m_frameSprites.spriteDepth[i] < m_bgTexDepth[screenIndex])
+					if (m_frameSprites[i].spriteDepth < m_bgTexDepth[screenIndex])
 					{
-						int texX = (float(x - m_frameSprites.spriteStart[i].x) / (m_frameSprites.spriteEnd[i].x - m_frameSprites.spriteStart[i].x)) * pSpriteTexture->w;
-						int texY = pSpriteTexture->h - (float(y - m_frameSprites.spriteStart[i].y) / (m_frameSprites.spriteEnd[i].y - m_frameSprites.spriteStart[i].y)) * (pSpriteTexture->h - 1);
+						int texX = (float(x - m_frameSprites[i].spriteStart.x) / (m_frameSprites[i].spriteEnd.x - m_frameSprites[i].spriteStart.x)) * pSpriteTexture->w;
+						int texY = pSpriteTexture->h - (float(y - m_frameSprites[i].spriteStart.y) / (m_frameSprites[i].spriteEnd.y - m_frameSprites[i].spriteStart.y)) * (pSpriteTexture->h - 1);
 
 						Uint32* pixel = reinterpret_cast<Uint32*>(static_cast<Uint8*>(pSpriteTexture->pixels) + (texY * pSpriteTexture->pitch) + (texX * pSpriteTexture->format->BytesPerPixel));
 						Uint8 r, g, b, a;
@@ -946,7 +951,7 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 						colByte |= (b << 16);
 						colByte |= (a << 24);
 
-						m_bgTexDepth[screenIndex] = m_frameSprites.spriteDepth[i];
+						m_bgTexDepth[screenIndex] = m_frameSprites[i].spriteDepth;
 					}
 				}
 			}
@@ -987,6 +992,12 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		glBufferData(GL_SHADER_STORAGE_BUFFER, m_map->TotalNodes() * sizeof(GridNode), m_map->pNodes, GL_STATIC_DRAW);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_computeShader.gridnodesSSBO); // bind slot 2
 
+		// Sprites Binding SSBO
+		glGenBuffers(1, &m_computeShader.spritesSSBO);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.spritesSSBO);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, m_numSpritesToRender * sizeof(RaycastSpriteData), m_frameSprites, GL_STATIC_DRAW);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, m_computeShader.spritesSSBO); // bind slot 5
+
 		// RayConfig Binding UBO (Uniform Buffer Object) - Used to pass a single struct as a uniform to shader
 		glGenBuffers(1, &m_computeShader.rayconfigUBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.rayconfigUBO);
@@ -1014,6 +1025,8 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		{
 			m_computeShader.gridDimensionsLoc[i] = glGetUniformLocation(m_computeShader.program[i], "gridDimensions");
 			m_computeShader.worldTexturesLoc[i] = glGetUniformLocation(m_computeShader.program[i], "worldTextures");
+			m_computeShader.spriteTexturesLoc[i] = glGetUniformLocation(m_computeShader.program[i], "spriteTextures");
+			m_computeShader.spriteCountLoc[i] = glGetUniformLocation(m_computeShader.program[i], "spriteCount");
 		}
 	}
 	else
@@ -1023,6 +1036,10 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		// Upload GridNode data
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.gridnodesSSBO);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, m_map->TotalNodes() * sizeof(GridNode), m_map->pNodes);
+
+		// Upload Sprites data
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.spritesSSBO);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, m_numSpritesToRender * sizeof(RaycastSpriteData), m_frameSprites);
 
 		// Upload RayConfig
 		glBindBuffer(GL_UNIFORM_BUFFER, m_computeShader.rayconfigUBO);
@@ -1059,15 +1076,23 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 	glBindImageTexture(1, depthTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
 
 	// Pass in TextureArray for world textures
-	const Spear::TextureBase* worldTextures = Spear::ServiceLocator::GetScreenRenderer().GetBatchTextures(0);
+	const Spear::TextureBase* worldTextures = renderer.GetBatchTextures(GlobalTextureBatches::BATCH_TILESET_1);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, worldTextures->GetGpuTextureId());
 
+	// Pass in TextureArray for sprites
+	const Spear::TextureBase* spriteTextures = renderer.GetBatchTextures(GlobalTextureBatches::BATCH_SPRITESET_1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, spriteTextures->GetGpuTextureId());
+
+	// Run shader programs
 	for (int i = 0; i < m_computeShader.programSize; i++)
 	{
 		glUseProgram(m_computeShader.program[i]);
 		glUniform2i(m_computeShader.gridDimensionsLoc[i], m_map->gridWidth, m_map->gridHeight);
-		glUniform1i(m_computeShader.worldTexturesLoc[i], 0); // set sampler to read from GL_TEXTURE 0
+		glUniform1i(m_computeShader.spriteCountLoc[i], m_numSpritesToRender);
+		glUniform1i(m_computeShader.worldTexturesLoc[i], 0); // set sampler to read world textures from GL_TEXTURE0
+		glUniform1i(m_computeShader.spriteTexturesLoc[i], 1); // set sampler to read sprite textures from GL_TEXTURE1
 
 		switch (i)
 		{

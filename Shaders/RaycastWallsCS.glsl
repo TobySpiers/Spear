@@ -47,6 +47,9 @@ struct FrameData
 	
 	vec2 raySpacingDir;
 	float raySpacingLength;
+	
+	float fovSpriteMultiplier;
+	vec2 planeHeights;
 };
 
 // UBOs

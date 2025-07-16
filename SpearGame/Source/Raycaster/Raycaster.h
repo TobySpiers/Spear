@@ -106,27 +106,30 @@ private:
 
 	struct RaycastSpriteData
 	{
-		int numToRender{0};
-		Vector2i spriteStart[RAYCAST_SPRITE_LIMIT];
-		Vector2i spriteEnd[RAYCAST_SPRITE_LIMIT];
-		int spriteTex[RAYCAST_SPRITE_LIMIT];
-		float spriteDepth[RAYCAST_SPRITE_LIMIT];
+		Vector2i spriteStart;
+		Vector2i spriteEnd;
+		int spriteTex;
+		float spriteDepth;
 	};
-	static RaycastSpriteData m_frameSprites;
+	static RaycastSpriteData m_frameSprites[RAYCAST_SPRITE_LIMIT];
+	static int m_numSpritesToRender;
 
 	struct RaycastComputeShader
 	{
 		bool isInitialised{ false };
 
 		GLuint gridnodesSSBO{ 0 }; // SSBO - Shader Storage Buffer Object
+		GLuint spritesSSBO{ 0 }; 
 		GLuint rayconfigUBO{ 0 }; // UBO - Uniform Buffer Object
 		GLuint framedataUBO{0};
 
-		// 0 - Planes, 1 - Walls
+		// 0 - Planes/Sprites, 1 - Walls
 		static const int programSize{2};
 		GLuint program[programSize];
 		GLuint gridDimensionsLoc[programSize];
 		GLuint worldTexturesLoc[programSize];
+		GLuint spriteTexturesLoc[programSize];
+		GLuint spriteCountLoc[programSize];
 	};
 	static RaycastComputeShader m_computeShader;
 };
