@@ -18,6 +18,32 @@ int i{0}; Serializer::ForwardArgsToSerializers([&](auto& arg) { if(i++ == proper
 #define DELETE_PROPERTY_DATA(allocatedData, propertyChain, step, propertyId, ...)\
 int i{0}; Serializer::ForwardArgsToSerializers([&](auto& arg) { if(i++ == propertyId) { Serializer::DeletePropertyData(allocatedData, propertyChain, step, arg); }}, __VA_ARGS__);
 
+// Macro for exposing enum values as a single-choice combo box in editor/imgui
+#define EXPOSE_ENUM(EnumName, ...)\
+class EnumName##_Wrapper : public ExposedEnumBase\
+{\
+public:\
+    EnumName##_Wrapper(int defaultVal) : ExposedEnumBase{defaultVal} {}\
+	virtual const char* GetEnumName() const override { return #EnumName; }\
+private:\
+	virtual void ExposeEnum(ExposedPropertyData& editor) override { std::vector<int> enumVals; Serializer::ForwardArgsToSerializers([&](int enumVal) { Serializer::PushEnumVal(enumVal, enumVals); }, __VA_ARGS__);\
+        Serializer::ExposeEnum(editor, m_val, #__VA_ARGS__, enumVals); }\
+};
+
+// Macro for exposing enum values as multi-choice flags and single-choice combo boxes in editor/imgui (use either _Wrapper or _WrapperFlags to determine which)
+#define EXPOSE_ENUM_FLAGS(EnumName, ...)\
+EXPOSE_ENUM(EnumName, __VA_ARGS__)\
+class EnumName##_WrapperFlags : public ExposedEnumBase\
+{\
+public:\
+    EnumName##_WrapperFlags(int defaultVal) : ExposedEnumBase{defaultVal} {}\
+	virtual const char* GetEnumName() const override { return #EnumName; }\
+private:\
+	virtual void ExposeEnum(ExposedPropertyData& editor) override {\
+        if (ImGui::TreeNodeEx(editor.propertyName.c_str())) {int i{0}; Serializer::ForwardArgsToSerializers([&](int flagbit) { Serializer::ExposeEnumFlag(editor, m_val, flagbit, #__VA_ARGS__, i++); }, __VA_ARGS__); ImGui::TreePop();}\
+    }\
+};
+
 // Macro adding serialization support via insertion/extraction operators ( << & >> )
 #define SERIALIZABLE_BASE(Class, ...)\
 virtual void Serialize(std::ofstream& stream) const\
@@ -149,6 +175,32 @@ const Class& operator>>(PropertyManipulator& deleter) const\
 }\
 
 struct GameObjectPtrBase;
+
+// Base class for editor-exposed enum flags
+class ExposedEnumBase
+{
+public:
+    ExposedEnumBase(int defaultVal) : m_val{defaultVal} {}
+
+    int m_val;
+
+    virtual const char* GetEnumName() const = 0;
+    virtual void ExposeEnum(ExposedPropertyData& editor) = 0;
+
+    friend std::ofstream& operator<<(std::ofstream& stream, const ExposedEnumBase& obj)
+    {
+        stream << obj.m_val << " ";
+        return stream;
+    }
+    friend std::ifstream& operator>>(std::ifstream& stream, ExposedEnumBase& obj)
+    {
+        stream >> obj.m_val;
+        return stream;
+    };
+    ExposedEnumBase& operator<<(ExposedPropertyData& editor);
+    ExposedEnumBase& operator<<(PropertyManipulator& inserter);
+    const ExposedEnumBase& operator>>(PropertyManipulator& deleter) const;
+};
 
 // Used to generically expose GameObject properties to ImGui panels
 class ExposedPropertyData
@@ -328,6 +380,8 @@ namespace Serializer
     bool ExposeCategory(const char* category);
     void PopCategory();
 
+    void PushEnumVal(int enumVal, std::vector<int>& outVals);
+    void BreakPropertyNames(const char* propertyNames, std::vector<std::string>& outNames);
     std::string GetPropertyName(const char* propertyNames, int propertyIndex);
 
     template <typename T>
@@ -339,4 +393,7 @@ namespace Serializer
             propertyData.propertyChain.emplace_back(propertyId);
         }
     }
+
+    void ExposeEnum(ExposedPropertyData& propertyData, int& enumValue, const char* enumNames, const std::vector<int>& enumVals);
+    void ExposeEnumFlag(ExposedPropertyData& propertyData, int& flagContainer, int flagbit, const char* flagNames, int flagNameIndex);
 }

@@ -82,6 +82,37 @@ void Serializer::PopCategory()
     ImGui::TreePop();
 }
 
+void Serializer::PushEnumVal(int enumVal, std::vector<int>& outVals)
+{
+    outVals.emplace_back(enumVal);
+}
+
+void Serializer::BreakPropertyNames(const char* propertyNames, std::vector<std::string>& outNames)
+{
+    outNames.clear();
+
+    int cachedPos{ 0 };
+    int c{ -1 };
+    while (propertyNames[++c] != '\0')
+    {
+        if (propertyNames[c] == ',')
+        {
+            outNames.emplace_back(propertyNames + cachedPos, c - cachedPos);
+
+            // Skip the comma and preceding whitespace if not end-of-string
+            if (propertyNames[c + 1] != '\0' && propertyNames[c + 2] != '\0')
+            {
+                c += 2;
+                cachedPos = c;
+            }
+        }
+    }
+    if (c - 1 != cachedPos)
+    {
+        outNames.emplace_back(propertyNames + cachedPos, c - cachedPos);
+    }
+}
+
 std::string Serializer::GetPropertyName(const char* propertyNames, int propertyIndex)
 {
     int strIndex{0};
@@ -240,4 +271,81 @@ void ModifiedPropertyData::CleanUp()
         m_object->DeletePropertyData(m_oldValue, *m_propertyChain);
     }
     ASSERT(m_oldValue == nullptr);
+}
+
+ExposedEnumBase& ExposedEnumBase::operator<<(ExposedPropertyData& editor)
+{
+    ExposeEnum(editor);
+    return *this;
+}
+
+void Serializer::ExposeEnum(ExposedPropertyData& propertyData, int& enumValue, const char* valuesString, const std::vector<int>& enumVals)
+{
+    std::vector<std::string> enumNames;
+    BreakPropertyNames(valuesString, enumNames);
+    ASSERT(enumNames.size() == enumVals.size());
+
+    int previewIndex{-1};
+    int i{0};
+    for (int val : enumVals)
+    {
+        if (val == enumValue)
+        {
+            previewIndex = i;
+            break;
+        }
+        i++;
+    }
+
+    int cachedOldVal = enumValue;
+    if (ImGui::BeginCombo(propertyData.propertyName.c_str(), previewIndex < enumNames.size() ? enumNames[previewIndex].c_str() : "UNKNOWN"))
+    {
+        for (int i = 0; i < enumNames.size(); i++)
+        {
+            bool bIsSelected = enumValue == enumVals[i];
+            if (ImGui::Selectable(enumNames[i].c_str(), bIsSelected))
+            {
+                enumValue = enumVals[i];
+            }
+            if (bIsSelected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+
+    if (cachedOldVal != enumValue)
+    {
+        propertyData.SetOldValue(cachedOldVal);
+        propertyData.SetNewValue(enumValue);
+        propertyData.modifiedPropertyName = propertyData.propertyName;
+        propertyData.propertyChain.emplace_back(0);
+    }
+}
+
+void Serializer::ExposeEnumFlag(ExposedPropertyData& propertyData, int& flagContainer, int flagbit, const char* flagNames, int flagNameIndex)
+{
+    int cachedValue = flagContainer;
+    std::string flagname = GetPropertyName(flagNames, flagNameIndex);
+    if (ImGui::CheckboxFlags(flagname.c_str(), &flagContainer, flagbit))
+    {
+        propertyData.SetOldValue(cachedValue);
+        propertyData.SetNewValue(flagContainer);
+        propertyData.modifiedPropertyName = propertyData.propertyName + "::" + flagname;
+        propertyData.propertyChain.emplace_back(0);
+    }
+}
+
+ExposedEnumBase& ExposedEnumBase::operator<<(PropertyManipulator& inserter)
+{
+    Serializer::SetPropertyInternal<int>(inserter.value, m_val, inserter.outPropertyData);
+    return *this;
+}
+
+const ExposedEnumBase& ExposedEnumBase::operator>>(PropertyManipulator& deleter) const
+{
+    Serializer::DeletePropertyDataInternal<int>(*deleter.allocatedValue);
+    return *this;
 }
