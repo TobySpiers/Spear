@@ -47,7 +47,7 @@ public:
 	template<typename T> static T* Create();
 
 	// Editor functionality
-	void DrawInEditor(const Vector3f& position, float zoom, bool bSelected, bool bHovered);
+	void DrawInEditor(const Vector3f& position, float zoom, float mapSpacing, bool bSelected, bool bHovered);
 	virtual void PopulateEditorPanel(ExposedPropertyData& propertyData);
 	virtual void SetProperty(const void* value, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData = nullptr, int step = 1);
 	virtual void DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step = 1) const;
@@ -125,7 +125,7 @@ protected:
 	virtual void OnCreated() {};
 	virtual void OnTick(float deltaTime) {};
 	virtual void OnDraw() const {};
-	virtual void OnEditorDraw(const Vector3f& position, float zoom);
+	virtual void OnEditorDraw(const Vector3f& position, float zoom, float mapSpacing);
 	virtual void OnDestroy() {};
 
 	// Order of operations when deserializing: DefaultConstructor -> Variable Assignment From File -> OnDeserialize -> OnCreated
@@ -133,7 +133,7 @@ protected:
 	virtual void OnPreSerialize() {};
 	virtual void OnPostSerialize() {};
 
-	virtual void Serialize(std::ofstream& os) const = 0;
+	virtual void Serialize(std::ofstream& os) const {};
 	virtual void Serialize_Internal(std::ofstream& os) const;
 	virtual void Deserialize(std::ifstream& is);
 
@@ -143,6 +143,12 @@ protected:
 	int internalId{ -1 };
 
 private:
+	void OnCreated_Internal();
+	void OnTick_Internal(float deltaTime);
+	void OnDraw_Internal() const;
+	void OnEditorDraw_Internal(const Vector3f& position, float zoom, float mapSpacing);
+	void OnDestroy_Internal();
+
 	static void DisableTick_Internal(GameObject* obj, int ticklistIndex);
 	static void DisableDraw_Internal(GameObject* obj, int drawlistIndex);
 	static void DestroyObjects_Internal();
@@ -181,6 +187,6 @@ T* GameObject::Create()
 	T* obj = new T();
 	obj->internalId = s_allocatedObjects.size();
 	s_allocatedObjects.push_back(obj);
-	obj->OnCreated();
+	obj->OnCreated_Internal();
 	return obj;
 }

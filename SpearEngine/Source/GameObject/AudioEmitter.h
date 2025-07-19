@@ -4,7 +4,7 @@
 
 class AudioEmitter : public GameObject
 {
-	GAMEOBJECT_SERIALISABLE(AudioEmitter, GameObject, m_bPlayOnStart, m_soundSource)
+	GAMEOBJECT_DEFINITION_DATA(AudioEmitter, GameObject, m_bPlayOnStart, m_soundSource)
 
 public:
 	virtual void OnCreated() override;

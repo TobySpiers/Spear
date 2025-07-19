@@ -5,6 +5,14 @@
 class GameObjectComponent
 {
 public:
+	virtual ~GameObjectComponent() = default;
+
+    virtual void OnCreated() {};
+    virtual void OnTick(float deltaTime) {};
+    virtual void OnDraw() const {};
+    virtual void OnEditorDraw(const Vector3f& position, float zoom, float mapSpacing) {};
+    virtual void OnDestroy() {};
+
     virtual void Serialize(std::ofstream& stream) const {};
     
     virtual void Deserialize(std::ifstream& stream) {};
@@ -42,7 +50,6 @@ public:
         DeletePropertyData(*deleter.allocatedValue, *deleter.propertyChain, deleter.step); return *this;
     }
 
-	virtual ~GameObjectComponent() = default;
 
 	void Initialise(GameObject* owner);
 	GameObject* GetOwner() const;

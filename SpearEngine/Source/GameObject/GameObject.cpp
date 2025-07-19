@@ -24,7 +24,7 @@ void GameObject::GlobalTick(float deltaTime)
 		}
 		else
 		{
-			obj->OnTick(deltaTime);
+			obj->OnTick_Internal(deltaTime);
 		}
 	}
 
@@ -45,7 +45,7 @@ void GameObject::GlobalDraw()
 		}
 		else
 		{
-			obj->OnDraw();
+			obj->OnDraw_Internal();
 		}
 	}
 	END_PROFILE("GameObject Draw");
@@ -59,7 +59,7 @@ void GameObject::GlobalDestroy()
 	while (s_allocatedObjects.size())
 	{
 		GameObject* obj = s_allocatedObjects.back();
-		obj->OnDestroy();
+		obj->OnDestroy_Internal();
 		delete obj;
 		s_allocatedObjects.pop_back();
 	}
@@ -96,7 +96,7 @@ void GameObject::DestroyObjects_Internal()
 		ASSERT(obj->IsSafeToDestroy());
 		
 		const int cachedInternalId = obj->internalId;
-		obj->OnDestroy();
+		obj->OnDestroy_Internal();
 		for (GameObjectPtrBase* ptr : obj->trackedPtrs)
 		{
 			ptr->Invalidate();
@@ -165,16 +165,12 @@ void GameObject::PopulateEditorPanel(ExposedPropertyData& propertyData)
 {
 	EXPOSE_PROPERTIES(propertyData, m_position);
 
-	ImGui::Separator();
-	if (ImGui::TreeNodeEx("Components"))
+	ImGui::SeparatorText("Components");
+	for (int c = 0; c < m_components.size(); c++)
 	{
-		for (int c = 0; c < m_components.size(); c++)
-		{
-			Serializer::ExposeInEditor(propertyData, "##Components", i++, *m_components[c].get());
-		}
-		ImGui::TreePop();
+		Serializer::ExposeInEditor(propertyData, "##Components", i++, *m_components[c].get());
 	}
-	ImGui::Separator();
+	ImGui::SeparatorText("Object");
 }
 
 void GameObject::SetProperty(const void* value, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step)
@@ -205,12 +201,12 @@ void GameObject::DeletePropertyData(const void*& allocatedData, const std::vecto
 	}
 }
 
-void GameObject::DrawInEditor(const Vector3f& position, float zoom, bool bSelected, bool bHovered)
+void GameObject::DrawInEditor(const Vector3f& position, float zoom, float mapSpacing, bool bSelected, bool bHovered)
 {
 	// Check object is not pending destroy/editor destroyed
 	if (IsValid())
 	{
-		OnEditorDraw(position, zoom);
+		OnEditorDraw_Internal(position, zoom, mapSpacing);
 		if (bHovered || bSelected)
 		{
 			Spear::Renderer::LinePolyData icon;
@@ -225,7 +221,7 @@ void GameObject::DrawInEditor(const Vector3f& position, float zoom, bool bSelect
 	}
 }
 
-void GameObject::OnEditorDraw(const Vector3f& position, float zoom)
+void GameObject::OnEditorDraw(const Vector3f& position, float zoom, float mapSpacing)
 {
 	Spear::Renderer::LinePolyData icon;
 	icon.segments = 8;
@@ -331,7 +327,7 @@ void GameObject::GlobalDeserialize(std::ifstream& file)
 			RegisterDrawingObject(obj);
 		}
 		obj->OnDeserialize();
-		obj->OnCreated();
+		obj->OnCreated_Internal();
 	}
 }
 
@@ -463,6 +459,56 @@ bool GameObject::RegisterFactoryFunctionsForClass(const char* className, size_t 
 	ObjectDeserializers()->insert({hashcode, deserializeFunc });
 	ObjectConstructors()->emplace_back(std::pair<const char*, ConstructorFuncPtr>(className, constructorFunc));
 	return true;
+}
+
+void GameObject::OnCreated_Internal()
+{
+	OnCreated();
+
+	for (std::unique_ptr<GameObjectComponent>& comp : m_components)
+	{
+		comp->OnCreated();
+	}
+}
+
+void GameObject::OnTick_Internal(float deltaTime)
+{
+	OnTick(deltaTime);
+
+	for (std::unique_ptr<GameObjectComponent>& comp : m_components)
+	{
+		comp->OnTick(deltaTime);
+	}
+}
+
+void GameObject::OnDraw_Internal() const
+{
+	OnDraw();
+
+	for (const std::unique_ptr<GameObjectComponent>& comp : m_components)
+	{
+		comp->OnDraw();
+	}
+}
+
+void GameObject::OnEditorDraw_Internal(const Vector3f& position, float zoom, float mapSpacing)
+{
+	OnEditorDraw(position, zoom, mapSpacing);
+
+	for (std::unique_ptr<GameObjectComponent>& comp : m_components)
+	{
+		comp->OnEditorDraw(position, zoom, mapSpacing);
+	}
+}
+
+void GameObject::OnDestroy_Internal()
+{
+	for (std::unique_ptr<GameObjectComponent>& comp : m_components)
+	{
+		comp->OnDestroy();
+	}
+
+	OnDestroy();
 }
 
 std::unordered_map<size_t, GameObject::DeserializeFuncPtr>* GameObject::ObjectDeserializers()

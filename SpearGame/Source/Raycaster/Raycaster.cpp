@@ -147,25 +147,15 @@ MapData* Raycaster::GetMap()
 	return m_map;
 }
 
-RaycastSprite* Raycaster::CreateSprite(int textureId, const Vector2f& pos)
+RaycastSprite& Raycaster::MakeSprite()
 {
 	ASSERT(m_spriteCount < RAYCAST_SPRITE_LIMIT);
-	RaycastSprite* newSprite = &m_sprites[m_spriteCount++];
-	newSprite->textureId = textureId;
-	newSprite->spritePos = pos;
-	return newSprite;
+	return m_sprites[m_spriteCount++];
 }
 
-void Raycaster::ClearSprite(RaycastSprite* sprite)
+void Raycaster::ClearSprites()
 {
-	const int index = sprite - m_sprites;
-	ASSERT(index >= 0 && index < m_spriteCount);
-
-	m_spriteCount--;
-	if (m_spriteCount > 0)
-	{
-		m_sprites[index] = m_sprites[m_spriteCount];
-	}
+	m_spriteCount = 0;
 }
 
 void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)

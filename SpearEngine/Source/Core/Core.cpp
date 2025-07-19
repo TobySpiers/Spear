@@ -127,24 +127,12 @@ namespace Spear
 			imguiManager.StartImguiFrame();
 
 			START_PROFILE("UPDATE");
-			// Refresh input data
 			inputManager.RefreshInput(mousewheelInput);
-
-			// State: update
 			stateManager.Update(deltaTime);
-
-			// GameObjects: update
-			GameObject::GlobalTick(deltaTime);
-
-			// Audio: update
 			audioManager.UpdatePlayingStreams();
 			END_PROFILE("UPDATE");
 
 			START_PROFILE("DRAW");
-			// GameObjects: render
-			GameObject::GlobalDraw();
-
-			// State: render
 			stateManager.Render();
 			END_PROFILE("DRAW");
 

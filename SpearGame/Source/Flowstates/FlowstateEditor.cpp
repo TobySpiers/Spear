@@ -1307,7 +1307,7 @@ void FlowstateEditor::StateRender()
 				}
 			}
 
-			object->DrawInEditor(editorPosition, m_camZoom, bSelected, bHovered);
+			object->DrawInEditor(editorPosition, m_camZoom, MapSpacing(), bSelected, bHovered);
 		}
 
 		if(m_editorMode == MODE_OBJECTS)

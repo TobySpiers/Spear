@@ -1,25 +1,9 @@
 #pragma once
 #include "Core/Serializer.h"
 
-// GameObject class definition macro: must be placed inside header
-#define GAMEOBJECT_SERIALISABLE(classname, baseclass, ...)\
+#define GAMEOBJECT_DEFINITION(classname, baseclass)\
 private:\
 typedef baseclass Super;\
-virtual void Serialize(std::ofstream& os) const override\
-{\
-	os << typeid(classname).hash_code() << std::endl;\
-	Serialize_Internal(os);\
-}\
-virtual void Serialize_Internal(std::ofstream& os) const override\
-{\
-	Super::Serialize_Internal(os);\
-    SERIALIZE(os, __VA_ARGS__)\
-}\
-virtual void Deserialize(std::ifstream& is) override\
-{\
-	Super::Deserialize(is);\
-	DESERIALIZE(is, __VA_ARGS__)\
-}\
 static GameObject* CreateAndDeserialise(std::ifstream& is)\
 {\
 	classname* obj = new classname;\
@@ -33,6 +17,26 @@ static GameObject* CreateNew()\
 virtual const char* GetClassName() const override\
 {\
 	return #classname;\
+}\
+virtual void Serialize(std::ofstream& os) const override\
+{\
+	os << typeid(classname).hash_code() << std::endl;\
+	Serialize_Internal(os);\
+}\
+static bool s_factoryRegistered;\
+
+// GameObject class definition macro: must be placed inside header
+#define GAMEOBJECT_DEFINITION_DATA(classname, baseclass, ...)\
+GAMEOBJECT_DEFINITION(classname, baseclass)\
+virtual void Serialize_Internal(std::ofstream& os) const override\
+{\
+	Super::Serialize_Internal(os);\
+    SERIALIZE(os, __VA_ARGS__)\
+}\
+virtual void Deserialize(std::ifstream& is) override\
+{\
+	Super::Deserialize(is);\
+	DESERIALIZE(is, __VA_ARGS__)\
 }\
 virtual void PopulateEditorPanel(ExposedPropertyData& propertyData)\
 {\
@@ -64,7 +68,6 @@ virtual void DeletePropertyData(const void*& allocatedData, const std::vector<in
 	}\
 	DELETE_PROPERTY_DATA(allocatedData, propertyChain, step + 1, propertyId, __VA_ARGS__);\
 }\
-static bool s_factoryRegistered;\
 
 // GameObject factory registration macro: must be placed in class .cpp file
 #define GAMEOBJECT_REGISTER(classname)	\

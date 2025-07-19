@@ -35,8 +35,9 @@ public:
 	static Vector2i GetResolution();
 	static MapData* GetMap();
 
-	static RaycastSprite* CreateSprite(int textureId, const Vector2f& pos);
-	static void ClearSprite(RaycastSprite* sprite);
+	// Returns a sprite to populate with data for the upcoming frame
+	static RaycastSprite& MakeSprite();
+	static void ClearSprites();
 
 	static void Draw2DGrid(const Vector2f& pos, const float angle);
 	static void Draw3DGrid(const Vector2f& pos, float pitch, const float angle);
@@ -48,8 +49,6 @@ private:
 	static void PreProcessSprites();
 	static void Draw3DGridCPU(const Vector2f& pos, float pitch, const float angle);
 	static void Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle);
-
-	static void Draw3DSprites(const Vector2f& pos, float pitch, const float angle);
 
 	// ImGui Panel
 	static PanelRaycaster debugPanel;

@@ -141,14 +141,20 @@ int FlowstateGame::StateUpdate(float deltaTime)
 
 	m_gameState.player.Update(deltaTime);
 
+	GameObject::GlobalTick(deltaTime);
+
 	return static_cast<int>(eFlowstate::STATE_THIS);
 }
 
 void FlowstateGame::StateRender()
 {
+	GameObject::GlobalDraw();
+
 	m_gameState.player.Draw(view3D);
 
 	Spear::ServiceLocator::GetScreenRenderer().Render();
+
+	Raycaster::ClearSprites();
 }
 
 void FlowstateGame::StateExit()
