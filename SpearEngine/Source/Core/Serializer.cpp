@@ -327,6 +327,11 @@ void Serializer::ExposeEnum(ExposedPropertyData& propertyData, int& enumValue, c
 
 void Serializer::ExposeEnumFlag(ExposedPropertyData& propertyData, int& flagContainer, int flagbit, const char* flagNames, int flagNameIndex)
 {
+    if (flagbit <= 0) // skip exposing 'Special'/'None' values since these do not make sense in a flags context
+    {
+        return;
+    }
+
     int cachedValue = flagContainer;
     std::string flagname = GetPropertyName(flagNames, flagNameIndex);
     if (ImGui::CheckboxFlags(flagname.c_str(), &flagContainer, flagbit))

@@ -2,6 +2,7 @@
 #include "GameObject/GameObject.h"
 #include "GlobalTextureBatches.h"
 #include <Graphics/TextureProperty.h>
+#include <GameObject/Components/CollisionComponent_Radial.h>
 
 struct RaycastSprite;
 
@@ -10,6 +11,8 @@ class Obj_RaycastSprite : public GameObject
 	GAMEOBJECT_SERIALISABLE(Obj_RaycastSprite, GameObject, m_texture, m_spriteHeight, m_spriteSize)
 
 public:
+
+	Obj_RaycastSprite();
 
 	virtual void OnCreated() override;
 	virtual void OnTick(float deltaTime) override;
@@ -21,9 +24,11 @@ public:
 private:
 	void RefreshSpriteData();
 
-	Spear::TextureProperty<GlobalTextureBatches::BATCH_SPRITESET_1> m_texture;
+	Spear::TextureProperty<GlobalTextureBatches::BATCH_SPRITESET_1> m_texture{};
 
 	RaycastSprite* m_raycastSprite{nullptr};
 	Vector2f m_spriteSize{1, 1};
 	float m_spriteHeight{0};
+
+	CollisionComponent_Radial* m_collisionComp{nullptr};
 };

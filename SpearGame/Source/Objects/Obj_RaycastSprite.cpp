@@ -4,6 +4,11 @@
 
 GAMEOBJECT_REGISTER(Obj_RaycastSprite)
 
+Obj_RaycastSprite::Obj_RaycastSprite()
+{
+	m_collisionComp = AddComponent<CollisionComponent_Radial>();
+}
+
 void Obj_RaycastSprite::OnCreated()
 {
 	m_raycastSprite = Raycaster::CreateSprite(m_texture.SpriteId(), GetPosition().XY());

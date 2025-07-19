@@ -6,6 +6,23 @@ bool GameObjectPtrBase::IsValid() const
 	return GetRawPtr() != nullptr;
 }
 
+void GameObjectPtrBase::Register(GameObject* obj)
+{
+	if (obj)
+	{
+		obj->RegisterPtr(this);
+	}
+}
+
+void GameObjectPtrBase::InvalidateInternal(GameObject*& obj)
+{
+	if (obj)
+	{
+		obj->DeregisterPtr(this);
+		obj = nullptr;
+	}
+}
+
 void GameObjectPtrBase::Serialize(std::ofstream& stream) const
 {
 	// Store index rather than pointer. Making assumption no modifications will occur to GameObject array while serialization is in progress.

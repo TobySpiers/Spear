@@ -11,7 +11,7 @@ namespace Spear
 	class TextureProperty
 	{
 	private:
-		int m_spriteId;
+		int m_spriteId{0};
 		static constexpr int m_batchId = batchId;
 
 	public:

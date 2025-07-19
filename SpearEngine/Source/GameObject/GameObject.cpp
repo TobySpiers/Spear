@@ -164,18 +164,45 @@ void GameObject::DeregisterPtr(GameObjectPtrBase* ptr)
 void GameObject::PopulateEditorPanel(ExposedPropertyData& propertyData)
 {
 	EXPOSE_PROPERTIES(propertyData, m_position);
+
+	ImGui::Separator();
+	if (ImGui::TreeNodeEx("Components"))
+	{
+		for (int c = 0; c < m_components.size(); c++)
+		{
+			Serializer::ExposeInEditor(propertyData, "##Components", i++, *m_components[c].get());
+		}
+		ImGui::TreePop();
+	}
+	ImGui::Separator();
 }
 
 void GameObject::SetProperty(const void* value, const std::vector<int>& propertyChain, ModifiedPropertyData* outPropertyData, int step)
 {
 	const int propertyId = propertyChain[propertyChain.size() - step];
 	SET_PROPERTY(value, propertyChain, outPropertyData, step + 1, propertyId, m_position);
+
+	for (int c = 0; c < m_components.size(); c++)
+	{
+		if (i++ == propertyId)
+		{
+			Serializer::SetProperty(value, propertyChain, outPropertyData, step + 1, *m_components[c].get());
+		}
+	}
 }
 
 void GameObject::DeletePropertyData(const void*& allocatedData, const std::vector<int>& propertyChain, int step) const
 {
 	const int propertyId = propertyChain[propertyChain.size() - step];
 	DELETE_PROPERTY_DATA(allocatedData, propertyChain, step, propertyId, m_position);
+
+	for (int c = 0; c < m_components.size(); c++)
+	{
+		if (i++ == propertyId)
+		{
+			Serializer::DeletePropertyData(allocatedData, propertyChain, step, *m_components[c].get());
+		}
+	}
 }
 
 void GameObject::DrawInEditor(const Vector3f& position, float zoom, bool bSelected, bool bHovered)
@@ -404,8 +431,9 @@ bool GameObject::IsSafeToDestroy() const
 GameObject::~GameObject()
 {
 	// Invalidate any GameObjectPtrs referencing this object
-	for (GameObjectPtrBase* ptr : trackedPtrs)
+	while(!trackedPtrs.empty())
 	{
+		GameObjectPtrBase* ptr = *trackedPtrs.begin();
 		ptr->Invalidate();
 	}
 }
@@ -413,11 +441,21 @@ GameObject::~GameObject()
 void GameObject::Serialize_Internal(std::ofstream& os) const
 {
 	SERIALIZE(os, m_position)
+
+	for (int i = 0; i < m_components.size(); i++)
+	{
+		Serializer::Serialize(os, *m_components[i].get());
+	}
 }
 
 void GameObject::Deserialize(std::ifstream& is)
 {
 	DESERIALIZE(is, m_position)
+
+	for (int i = 0; i < m_components.size(); i++)
+	{
+		Serializer::Deserialize(is, *m_components[i].get());
+	}
 }
 
 bool GameObject::RegisterFactoryFunctionsForClass(const char* className, size_t hashcode, DeserializeFuncPtr deserializeFunc, ConstructorFuncPtr constructorFunc)

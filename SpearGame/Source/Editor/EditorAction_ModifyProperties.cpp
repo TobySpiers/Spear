@@ -1,4 +1,5 @@
 #include "EditorAction_ModifyProperties.h"
+#include "GameObject/GameObject.h"
 #include <Core/Core.h>
 
 EditorAction_ModifyProperties::EditorAction_ModifyProperties(const std::unordered_set<GameObject*>& objects)

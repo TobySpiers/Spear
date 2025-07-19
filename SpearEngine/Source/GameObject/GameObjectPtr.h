@@ -6,6 +6,8 @@ class GameObject;
 struct GameObjectPtrBase
 {
 	bool IsValid() const;
+	void Register(GameObject* obj);
+	void InvalidateInternal(GameObject*& obj);
 	virtual void Invalidate() = 0;
 
 	void Serialize(std::ofstream& stream) const;
@@ -28,10 +30,7 @@ struct GameObjectPtr : public GameObjectPtrBase
 	{
 		static_assert(std::is_base_of<GameObject, T>::value, "Requested class must derive from GameObject!");
 		object = inObject;
-		if (object)
-		{
-			inObject->RegisterPtr(this);
-		}
+		Register(object);
 	}
 	GameObjectPtr(const GameObjectPtr& other)
 	{
@@ -39,6 +38,7 @@ struct GameObjectPtr : public GameObjectPtrBase
 		object = other.object;
 		if (IsValid())
 		{
+			Register(object);
 			object->RegisterPtr(this);
 		}
 	}
@@ -49,12 +49,9 @@ struct GameObjectPtr : public GameObjectPtrBase
 			return *this; // Self-assignment check
 		}
 
-		Invalidate();
+		InvalidateInternal(object);
 		object = other.object;
-		if (object)
-		{
-			object.RegisterPtr(this);
-		}
+		Register(object);
 	}
 	GameObjectPtr& operator=(T* other)
 	{
@@ -63,26 +60,19 @@ struct GameObjectPtr : public GameObjectPtrBase
 			return *this;
 		}
 
-		Invalidate();
+		InvalidateInternal(object);
 		object = other;
-		if (object)
-		{
-			object.RegisterPtr(this);
-		}
+		Register(object);
 	}
 
 	~GameObjectPtr()
 	{
-		Invalidate();
+		InvalidateInternal(object);
 	}
 
 	virtual void Invalidate() override
 	{
-		if (object)
-		{
-			object->DeregisterPtr(this);
-			object = nullptr;
-		}
+		InvalidateInternal(object);
 	}
 
 	virtual void Deserialize(std::ifstream& istream)
@@ -117,11 +107,11 @@ struct GameObjectPtr : public GameObjectPtrBase
 		return stream;
 	}
 
-private:
 	virtual GameObject* GetRawPtr() const
 	{
 		return object;
 	}
+private:
 
 	T* object{ nullptr };
 };

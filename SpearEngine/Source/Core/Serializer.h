@@ -4,7 +4,8 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include "GameObject/GameObject.h"
+#include "Core.h"
+#include "ImGui.h"
 
 // Macros to simplify needing lambda functions to correctly resolve Serialize/Deserialize overloads
 #define SERIALIZE(outStream, ...) Serializer::ForwardArgsToSerializers([&](auto& arg) { Serializer::Serialize(outStream, arg); }, __VA_ARGS__);
@@ -175,6 +176,7 @@ const Class& operator>>(PropertyManipulator& deleter) const\
 }\
 
 struct GameObjectPtrBase;
+class GameObject;
 
 // Base class for editor-exposed enum flags
 class ExposedEnumBase
