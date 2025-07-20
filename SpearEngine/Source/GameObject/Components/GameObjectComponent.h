@@ -47,7 +47,7 @@ public:
     
     const GameObjectComponent& operator>>(PropertyManipulator& deleter) const 
     {
-        DeletePropertyData(*deleter.allocatedValue, *deleter.propertyChain, deleter.step); return *this;
+        DeletePropertyData(*deleter.allocatedValue, *deleter.propertyChain, deleter.step + 1); return *this;
     }
 
 

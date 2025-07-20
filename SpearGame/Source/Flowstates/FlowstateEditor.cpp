@@ -4,6 +4,7 @@
 #include "Core/ImguiManager.h"
 #include "Core/WindowManager.h"
 #include "Graphics/ScreenRenderer.h"
+#include "Audio/AudioManager.h"
 #include "GameObject/GameObject.h"
 #include "UiButton.h"
 
@@ -87,6 +88,10 @@ void FlowstateEditor::StateEnter()
 	// Load globally used textures (map/sprites)
 	// If any editor-specific texture batches are required, these can be loaded separately after
 	GlobalTextureBatches::InitialiseBatches(m_textures);
+
+	// Load audio files
+	Spear::AudioManager& audio = Spear::AudioManager::Get();
+	audio.InitSoundsFromFolder("../ASSETS/SFX/");				// Load SFX from folder
 
 	// Disable automatic ImGui handling - Editor handles ImGui manually
 	Spear::ImguiManager& imguiManager = Spear::ImguiManager::Get();

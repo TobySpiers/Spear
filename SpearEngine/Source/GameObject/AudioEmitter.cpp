@@ -4,10 +4,15 @@
 
 GAMEOBJECT_REGISTER(AudioEmitter)
 
+AudioEmitter::AudioEmitter()
+{
+	m_audioComponent = AddComponent<AudioComponent>();
+}
+
 void AudioEmitter::OnCreated()
 {
 	if (m_bPlayOnStart)
 	{
-		m_soundSource.Play();
+		m_audioComponent->Play();
 	}
 }

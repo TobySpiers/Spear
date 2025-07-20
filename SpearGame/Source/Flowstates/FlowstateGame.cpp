@@ -54,16 +54,6 @@ void FlowstateGame::StateEnter()
 	// Position player at PlayerStart
 	m_gameState.player.SetPos(m_gameState.mapData.playerStart.ToFloat() + Vector2f(0.5f, 0.5f));
 	SDL_SetRelativeMouseMode(SDL_TRUE);
-
-	// Create CrowSFX AudioEmitter GameObject
-	//GameObjectPtr<AudioEmitter> emitter = GameObject::Create<AudioEmitter>();
-	//emitter->m_bPlayOnStart = true;
-	//emitter->m_soundSource.SetSound(0);
-	//emitter->m_soundSource.Play();
-	//GameObject::GlobalSerialize("../Assets/MAPS/ManualTest.objs");
-
-	// Load GameObject (originally serialized via above commented code)
-	GameObject::GlobalDeserialize("../Assets/MAPS/ManualTest.objs");
 }
 
 bool view3D{false};

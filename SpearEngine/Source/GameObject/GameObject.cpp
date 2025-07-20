@@ -97,10 +97,13 @@ void GameObject::DestroyObjects_Internal()
 		
 		const int cachedInternalId = obj->internalId;
 		obj->OnDestroy_Internal();
-		for (GameObjectPtrBase* ptr : obj->trackedPtrs)
+
+		while (!obj->trackedPtrs.empty())
 		{
+			GameObjectPtrBase* ptr = *obj->trackedPtrs.begin();
 			ptr->Invalidate();
 		}
+
 		std::iter_swap(s_allocatedObjects.begin() + cachedInternalId, s_allocatedObjects.end() - 1);
 		GameObject* swappedObj = s_allocatedObjects[cachedInternalId];
 		swappedObj->internalId = cachedInternalId;

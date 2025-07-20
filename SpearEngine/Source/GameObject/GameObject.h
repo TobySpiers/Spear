@@ -105,7 +105,7 @@ public:
 	T* FindComponent() const
 	{
 		static_assert(std::is_base_of<GameObjectComponent, T>::value, "Requested class must derive from GameObjectComponent!");
-		for (std::unique_ptr<GameObjectComponent>& componentPtr : m_components)
+		for (const std::unique_ptr<GameObjectComponent>& componentPtr : m_components)
 		{
 			if (T* component = dynamic_cast<T*>(componentPtr.get()))
 			{
