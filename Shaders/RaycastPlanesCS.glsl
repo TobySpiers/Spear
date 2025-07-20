@@ -214,7 +214,9 @@ void main()
 					
 					vec3 texCoord = vec3(texX / spriteTexSize.x, texY / spriteTexSize.y, spriteData[i].spriteTex);
 					vec4 texel = texture(spriteTextures, texCoord);
-					if(texel.a == 0)
+					
+					// If we want to support transparency in sprites, we'll need to move them until AFTER the WallShader has run
+					if(texel.a <= 0.1f)
 					{
 						continue;
 					}

@@ -165,8 +165,6 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	ClearRaycasterArrays();
 	rend.SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution);
 
-	constexpr float opacityFloor = 0.5f;
-	constexpr float opacityRoof = 0.7f;
 	constexpr float depthWorld = 0.5f;
 	constexpr float depthPlayer = 0.25f;
 
@@ -183,41 +181,57 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	const Vector2f camOffset = (Spear::Core::GetWindowSize().ToFloat() / 2) - pos * m_rayConfig.scale2D;
 
 	// Draw tiles
+	constexpr float tiledepthOpacities[3] = {1.f, 0.7f, 0.5f};
 	for (int x = 0; x < m_map->gridWidth; x++)
 	{
 		for (int y = 0; y < m_map->gridHeight; y++)
 		{
 			const int nodeIndex = x + (y * m_map->gridWidth);
 			GridNode& node = m_map->pNodes[nodeIndex];
-			bool bWallTexture = node.texIdWall != TEX_NONE;
-			bool bRoofTexture = node.texIdRoof[0] != TEX_NONE;
-			int texId = bWallTexture ? node.texIdWall : node.texIdFloor[0];
+
+			int texId = node.texIdWall;
+			int tileDepth = 0;
+			if (texId == TEX_NONE)
+			{
+				for (int i = 0; i < 2; i++)
+				{
+					texId = node.texIdFloor[i];
+					tileDepth = i + 1;
+					if (texId != TEX_NONE)
+					{
+						break;
+					}
+				}
+			}
+
 			if (texId != TEX_NONE)
 			{
 				Spear::Renderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * m_rayConfig.scale2D;
 				sprite.pos += (Vector2f(m_rayConfig.scale2D, m_rayConfig.scale2D) / 2) + camOffset;
-				sprite.size *= 1.2f;
+				sprite.size = 1.2f;
 				sprite.texLayer = texId;
-				if (!bWallTexture)
-				{
-					if(bRoofTexture)
-					{
-						sprite.opacity = opacityRoof;
-					}
-					else
-					{
-						sprite.opacity = opacityFloor;
-					}
-				}
-				if (!bRoofTexture)
-				{
-					sprite.depth = depthWorld;
-				}
+				sprite.opacity = tiledepthOpacities[tileDepth];
+				sprite.depth = depthWorld;
 
-				rend.AddSprite(sprite, 0);
+				rend.AddSprite(sprite, GlobalTextureBatches::BATCH_TILESET_1);
 			}
 		}
+	}
+
+	// Draw sprites
+	const float spriteRawSize = 64.f / Spear::Renderer::Get().GetBatchTextures(GlobalTextureBatches::BATCH_SPRITESET_1)->GetWidth(); // assumes textures are square
+	for (int i = 0; i < m_spriteCount; i++)
+	{
+		RaycastSprite& spriteData = m_sprites[i];
+		Spear::Renderer::SpriteData sprite;
+		sprite.pos = (spriteData.spritePos + Vector2f(-0.5f)) * m_rayConfig.scale2D;
+		sprite.pos += (Vector2f(m_rayConfig.scale2D, m_rayConfig.scale2D) / 2) + camOffset;
+		sprite.size = spriteRawSize * spriteData.size;
+		sprite.size.x *= 2;
+		sprite.texLayer = spriteData.textureId;
+
+		rend.AddSprite(sprite, GlobalTextureBatches::BATCH_SPRITESET_1);
 	}
 
 	// Draw rays

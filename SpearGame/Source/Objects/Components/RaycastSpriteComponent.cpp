@@ -13,9 +13,11 @@ void RaycastSpriteComponent::OnDraw() const
 
 void RaycastSpriteComponent::OnEditorDraw(const Vector3f& position, float zoom, float mapSpacing)
 {
+	const float sizeRaw = 64.f / Spear::Renderer::Get().GetBatchTextures(GlobalTextureBatches::BATCH_SPRITESET_1)->GetWidth();
+
 	Spear::Renderer::SpriteData sprite;
 	sprite.pos = position.XY() + (mapSpacing * m_localOffset);
-	sprite.size = Vector2f(zoom, zoom) * m_spriteSize;
+	sprite.size = sizeRaw * Vector2f(zoom, zoom) * m_spriteSize;
 	sprite.texLayer = m_texture.SpriteId();
 	sprite.depth = position.z;
 	Spear::Renderer::Get().AddSprite(sprite, GlobalTextureBatches::BATCH_SPRITESET_1);

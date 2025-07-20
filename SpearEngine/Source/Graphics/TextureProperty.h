@@ -37,7 +37,8 @@ namespace Spear
 			const Spear::TextureBase* pTextures = Spear::Renderer::Get().GetBatchTextures(m_batchId);
 			const int cachedSpriteId = m_spriteId;
 
-			ImGui::ImageButton("CurTexture", pTextures->GetTextureViewForLayer(m_spriteId), ImVec2(pTextures->GetWidth(), pTextures->GetHeight()));
+			const ImVec2 previewSize(128, 128);
+			ImGui::ImageButton("CurTexture", pTextures->GetTextureViewForLayer(m_spriteId), previewSize);
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
 			{
 				ImGui::OpenPopup("PickTexture");
@@ -47,7 +48,7 @@ namespace Spear
 			{
 				for (int i = 0; i < pTextures->GetDepth(); i++)
 				{
-					ImGui::Image(pTextures->GetTextureViewForLayer(i), ImVec2(pTextures->GetWidth(), pTextures->GetHeight()));
+					ImGui::Image(pTextures->GetTextureViewForLayer(i), previewSize);
 					if (ImGui::IsItemClicked())
 					{
 						bValueChanged = m_spriteId != i;
