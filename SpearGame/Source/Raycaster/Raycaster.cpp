@@ -985,7 +985,7 @@ void Raycaster::Draw3DGridCompute(const Vector2f& pos, float pitch, const float 
 		// Sprites Binding SSBO
 		glGenBuffers(1, &m_computeShader.spritesSSBO);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.spritesSSBO);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, m_numSpritesToRender * sizeof(RaycastSpriteData), m_frameSprites, GL_STATIC_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, RAYCAST_SPRITE_LIMIT * sizeof(RaycastSpriteData), m_frameSprites, GL_STATIC_DRAW);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, m_computeShader.spritesSSBO); // bind slot 5
 
 		// RayConfig Binding UBO (Uniform Buffer Object) - Used to pass a single struct as a uniform to shader
