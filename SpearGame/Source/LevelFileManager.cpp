@@ -1,6 +1,7 @@
 #include "LevelFileManager.h"
 #include "GameObject/GameObject.h"
-
+#include "Collision/CollisionSystem.h"
+#include <GameObject/OBoxCollider.h>
 
 std::string GetFilePath(const char* levelName) {return std::string("../Assets/MAPS/") + std::string(levelName); };
 
@@ -97,6 +98,7 @@ void LevelFileManager::LoadLevel(const char* levelName, MapData& rMapData)
 	Deserialize(rMapData.playerStart, file);
 
 	// Allocate rMapData.pNodes to use appropriate size in reserved memory
+	// TODO: Ensure pNodes has an appropriate 'delete' call
 	rMapData.pNodes = new (m_reservedMapMemory) GridNode[rMapData.gridWidth * rMapData.gridHeight];
 
 	// Read grid
@@ -121,6 +123,30 @@ void LevelFileManager::LoadLevel(const char* levelName, MapData& rMapData)
 		rMapData.planeHeights[i] = std::stoi(planeHeight);
 	}
 
-	// Read GameObjects
+	// Initialise Collision QuadTree to appropriate size for level
+	Collision::CollisionSystem2D::Get().ResizeQuadTree(Vector2f::ZeroVector, Vector2f(rMapData.gridWidth, rMapData.gridHeight));
+
+	// Load GameObjects
 	GameObject::GlobalDeserialize(file);
+
+	// Generate collisions for tilemap
+	// TODO: Detect and combine edges into single appropriately-sized AABBs
+	for (int x = 0; x < rMapData.gridWidth; x++)
+	{
+		for (int y = 0; y < rMapData.gridHeight; y++)
+		{
+			if (const GridNode* mapNode = rMapData.GetNode({ x, y }))
+			{
+				if (mapNode->collisionMask)
+				{
+					OBoxCollider* coll = GameObject::Create<OBoxCollider>(Vector3f(x + 0.5f, y + 0.5f, 0));
+
+					// Since player performs PreCheckedMovement against tiles, collision system does not need to test tiles against the player, hence removing the flag
+					coll->ApplySetup(Collision::World, mapNode->collisionMask & ~Collision::Player, Collision::PROFILE_None, true);
+
+					coll->SetHalfExtent({.5f, .5f});
+				}
+			}
+		}
+	}
 }

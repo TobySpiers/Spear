@@ -5,7 +5,7 @@
 void RaycastSpriteComponent::OnDraw() const
 {
 	RaycastSprite& sprite = Raycaster::MakeSprite();
-	sprite.spritePos = GetOwner()->GetPosition().XY() + m_localOffset;
+	sprite.spritePos = GetOwner().GetPosition().XY() + m_localOffset;
 	sprite.height = m_spriteHeight * 500; // *500 makes it so that -1 sets origin to FLOOR and +1 sets origin to ROOF
 	sprite.size = m_spriteSize * Vector2f(1.f, 2.f); // (1, 2) makes it so that size (1,1) is equal to 1 Square Wall Tile
 	sprite.textureId = m_texture.SpriteId();

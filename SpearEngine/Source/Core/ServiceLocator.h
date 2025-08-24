@@ -1,4 +1,9 @@
 #pragma once
+namespace Collision
+{
+	class CollisionSystem2D;
+}
+
 namespace Spear
 {
 	class FlowstateManager;
@@ -25,5 +30,6 @@ namespace Spear
 		static ThreadManager& GetThreadManager();
 		static AudioManager& GetAudioManager();
 		static ImguiManager& GetImguiManager();
+		static Collision::CollisionSystem2D& GetCollisionSystem();
 	};
 }

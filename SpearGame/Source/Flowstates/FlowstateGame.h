@@ -39,6 +39,8 @@ private:
 	};
 	DebugInputModes debugInputMode{ DEBUGINPUT_KEYBOARD };
 	const char* GetDebugInputModeText();
+
+	bool m_view3D{false};
 };
 
 enum InputActions

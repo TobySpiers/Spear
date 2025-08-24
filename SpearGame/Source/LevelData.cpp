@@ -1,4 +1,5 @@
 #include "LevelData.h"
+#include <Collision/CollisionComponent2D.h>
 
 const int MapData::TotalNodes() const
 {
@@ -19,7 +20,7 @@ const GridNode* MapData::GetNode(int x, int y) const
 	return nullptr;
 }
 
-bool MapData::CollisionSearchDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos, bool* out_bVerticalHit) const
+bool MapData::LineTraceDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos, bool* out_bVerticalHit) const
 {
 	if (out_hitPos)
 	{
@@ -111,6 +112,36 @@ bool MapData::CollisionSearchDDA(const Vector2f& start, const Vector2f& trajecto
 
 	return false;
 }
+
+Vector2f MapData::PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, CollisionComponent2D* collisionComp) const
+{
+	return PreCheckedMovement(start, trajectory, collisionComp->GetAABBExtent(), collisionComp->GetBlockingFlags());
+}
+
+Vector2f MapData::PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, const Vector2f& AABB, u8 collisionMask) const
+{
+	Vector2f result{start};
+	Vector2f halfAABB = AABB / 2;
+
+	// Trace horizontally from top & bottom of AABB
+	const Vector2f horizontalTrajectory = Vector2f(trajectory.x + (Sign(trajectory.x) * halfAABB.x), 0.f);
+	if (!LineTraceDDA(result + Vector2f(0.f, halfAABB.y), horizontalTrajectory, collisionMask)
+	&& !LineTraceDDA(result - Vector2f(0.f, halfAABB.y), horizontalTrajectory, collisionMask))
+	{
+		result.x += trajectory.x;
+	}
+
+	// Trace vertically from left & right of AABB
+	const Vector2f verticalTrajectory = Vector2f(0.f, trajectory.y + (Sign(trajectory.y) * halfAABB.y));
+	if (!LineTraceDDA(result + Vector2f(halfAABB.x, 0.f), verticalTrajectory, collisionMask)
+	&& !LineTraceDDA(result - Vector2f(halfAABB.x, 0.f), verticalTrajectory, collisionMask))
+	{
+		result.y += trajectory.y;
+	}
+
+	return result;
+}
+
 
 void GridNode::Reset()
 {

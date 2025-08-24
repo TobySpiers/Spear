@@ -279,7 +279,7 @@ ExposedEnumBase& ExposedEnumBase::operator<<(ExposedPropertyData& editor)
     return *this;
 }
 
-void Serializer::ExposeEnum(ExposedPropertyData& propertyData, int& enumValue, const char* valuesString, const std::vector<int>& enumVals)
+void Serializer::ExposeEnum(ExposedPropertyData* propertyData, int& enumValue, const char* valuesString, const std::vector<int>& enumVals)
 {
     std::vector<std::string> enumNames;
     BreakPropertyNames(valuesString, enumNames);
@@ -298,7 +298,10 @@ void Serializer::ExposeEnum(ExposedPropertyData& propertyData, int& enumValue, c
     }
 
     int cachedOldVal = enumValue;
-    if (ImGui::BeginCombo(propertyData.propertyName.c_str(), previewIndex < enumNames.size() ? enumNames[previewIndex].c_str() : "UNKNOWN"))
+
+    const char* label = propertyData ? propertyData->propertyName.c_str() : "##Property";
+
+    if (ImGui::BeginCombo(label, previewIndex < enumNames.size() ? enumNames[previewIndex].c_str() : "UNKNOWN"))
     {
         for (int i = 0; i < enumNames.size(); i++)
         {
@@ -316,16 +319,16 @@ void Serializer::ExposeEnum(ExposedPropertyData& propertyData, int& enumValue, c
         ImGui::EndCombo();
     }
 
-    if (cachedOldVal != enumValue)
+    if (propertyData && cachedOldVal != enumValue)
     {
-        propertyData.SetOldValue(cachedOldVal);
-        propertyData.SetNewValue(enumValue);
-        propertyData.modifiedPropertyName = propertyData.propertyName;
-        propertyData.propertyChain.emplace_back(0);
+        propertyData->SetOldValue(cachedOldVal);
+        propertyData->SetNewValue(enumValue);
+        propertyData->modifiedPropertyName = propertyData->propertyName;
+        propertyData->propertyChain.emplace_back(0);
     }
 }
 
-void Serializer::ExposeEnumFlag(ExposedPropertyData& propertyData, int& flagContainer, int flagbit, const char* flagNames, int flagNameIndex)
+void Serializer::ExposeEnumFlag(ExposedPropertyData* propertyData, int& flagContainer, int flagbit, const char* flagNames, int flagNameIndex)
 {
     if (flagbit <= 0) // skip exposing 'Special'/'None' values since these do not make sense in a flags context
     {
@@ -336,10 +339,13 @@ void Serializer::ExposeEnumFlag(ExposedPropertyData& propertyData, int& flagCont
     std::string flagname = GetPropertyName(flagNames, flagNameIndex);
     if (ImGui::CheckboxFlags(flagname.c_str(), &flagContainer, flagbit))
     {
-        propertyData.SetOldValue(cachedValue);
-        propertyData.SetNewValue(flagContainer);
-        propertyData.modifiedPropertyName = propertyData.propertyName + "::" + flagname;
-        propertyData.propertyChain.emplace_back(0);
+        if(propertyData)
+        {
+            propertyData->SetOldValue(cachedValue);
+            propertyData->SetNewValue(flagContainer);
+            propertyData->modifiedPropertyName = propertyData->propertyName + "::" + flagname;
+            propertyData->propertyChain.emplace_back(0);
+        }
     }
 }
 

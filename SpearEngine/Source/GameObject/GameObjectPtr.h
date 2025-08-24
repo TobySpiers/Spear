@@ -111,7 +111,7 @@ struct GameObjectPtr : public GameObjectPtrBase
 	{
 		return object;
 	}
-private:
 
+private:
 	T* object{ nullptr };
 };

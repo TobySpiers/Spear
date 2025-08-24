@@ -14,6 +14,7 @@
 // common custom classes
 #include "MathVector.h"
 #include "Colour.h"
+#include "EventID.h"
 
 #ifdef _DEBUG
 #define GLCheck(x) GLClearErrors(); x; GLPrintErrors(__FILE__, #x, __LINE__);

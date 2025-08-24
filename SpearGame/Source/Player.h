@@ -1,17 +1,22 @@
 #pragma once
+#include "GameObject/GameObject.h"
 
-class Player
+class CollisionComponentRadial;
+
+class Player : public GameObject
 {
 public:
 	Player();
 
-	void SetPos(const Vector2f& pos){m_pos = pos;};
-	void SetSpeed(float speed){m_walkSpeed = speed;};
-	void Update(float deltaTime);
-	void Draw(bool perspective) const;
+	virtual void OnCreated() override;
+	virtual void OnTick(float deltaTime) override;
+
+	float GetLookRotation() const {return m_rotation;}
+	float GetLookPitch() const {return m_pitch;}
 
 private:
-	Vector2f m_pos{0.f, 0.f};
+	CollisionComponentRadial* m_collisionComp{nullptr};
+
 	float m_walkSpeed{1.5f};
 	float m_sprintSpeed{ 4.f };
 	float m_lookSpeed{ 0.0035f };
@@ -19,6 +24,5 @@ private:
 	float m_pitchLimit{ 0.5f };
 	float m_rotation{TO_RADIANS(-90.f)};
 	float m_turnSpeed{TO_RADIANS(2.f)};
-	float m_collBox{ 0.12f }; // world-collisions only
 };
 

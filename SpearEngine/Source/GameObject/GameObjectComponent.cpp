@@ -7,7 +7,7 @@ void GameObjectComponent::Initialise(GameObject* owner)
 	m_owner = owner;
 }
 
-GameObject* GameObjectComponent::GetOwner() const
+GameObject& GameObjectComponent::GetOwner() const
 {
-	return m_owner.GetRawPtr();
+	return *m_owner.GetRawPtr();
 }

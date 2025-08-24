@@ -1,5 +1,5 @@
 #pragma once
-#include "GameObjectComponent.h"
+#include "GameObject/GameObjectComponent.h"
 #include "Audio/SoundSource.h"
 
 class AudioComponent : public GameObjectComponent

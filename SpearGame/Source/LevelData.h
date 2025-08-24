@@ -1,8 +1,11 @@
 #pragma once
 #include "Core/Core.h"
+#include "Collision/CollisionTypes.h"
 
 constexpr int MAP_WIDTH_MAX_SUPPORTED{ 40 };
 constexpr int MAP_HEIGHT_MAX_SUPPORTED{ 40 };
+
+class CollisionComponent2D;
 
 enum eLevelTextures
 {
@@ -20,14 +23,6 @@ enum eDrawFlags : u8
 	DRAW_E = 1 << 1,
 	DRAW_S = 1 << 2,
 	DRAW_W = 1 << 3,
-};
-
-enum eCollisionMask : int
-{
-	COLL_NONE = 0,
-
-	COLL_WALL	= 1 << 0,
-	COLL_SOLID	= 1 << 1,
 };
 
 enum ePlaneHeight : u8
@@ -49,7 +44,7 @@ struct GridNode
 	int extendUp{ 0 };				// additional units for walls above... uses texIdRoof if set, otherwise uses texIdWall
 	int extendDown{ 0 };			// additional units for walls below... uses texIdFloor if set, otherwise uses texIdWall
 
-	int collisionMask{ COLL_NONE };
+	int collisionMask{ 0 };
 
 	void Reset();
 
@@ -78,7 +73,10 @@ struct MapData
 	const int TotalNodes() const;
 	const GridNode* GetNode(Vector2i index) const;
 	const GridNode* GetNode(int x, int y) const;
-	bool CollisionSearchDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos = nullptr, bool* out_bVerticalHit = nullptr) const;
+
+	bool LineTraceDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos = nullptr, bool* out_bVerticalHit = nullptr) const;
+	Vector2f PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, CollisionComponent2D* collisionComp) const;
+	Vector2f PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, const Vector2f& AABB, u8 collisionMask) const;
 
 	std::string mapName{ "Untitled" };
 	Vector2i playerStart{ 5, 5 };

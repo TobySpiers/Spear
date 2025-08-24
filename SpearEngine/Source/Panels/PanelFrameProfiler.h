@@ -15,5 +15,5 @@ private:
 	void DrawCategory(const ProfileCategory& category);
 	int fpsTarget{ 60 };
 	float msTarget{ 0.f };
-	float unknownThreshold{ 0.166f };
+	float unknownThreshold{ 0.f };
 };

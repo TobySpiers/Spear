@@ -63,6 +63,9 @@ struct Vector2
 	bool operator==(const Vector2<T>& other) const { return this->x == other.x && this->y == other.y; }
 	bool operator!=(const Vector2<T>& other) const { return !(*this == other); }
 
+	// unary negation operator
+	Vector2<T> operator-() const { return (*this) * -1.f; }
+
 	// Returns true if Vector's XY components are between the values of A & B's XY components
 	bool IsBetween(const Vector2<T>& A, const Vector2<T> B);
 
@@ -76,6 +79,7 @@ struct Vector2
 
 	// Vector2(0, 0)
 	static const Vector2<T> ZeroVector;
+	static const Vector2<T> OneVector;
 };
 
 template <typename T>
@@ -130,6 +134,9 @@ struct Vector3
 	bool operator==(const Vector3<T>& other) const { return this->x == other.x && this->y == other.y && this->z == other.z; }
 	bool operator!=(const Vector3<T>& other) const { return !(*this == other); }
 
+	// unary negation operator
+	Vector3<T> operator-() const { return (*this) * -1.f; }
+
 	// Explicit Conversions Only
 	Vector3<int> ToInt() const { return Vector3<int>(static_cast<int>(x), static_cast<int>(y), static_cast<int>(z)); };
 	Vector3<float> ToFloat() const { return Vector3<float>(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)); };
@@ -138,8 +145,9 @@ struct Vector3
 	// Swizzles
 	Vector2<T> XY() const { return Vector2<T>(x, y); }
 
-	// Vector3(0, 0)
+	// Vector3(0, 0, 0)
 	static const Vector3<T> ZeroVector;
+	static const Vector3<T> OneVector;
 };
 
 template <typename T>
@@ -211,9 +219,13 @@ using Vector3d = Vector3<double>;
 // Static defaults
 template<typename T>
 const Vector2<T> Vector2<T>::ZeroVector = Vector2<T>(0);
+template<typename T>
+const Vector2<T> Vector2<T>::OneVector = Vector2<T>(1);
 
 template<typename T>
 const Vector3<T> Vector3<T>::ZeroVector = Vector3<T>(0);
+template<typename T>
+const Vector3<T> Vector3<T>::OneVector = Vector3<T>(1);
 
 template <typename T> int Sign(T val) 
 {

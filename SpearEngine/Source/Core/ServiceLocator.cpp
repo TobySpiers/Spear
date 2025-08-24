@@ -6,6 +6,7 @@
 #include "ImguiManager.h"
 #include "Graphics/ScreenRenderer.h"
 #include "Audio/AudioManager.h"
+#include "Collision/CollisionSystem.h"
 
 #include "ServiceLocator.h"
 
@@ -18,6 +19,7 @@ namespace Spear
 	static ThreadManager* s_pThreadManager{nullptr};
 	static AudioManager* s_pAudioManager{nullptr};
 	static ImguiManager* s_pImguiManager{ nullptr };
+	static Collision::CollisionSystem2D* s_pCollisionSystem{nullptr};
 
 	void ServiceLocator::Initialise(const WindowParams& params)
 	{
@@ -56,6 +58,11 @@ namespace Spear
 			s_pAudioManager = new AudioManager;
 			s_pAudioManager->OnCreated();
 		}
+
+		if (!s_pCollisionSystem)
+		{
+			s_pCollisionSystem = new Collision::CollisionSystem2D;
+		}
 	}
 
 	void ServiceLocator::Shutdown()
@@ -80,6 +87,9 @@ namespace Spear
 
 		delete s_pImguiManager;
 		s_pImguiManager = nullptr;
+
+		delete s_pCollisionSystem;
+		s_pCollisionSystem = nullptr;
 	}
 
 	FlowstateManager& ServiceLocator::GetFlowstateManager()
@@ -121,5 +131,10 @@ namespace Spear
 	{
 		ASSERT(s_pImguiManager);
 		return *s_pImguiManager;
+	}
+	Collision::CollisionSystem2D& ServiceLocator::GetCollisionSystem()
+	{
+		ASSERT(s_pCollisionSystem);
+		return *s_pCollisionSystem;
 	}
 }

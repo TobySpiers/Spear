@@ -2,10 +2,10 @@
 #include "GameObject/GameObject.h"
 #include "GlobalTextureBatches.h"
 #include <Graphics/TextureProperty.h>
-#include <GameObject/Components/CollisionComponent_Radial.h>
 
 struct RaycastSprite;
 class RaycastSpriteComponent;
+class CollisionComponentRadial;
 
 class Obj_RaycastSprite : public GameObject
 {
@@ -20,5 +20,5 @@ public:
 
 private:
 	RaycastSpriteComponent* m_spriteComp{nullptr};
-	CollisionComponent_Radial* m_collisionComp{nullptr};
+	CollisionComponentRadial* m_collisionComp{ nullptr };
 };

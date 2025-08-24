@@ -1,8 +1,9 @@
 #pragma once
 #include "Core/Core.h"
+#include "Core/Event.h"
 #include "GameObjectPtr.h"
 #include "GameObjectUtil.h"
-#include "Components/GameObjectComponent.h"
+#include "GameObjectComponent.h"
 #include <fstream>
 #include <new>
 #include <unordered_set>
@@ -13,6 +14,12 @@
 
 class ExposedPropertyData;
 class ModifiedPropertyData;
+class CollisionComponent2D;
+
+namespace Collision
+{
+	class CollisionSystem2D;
+}
 
 enum class eGameObjectTickState
 {
@@ -41,10 +48,11 @@ enum class eGameObjectEditorViewMode
 class GameObject
 {
 	friend class GameObjectPtrBase;
+	friend class Collision::CollisionSystem2D;
 	template <typename T> friend class GameObjectPtr;
 	
 public:
-	template<typename T> static T* Create();
+	template<typename T> static T* Create(Vector3f position = Vector3f::ZeroVector);
 
 	// Editor functionality
 	void DrawInEditor(const Vector3f& position, float zoom, float mapSpacing, bool bSelected, bool bHovered);
@@ -84,8 +92,14 @@ public:
 	// Forces immediate destruction for all PendingDestroy objects.
 	static void FlushPendingDestroys();
 
+	// Directly sets a new position
+	void SetPosition(const Vector3f& position);
+	void SetPosition(const Vector2f& position);
+	// Adds an offset to the current position
+	void MovePosition(const Vector3f& moveDelta);
+	void MovePosition(const Vector2f& moveDelta);
+
 	const Vector3f& GetPosition() const { return m_position; }
-	void SetPosition(const Vector3f& position) { m_position = position; }
 
 	using ConstructorFuncPtr = GameObject*(*)();
 	static std::vector<std::pair<const char*, ConstructorFuncPtr>>* ObjectConstructors();
@@ -115,20 +129,27 @@ public:
 		return nullptr;
 	}
 
+	// Triggered when object is moved by any means
+	Event<GameObject*> OnMoved;
+
 protected:
 	
-	GameObject() {};
+	GameObject() {}
 	virtual ~GameObject();
 
 	// Implementable behaviours ---
 
+	// Order of operations when deserializing GameObjects: Constructor -> Data Read From File -> OnDeserialize -> OnCreated
 	virtual void OnCreated() {};
 	virtual void OnTick(float deltaTime) {};
 	virtual void OnDraw() const {};
 	virtual void OnEditorDraw(const Vector3f& position, float zoom, float mapSpacing);
 	virtual void OnDestroy() {};
 
-	// Order of operations when deserializing: DefaultConstructor -> Variable Assignment From File -> OnDeserialize -> OnCreated
+	virtual void OnBlockingHit(CollisionComponent2D* other) {}
+	virtual void OnOverlapBegin(CollisionComponent2D* other) {}
+	virtual void OnOverlapEnd(CollisionComponent2D* other) {}
+
 	virtual void OnDeserialize() {};
 	virtual void OnPreSerialize() {};
 	virtual void OnPostSerialize() {};
@@ -177,16 +198,16 @@ private:
 	static std::vector<GameObject*> s_tickList;
 	static std::vector<GameObject*> s_drawList;
 	static std::vector<GameObject*> s_destroyList;
-
 };
 
 template<typename T>
-T* GameObject::Create()
+T* GameObject::Create(Vector3f position)
 {
 	static_assert(std::is_base_of<GameObject, T>::value, "Requested class must derive from GameObject!");
 	T* obj = new T();
 	obj->internalId = s_allocatedObjects.size();
 	s_allocatedObjects.push_back(obj);
+	obj->SetPosition(position);
 	obj->OnCreated_Internal();
 	return obj;
 }

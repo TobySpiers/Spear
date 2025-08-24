@@ -48,15 +48,17 @@ void FlowstateGame::StateEnter()
 	LevelFileManager::LoadLevel("Test.level", m_gameState.mapData);
 	Raycaster::Init(m_gameState.mapData);
 
+	// Create player
+	m_gameState.player = GameObject::Create<Player>();
+
 	// Set darkness
 	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(3.f);
 
 	// Position player at PlayerStart
-	m_gameState.player.SetPos(m_gameState.mapData.playerStart.ToFloat() + Vector2f(0.5f, 0.5f));
+	m_gameState.player->SetPosition(m_gameState.mapData.playerStart.ToFloat() + Vector2f(0.5f, 0.5f));
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
-bool view3D{false};
 int FlowstateGame::StateUpdate(float deltaTime)
 {
 	m_gameState.deltaTime = deltaTime;
@@ -117,19 +119,8 @@ int FlowstateGame::StateUpdate(float deltaTime)
 
 	if (input.InputStart(INPUT_TOGGLE_RAYCASTER))
 	{
-		view3D = !view3D;
+		m_view3D = !m_view3D;
 	}
-
-	if (input.InputHold(INPUT_SHOOT))
-	{
-		// stub
-	}
-	else if (input.InputHold(INPUT_ALTSHOOT))
-	{
-		// stub
-	}
-
-	m_gameState.player.Update(deltaTime);
 
 	GameObject::GlobalTick(deltaTime);
 
@@ -140,7 +131,14 @@ void FlowstateGame::StateRender()
 {
 	GameObject::GlobalDraw();
 
-	m_gameState.player.Draw(view3D);
+	if (m_view3D)
+	{
+		Raycaster::Draw3DGrid(m_gameState.player->GetPosition().XY(), m_gameState.player->GetLookPitch(), m_gameState.player->GetLookRotation());
+	}
+	else
+	{
+		Raycaster::Draw2DGrid(m_gameState.player->GetPosition().XY(), m_gameState.player->GetLookRotation());
+	}
 
 	Spear::ServiceLocator::GetScreenRenderer().Render();
 
@@ -153,7 +151,6 @@ void FlowstateGame::StateExit()
 
 	Spear::AudioManager::Get().StopAllAudio();
 
-	view3D = false;
 	Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
 	SDL_SetRelativeMouseMode(SDL_FALSE);
 

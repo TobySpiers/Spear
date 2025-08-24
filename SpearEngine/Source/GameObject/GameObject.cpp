@@ -1,4 +1,5 @@
 #include "GameObject.h"
+#include "Collision/CollisionSystem.h"
 #include <algorithm>
 #include <Core/FrameProfiler.h>
 #include <imgui.h>
@@ -11,6 +12,44 @@ std::vector<GameObject*> GameObject::s_drawList;
 std::vector<GameObject*> GameObject::s_destroyList;
 std::unordered_map<size_t, GameObject::DeserializeFuncPtr>* GameObject::s_objectDeserializers = nullptr;
 std::vector<std::pair<const char*, GameObject::ConstructorFuncPtr>>* GameObject::s_objectConstructors = nullptr;
+
+void GameObject::SetPosition(const Vector3f& newPos)
+{
+	if (m_position != newPos)
+	{
+		m_position = newPos;
+		OnMoved.Broadcast(this);
+	}
+}
+
+void GameObject::SetPosition(const Vector2f& position)
+{
+	if(m_position.x != position.x || m_position.y != position.y)
+	{
+		m_position.x = position.x;
+		m_position.y = position.y;
+		OnMoved.Broadcast(this);
+	}
+}
+
+void GameObject::MovePosition(const Vector3f& moveDelta)
+{
+	if (moveDelta != Vector3f::ZeroVector)
+	{
+		m_position += moveDelta;
+		OnMoved.Broadcast(this);
+	}
+}
+
+void GameObject::MovePosition(const Vector2f& moveDelta)
+{
+	if(moveDelta != Vector2f::ZeroVector)
+	{
+		m_position.x += moveDelta.x;
+		m_position.y += moveDelta.y;
+		OnMoved.Broadcast(this);
+	}
+}
 
 void GameObject::GlobalTick(float deltaTime)
 {	
@@ -27,6 +66,8 @@ void GameObject::GlobalTick(float deltaTime)
 			obj->OnTick_Internal(deltaTime);
 		}
 	}
+
+	Collision::CollisionSystem2D::Get().Tick();
 
 	DestroyObjects_Internal();
 

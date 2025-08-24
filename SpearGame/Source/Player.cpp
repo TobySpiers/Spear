@@ -2,21 +2,28 @@
 #include "Core/ServiceLocator.h"
 #include "Core/InputManager.h"
 #include "Graphics/ScreenRenderer.h"
-
 #include "Flowstates/FlowstateGame.h"
+#include <Collision/CollisionComponent2D.h>
 #include "Player.h"
 
 Player::Player()
 {
+	m_collisionComp = AddComponent<CollisionComponentRadial>();
+	m_collisionComp->ApplySetup(Collision::Player, Collision::PROFILE_PlayerBlock, Collision::PROFILE_PlayerOverlap);
 }
 
-void Player::Update(float deltaTime)
+void Player::OnCreated()
+{
+	SetTickEnabled(true);
+}
+
+void Player::OnTick(float deltaTime)
 {
 	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
 
 	// player sprint
 	const float moveDistance{ (input.InputHold(INPUT_SPRINT) ? m_sprintSpeed : m_walkSpeed) * deltaTime };
-	
+
 	// movement input
 	Vector2f moveDirection{ 0.f, 0.f };
 	if (input.InputHold(INPUT_FORWARD))
@@ -37,27 +44,16 @@ void Player::Update(float deltaTime)
 	}
 	moveDirection = NormalizeNonZero(moveDirection);
 
-	// Pre-checked movement
+	// Pre-checked movement for player prevents tunneling during low FPS spikes and guarantees smooth sliding against tiled AABBs, but is probably overkill for objects other than the player
+	// Some scenarios are smoother without pre-checks (squeezing through a slightly-too-small gap between a tile and a SolidObject), but without this we get caught on corners when sliding along tiled AABBs
 	if (moveDirection.x || moveDirection.y)
 	{
-		GameState& gameState = GameState::Get();
-
-		const u8 collisionFlags = eCollisionMask::COLL_WALL | eCollisionMask::COLL_SOLID;
-		if (!gameState.mapData.CollisionSearchDDA(m_pos + Vector2f(0.f, m_collBox), Vector2f((moveDirection.x * moveDistance) + (Sign(moveDirection.x) * m_collBox), 0.f), collisionFlags)
-		&& !gameState.mapData.CollisionSearchDDA(m_pos - Vector2f(0.f, m_collBox), Vector2f((moveDirection.x * moveDistance) + (Sign(moveDirection.x) * m_collBox), 0.f), collisionFlags))
-		{
-			m_pos.x += moveDirection.x * moveDistance;
-		}
-		if (!gameState.mapData.CollisionSearchDDA(m_pos + Vector2f(m_collBox, 0.f), Vector2f(0.f, (moveDirection.y * moveDistance) + (Sign(moveDirection.y) * m_collBox)), collisionFlags)
-		&& !gameState.mapData.CollisionSearchDDA(m_pos - Vector2f(m_collBox, 0.f), Vector2f(0.f, (moveDirection.y * moveDistance) + (Sign(moveDirection.y) * m_collBox)), collisionFlags))
-		{
-			m_pos.y += moveDirection.y * moveDistance;
-		}
+		SetPosition(GameState::Get().mapData.PreCheckedMovement(GetPosition().XY(), moveDirection * moveDistance, m_collisionComp));
 	}
 
 	// mouse look
 	m_rotation += (input.GetMouseAxis().x * m_lookSpeed);
- 	m_pitch += (input.GetMouseAxis().y * m_lookSpeed);
+	m_pitch += (input.GetMouseAxis().y * m_lookSpeed);
 	m_pitch = std::min(std::max(m_pitch, -m_pitchLimit), m_pitchLimit); // cap pitch at half-up and half-down (greater angles reveal psuedo-3d-ness)
 
 	// retro look
@@ -69,18 +65,4 @@ void Player::Update(float deltaTime)
 	{
 		m_rotation += m_turnSpeed;
 	}
-}
-
-void Player::Draw(bool perspective) const
-{
-	if (perspective)
-	{
-		//Spear::Raycaster::Draw3DWalls(m_rayParams, m_pWalls, m_wallCount);
-		Raycaster::Draw3DGrid(m_pos, m_pitch, m_rotation);
-	}
-	else
-	{
-		//Spear::Raycaster::Draw2DWalls(m_rayParams, m_pWalls, m_wallCount);
-		Raycaster::Draw2DGrid(m_pos, m_rotation);
-	}	
 }

@@ -912,9 +912,13 @@ void FlowstateEditor::MakePanel_Details_Tile()
 	bool modifiedFall = ImGui::InputInt("Fall", &commonNode.extendDown);
 	commonNode.extendDown = std::max(commonNode.extendDown, 0);
 
-	ImGui::SeparatorText("Collision Flags");
-	bool modifiedCollWall = ImGui::CheckboxFlags("Wall##coll", &commonNode.collisionMask, COLL_WALL);
-	bool modifiedCollSolid = ImGui::CheckboxFlags("Solid", &commonNode.collisionMask, COLL_SOLID);
+	ImGui::SeparatorText("Blocking Collision");
+	int modifiedCollisionFlag{0};
+	int cachedCollisionMask{commonNode.collisionMask};
+	if (Collision::eCollisionType_WrapperFlags::ExposeAsType(commonNode.collisionMask))
+	{
+		modifiedCollisionFlag = commonNode.collisionMask ^ cachedCollisionMask;
+	}
 
 	ImGui::SeparatorText("Visibility Flags");
 	bool modifiedDrawN = ImGui::CheckboxFlags("North Face", &commonNode.drawFlags, DRAW_N);
@@ -942,10 +946,10 @@ void FlowstateEditor::MakePanel_Details_Tile()
 		if (modifiedFall)
 			node.extendDown = commonNode.extendDown;
 
-		if (modifiedCollWall)
-			node.collisionMask = (node.collisionMask & ~COLL_WALL) | (commonNode.collisionMask & COLL_WALL);
-		if (modifiedCollSolid)
-			node.collisionMask = (node.collisionMask & ~COLL_SOLID) | (commonNode.collisionMask & COLL_SOLID);
+		if (modifiedCollisionFlag)
+		{
+			node.collisionMask = (node.collisionMask & ~modifiedCollisionFlag) | (commonNode.collisionMask & modifiedCollisionFlag);
+		}
 
 		if (modifiedDrawN)
 			node.drawFlags = (node.drawFlags & ~DRAW_N) | (commonNode.drawFlags & DRAW_N);

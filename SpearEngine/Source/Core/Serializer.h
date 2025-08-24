@@ -26,9 +26,11 @@ class EnumName##_Wrapper : public ExposedEnumBase\
 public:\
     EnumName##_Wrapper(int defaultVal) : ExposedEnumBase{defaultVal} {}\
 	virtual const char* GetEnumName() const override { return #EnumName; }\
+    static bool ExposeAsType(int& data, const char* label) { int cachedVal{data}; std::vector<int> enumVals; Serializer::ForwardArgsToSerializers([&](int enumVal) { Serializer::PushEnumVal(enumVal, enumVals); }, __VA_ARGS__);\
+        Serializer::ExposeEnum(nullptr, data, #__VA_ARGS__, enumVals); ImGui::SameLine(); ImGui::Text(label); return data != cachedVal;}\
 private:\
 	virtual void ExposeEnum(ExposedPropertyData& editor) override { std::vector<int> enumVals; Serializer::ForwardArgsToSerializers([&](int enumVal) { Serializer::PushEnumVal(enumVal, enumVals); }, __VA_ARGS__);\
-        Serializer::ExposeEnum(editor, m_val, #__VA_ARGS__, enumVals); }\
+        Serializer::ExposeEnum(&editor, m_val, #__VA_ARGS__, enumVals); }\
 };
 
 // Macro for exposing enum values as multi-choice flags and single-choice combo boxes in editor/imgui (use either _Wrapper or _WrapperFlags to determine which)
@@ -39,9 +41,12 @@ class EnumName##_WrapperFlags : public ExposedEnumBase\
 public:\
     EnumName##_WrapperFlags(int defaultVal) : ExposedEnumBase{defaultVal} {}\
 	virtual const char* GetEnumName() const override { return #EnumName; }\
+    static bool ExposeAsType(int& data) {\
+        int cachedVal{data}; int i{0}; Serializer::ForwardArgsToSerializers([&](int flagbit) { Serializer::ExposeEnumFlag(nullptr, data, flagbit, #__VA_ARGS__, i++); }, __VA_ARGS__); return data != cachedVal;\
+    }\
 private:\
 	virtual void ExposeEnum(ExposedPropertyData& editor) override {\
-        if (ImGui::TreeNodeEx(editor.propertyName.c_str())) {int i{0}; Serializer::ForwardArgsToSerializers([&](int flagbit) { Serializer::ExposeEnumFlag(editor, m_val, flagbit, #__VA_ARGS__, i++); }, __VA_ARGS__); ImGui::TreePop();}\
+        if (ImGui::TreeNodeEx(editor.propertyName.c_str())) {int i{0}; Serializer::ForwardArgsToSerializers([&](int flagbit) { Serializer::ExposeEnumFlag(&editor, m_val, flagbit, #__VA_ARGS__, i++); }, __VA_ARGS__); ImGui::TreePop();}\
     }\
 };
 
@@ -183,8 +188,7 @@ class ExposedEnumBase
 {
 public:
     ExposedEnumBase(int defaultVal) : m_val{defaultVal} {}
-
-    int m_val;
+    int GetVal() const {return m_val;}
 
     virtual const char* GetEnumName() const = 0;
     virtual void ExposeEnum(ExposedPropertyData& editor) = 0;
@@ -202,6 +206,9 @@ public:
     ExposedEnumBase& operator<<(ExposedPropertyData& editor);
     ExposedEnumBase& operator<<(PropertyManipulator& inserter);
     const ExposedEnumBase& operator>>(PropertyManipulator& deleter) const;
+
+protected:
+    int m_val;
 };
 
 // Used to generically expose GameObject properties to ImGui panels
@@ -396,6 +403,6 @@ namespace Serializer
         }
     }
 
-    void ExposeEnum(ExposedPropertyData& propertyData, int& enumValue, const char* enumNames, const std::vector<int>& enumVals);
-    void ExposeEnumFlag(ExposedPropertyData& propertyData, int& flagContainer, int flagbit, const char* flagNames, int flagNameIndex);
+    void ExposeEnum(ExposedPropertyData* propertyData, int& enumValue, const char* enumNames, const std::vector<int>& enumVals);
+    void ExposeEnumFlag(ExposedPropertyData* propertyData, int& flagContainer, int flagbit, const char* flagNames, int flagNameIndex);
 }

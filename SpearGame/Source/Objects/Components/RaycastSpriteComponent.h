@@ -1,5 +1,5 @@
 #pragma once
-#include <GameObject\Components\GameObjectComponent.h>
+#include <GameObject/GameObjectComponent.h>
 #include <Graphics/TextureProperty.h>
 #include "GlobalTextureBatches.h"
 

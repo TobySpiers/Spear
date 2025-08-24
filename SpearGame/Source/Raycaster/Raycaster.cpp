@@ -228,7 +228,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 		sprite.pos = (spriteData.spritePos + Vector2f(-0.5f)) * m_rayConfig.scale2D;
 		sprite.pos += (Vector2f(m_rayConfig.scale2D, m_rayConfig.scale2D) / 2) + camOffset;
 		sprite.size = spriteRawSize * spriteData.size;
-		sprite.size.x *= 2;
+		sprite.size.y /= 2;
 		sprite.texLayer = spriteData.textureId;
 
 		rend.AddSprite(sprite, GlobalTextureBatches::BATCH_SPRITESET_1);

@@ -16,6 +16,7 @@ workspace "Spear"
 		"SpearEngine/ThirdParty/SDL2-2.28.3/include",
 		"SpearEngine/ThirdParty/openal-soft-1.23.1/include",
 		"SpearEngine/ThirdParty/libsndfile-1.2.2/include",
+		"SpearEngine/Source"
 	}
 
 OutputDir = "%{cfg.system}-%{cfg.architecture}/%{cfg.buildcfg}"

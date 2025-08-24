@@ -10,6 +10,6 @@ struct GameState
 	float deltaTime{ 0.f };
 	float gameTime{ 0.f };
 
-	Player player;
+	Player* player{nullptr};
 	MapData mapData;
 };
