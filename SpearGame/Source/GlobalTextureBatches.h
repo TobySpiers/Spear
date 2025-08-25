@@ -1,10 +1,5 @@
 #pragma once
 
-namespace Spear
-{
-	class TextureArray;
-}
-
 namespace GlobalTextureBatches
 {
 	enum eTextureBatch
@@ -14,6 +9,4 @@ namespace GlobalTextureBatches
 
 		BATCH_TOTALS
 	};
-
-	void InitialiseBatches(Spear::TextureArray* textureArrayStorage);
 }

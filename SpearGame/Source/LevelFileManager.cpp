@@ -39,6 +39,14 @@ void LevelFileManager::EditorSaveLevel(const EditorMapData& rMapData)
 
 	// Write GameObjects
 	GameObject::GlobalSerialize(file);
+
+	// Write Tileset/Spriteset
+	file << std::endl;
+	file << rMapData.tileDirectory.path().string() << std::endl;
+	file << rMapData.spriteDirectory.path().string() << std::endl;
+
+	// 'Other' settings
+	file << rMapData.darkness << std::endl;
 }
 
 void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMapData)
@@ -56,7 +64,6 @@ void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMa
 	Deserialize(rMapData.playerStart, file);
 
 	// Read grid
-	std::string texFloor, texWall, texRoof, extendUp, extendDown, collMask;
 	for (int x = 0; x < rMapData.gridWidth; x++)
 	{
 		for (int y = 0; y < rMapData.gridHeight; y++)
@@ -79,6 +86,18 @@ void LevelFileManager::EditorLoadLevel(const char* levelName, EditorMapData& rMa
 
 	// Read GameObjects
 	GameObject::GlobalDeserialize(file);
+
+	// Read Tileset/Spriteset
+	std::string temp;
+	std::getline(file, temp);
+	std::getline(file, temp);
+	rMapData.tileDirectory = std::filesystem::directory_entry(temp);
+	std::getline(file, temp);
+	rMapData.spriteDirectory = std::filesystem::directory_entry(temp);
+
+	// Read 'Other' settings
+	std::getline(file, temp);
+	rMapData.darkness = std::stoi(temp);
 }
 
 void LevelFileManager::LoadLevel(const char* levelName, MapData& rMapData)
@@ -149,4 +168,16 @@ void LevelFileManager::LoadLevel(const char* levelName, MapData& rMapData)
 			}
 		}
 	}
+
+	// Read Tileset/Spriteset
+	std::string temp;
+	std::getline(file, temp);
+	std::getline(file, temp);
+	rMapData.tileDirectory = std::filesystem::directory_entry(temp);
+	std::getline(file, temp);
+	rMapData.spriteDirectory = std::filesystem::directory_entry(temp);
+
+	// Read 'Other' settings
+	std::getline(file, temp);
+	rMapData.darkness = std::stoi(temp);
 }

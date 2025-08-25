@@ -30,7 +30,7 @@ namespace Collision
 		// Responsibility is on caller not to submit the same component more than once per collision tick. This is not fatal but wastes performance.
 		void AddComponentToDirtyList(CollisionComponent2D* coll);
 
-		// WARNING -- Empties the tree! Call 'RebuildQuadTree' (slower) if emptying the tree is not desired.
+		// WARNING -- Empties the tree!
 		void ResizeQuadTree(const Vector2f& worldMin, const Vector2f& worldMax);
 
 		void Tick();

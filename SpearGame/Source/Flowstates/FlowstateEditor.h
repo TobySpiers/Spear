@@ -4,7 +4,6 @@
 #include "Graphics/TextureFont.h"
 #include "LevelData.h"
 #include "GlobalTextureBatches.h"
-
 #include <unordered_set>
 
 class GameObject;
@@ -76,12 +75,6 @@ class FlowstateEditor : public Spear::Flowstate
 		DRAW_ALL = (1 << 10) - 1,
 	};
 	int m_visibilityFlags = DRAW_DEFAULT;
-
-	enum EditorBatches
-	{
-		BATCH_MAP,
-		BATCH_SPRITESET_1,
-	};
 
 	enum OngoingClick
 	{

@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Core.h"
 #include "Collision/CollisionTypes.h"
+#include <filesystem>
 
 constexpr int MAP_WIDTH_MAX_SUPPORTED{ 40 };
 constexpr int MAP_HEIGHT_MAX_SUPPORTED{ 40 };
@@ -52,23 +53,35 @@ struct GridNode
 	bool CompareNodeByTexture(const GridNode& other);
 };
 
-struct EditorMapData
+struct MapDataBase
 {
-	EditorMapData(const char* name) : mapName(name) {};
+	MapDataBase() {}
+	MapDataBase(const char* name) : mapName(name) {}
 
 	std::string mapName{ "Untitled" };
+	std::filesystem::directory_entry spriteDirectory{ "Null "};
+	std::filesystem::directory_entry tileDirectory{ "Null "};
+
 	Vector2i playerStart{ 5, 5 };
 	int gridWidth{ 10 };
 	int gridHeight{ 10 };
 	float planeHeights[PLANE_HEIGHTS_TOTAL] = { 2.f, 1.f };
-	GridNode gridNodes[MAP_WIDTH_MAX_SUPPORTED * MAP_HEIGHT_MAX_SUPPORTED];
+
+	float darkness{3.f};
+};
+
+struct EditorMapData : public MapDataBase
+{
+	EditorMapData(const char* name) : MapDataBase(name) {}
 
 	void SetSize(int width, int height);
 	GridNode& GetNode(int x, int y) { ASSERT(x < gridWidth && y < gridHeight && x >= 0 && y >= 0); return gridNodes[x + (y * MAP_WIDTH_MAX_SUPPORTED)]; }
 	GridNode& GetNode(const Vector2i& pos) { return GetNode(pos.x, pos.y); }
+
+	GridNode gridNodes[MAP_WIDTH_MAX_SUPPORTED * MAP_HEIGHT_MAX_SUPPORTED];
 };
 
-struct MapData
+struct MapData : public MapDataBase
 {
 	const int TotalNodes() const;
 	const GridNode* GetNode(Vector2i index) const;
@@ -78,10 +91,5 @@ struct MapData
 	Vector2f PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, CollisionComponent2D* collisionComp) const;
 	Vector2f PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, const Vector2f& AABB, u8 collisionMask) const;
 
-	std::string mapName{ "Untitled" };
-	Vector2i playerStart{ 5, 5 };
-	int gridWidth{10};
-	int gridHeight{10};
-	float planeHeights[PLANE_HEIGHTS_TOTAL] = { 2.f, 1.f };
 	GridNode* pNodes{nullptr};
 };

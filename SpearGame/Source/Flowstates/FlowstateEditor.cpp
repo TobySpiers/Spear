@@ -20,7 +20,7 @@
 #include "Editor/EditorAction_DeleteObjects.h"
 #include "Editor/EditorAction_DragReposition.h"
 
-
+// Any initialising code which should run when first entering the editor, exiting the editor, or clearing the current level should go here
 void FlowstateEditor::ResetEditor()
 {
 	ClearRedoActions();
@@ -36,10 +36,29 @@ void FlowstateEditor::ResetEditor()
 	m_map = nullptr;
 }
 
+// Any initialising code which should run when creating a fresh map should go here
 void FlowstateEditor::InitialiseMap(const char* mapName)
 {
 	ASSERT(m_map == nullptr);
 	m_map = new EditorMapData(mapName);
+
+	// Set some sensible default values
+	for (const std::filesystem::directory_entry& filepath : std::filesystem::directory_iterator("../Assets/SPRITES/"))
+	{
+		if (filepath.is_directory())
+		{
+			m_map->spriteDirectory = filepath;
+			break;
+		}
+	}
+	for (const std::filesystem::directory_entry& filepath : std::filesystem::directory_iterator("../Assets/TILESETS/"))
+	{
+		if (filepath.is_directory())
+		{
+			m_map->tileDirectory = filepath;
+			break;
+		}
+	}
 }
 
 void FlowstateEditor::StateEnter()
@@ -85,9 +104,13 @@ void FlowstateEditor::StateEnter()
 	// Set background colour
 	glClearColor(0.5f, 0.5f, 0.5f, 1.f);
 
-	// Load globally used textures (map/sprites)
-	// If any editor-specific texture batches are required, these can be loaded separately after
-	GlobalTextureBatches::InitialiseBatches(m_textures);
+	// Load default textures
+	m_textures[GlobalTextureBatches::BATCH_TILESET_1].InitialiseFromDirectory(m_map->tileDirectory.path().string().c_str());
+	m_textures[GlobalTextureBatches::BATCH_SPRITESET_1].InitialiseFromDirectory(m_map->spriteDirectory.path().string().c_str());
+	for (int i = 0; i < GlobalTextureBatches::BATCH_TOTALS; i++)
+	{
+		Spear::Renderer::Get().CreateSpriteBatch(m_textures[i], 1000);
+	}
 
 	// Load audio files
 	Spear::AudioManager& audio = Spear::AudioManager::Get();
@@ -789,8 +812,59 @@ void FlowstateEditor::ModifyZoom(float factor)
 
 void FlowstateEditor::MakePanel_Editor_Tiles()
 {
-	ImGui::SeparatorText("Tile Editor");
-	ImGui::Text("Map Size:");
+	ImGui::SeparatorText("Assets");
+	if (ImGui::BeginCombo("Sprite Set", m_map->spriteDirectory.path().filename().string().c_str()))
+	{
+		for (const std::filesystem::directory_entry& filepath : std::filesystem::directory_iterator("../Assets/SPRITES/"))
+		{
+			if (filepath.is_directory())
+			{
+				bool bIsSelected = filepath == m_map->spriteDirectory;
+				if (ImGui::Selectable(filepath.path().filename().string().c_str(), &bIsSelected))
+				{
+					if (filepath != m_map->spriteDirectory)
+					{
+						m_map->spriteDirectory = filepath;
+						m_textures[GlobalTextureBatches::BATCH_SPRITESET_1].InitialiseFromDirectory(m_map->spriteDirectory.path().string().c_str());
+					}
+				}
+				if (bIsSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			
+		}
+
+		ImGui::EndCombo();
+	}
+	if (ImGui::BeginCombo("Tile Set", m_map->tileDirectory.path().filename().string().c_str()))
+	{
+		for (const std::filesystem::directory_entry& filepath : std::filesystem::directory_iterator("../Assets/TILESETS/"))
+		{
+			if (filepath.is_directory())
+			{
+				bool bIsSelected = filepath == m_map->tileDirectory;
+				if (ImGui::Selectable(filepath.path().filename().string().c_str(), &bIsSelected))
+				{
+					if (filepath != m_map->tileDirectory)
+					{
+						m_map->tileDirectory = filepath;
+						m_textures[GlobalTextureBatches::BATCH_TILESET_1].InitialiseFromDirectory(m_map->tileDirectory.path().string().c_str());
+					}
+				}
+				if (bIsSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+
+		}
+
+		ImGui::EndCombo();
+	}
+
+	ImGui::SeparatorText("Map Size:");
 	int mapWidth{ m_map->gridWidth };
 	int mapHeight{m_map->gridHeight};
 	bool mapSizeChanged = ImGui::InputInt("Width", &mapWidth);
@@ -799,9 +873,12 @@ void FlowstateEditor::MakePanel_Editor_Tiles()
 		m_map->SetSize(mapWidth, mapHeight);
 	}
 
-	ImGui::SeparatorText("Plane Heights");
+	ImGui::SeparatorText("Plane Distances");
 	ImGui::InputFloat("Inner", &m_map->planeHeights[PLANE_HEIGHT_INNER]);
 	ImGui::InputFloat("Outer", &m_map->planeHeights[PLANE_HEIGHT_OUTER]);
+
+	ImGui::SeparatorText("Other");
+	ImGui::InputFloat("Darkness", &m_map->darkness);
 }
 
 void FlowstateEditor::MakePanel_Editor_Objects()
@@ -1231,7 +1308,7 @@ void FlowstateEditor::StateRender()
 				{
 					sprite.opacity = m_fadedTileOpacity;
 				}
-				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
+				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, GlobalTextureBatches::BATCH_TILESET_1);
 			}
 
 			// Roof Textures
@@ -1247,7 +1324,7 @@ void FlowstateEditor::StateRender()
 				{
 					sprite.opacity = m_fadedTileOpacity;
 				}
-				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
+				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, GlobalTextureBatches::BATCH_TILESET_1);
 			}
 			if (m_visibilityFlags & DRAW_ROOF2 && node.texIdRoof[1] != TEX_NONE)
 			{
@@ -1261,7 +1338,7 @@ void FlowstateEditor::StateRender()
 				{
 					sprite.opacity = m_fadedTileOpacity;
 				}
-				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
+				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, GlobalTextureBatches::BATCH_TILESET_1);
 			}
 
 			// Floor Textures
@@ -1277,7 +1354,7 @@ void FlowstateEditor::StateRender()
 				{
 					sprite.opacity = m_fadedTileOpacity;
 				}
-				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
+				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, GlobalTextureBatches::BATCH_TILESET_1);
 			}
 			if (m_visibilityFlags & DRAW_FLOOR2 && node.texIdFloor[1] != TEX_NONE)
 			{
@@ -1291,7 +1368,7 @@ void FlowstateEditor::StateRender()
 				{
 					sprite.opacity = m_fadedTileOpacity;
 				}
-				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, BATCH_MAP);
+				Spear::ServiceLocator::GetScreenRenderer().AddSprite(sprite, GlobalTextureBatches::BATCH_TILESET_1);
 			}
 		}
 	}
@@ -1379,6 +1456,9 @@ void FlowstateEditor::OpenLevel(const char* levelName)
 
 	LevelFileManager::EditorLoadLevel(levelName, *m_map);
 	Spear::WindowManager::Get().SetWindowTitleOverride((std::string(m_map->mapName) + " - Spear").c_str());
+
+	m_textures[GlobalTextureBatches::BATCH_TILESET_1].InitialiseFromDirectory(m_map->tileDirectory.path().string().c_str());
+	m_textures[GlobalTextureBatches::BATCH_SPRITESET_1].InitialiseFromDirectory(m_map->spriteDirectory.path().string().c_str());
 }
 
 void FlowstateEditor::CommitAction(EditorActionBase* action)

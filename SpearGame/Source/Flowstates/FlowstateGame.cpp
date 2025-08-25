@@ -40,19 +40,23 @@ void FlowstateGame::StateEnter()
 	audio.InitSoundsFromFolder("../ASSETS/SFX/");				// Load SFX from folder
 	audio.GlobalPlayStream("../ASSETS/MUSIC/Ambience1.mp3");	// Test file streaming
 
-	// Load globally used textures (map/sprites)
-	// If any game-specific texture batches are required, these can be loaded separately after
-	GlobalTextureBatches::InitialiseBatches(m_textures);
-
 	// Load world
 	LevelFileManager::LoadLevel("Test.level", m_gameState.mapData);
 	Raycaster::Init(m_gameState.mapData);
+
+	// Load textures
+	m_textures[GlobalTextureBatches::BATCH_TILESET_1].InitialiseFromDirectory(m_gameState.mapData.tileDirectory.path().string().c_str());
+	m_textures[GlobalTextureBatches::BATCH_SPRITESET_1].InitialiseFromDirectory(m_gameState.mapData.spriteDirectory.path().string().c_str());
+	for (int i = 0; i < GlobalTextureBatches::BATCH_TOTALS; i++)
+	{
+		Spear::Renderer::Get().CreateSpriteBatch(m_textures[i], 1000);
+	}
 
 	// Create player
 	m_gameState.player = GameObject::Create<Player>();
 
 	// Set darkness
-	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(3.f);
+	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(m_gameState.mapData.darkness);
 
 	// Position player at PlayerStart
 	m_gameState.player->SetPosition(m_gameState.mapData.playerStart.ToFloat() + Vector2f(0.5f, 0.5f));
