@@ -11,6 +11,7 @@
 #include "Player.h"
 #include "FlowstateGame.h"
 #include "LevelFileManager.h"
+#include <Objects/OLevelLink.h>
 
 void FlowstateGame::StateEnter()
 {
@@ -41,7 +42,7 @@ void FlowstateGame::StateEnter()
 	audio.GlobalPlayStream("../ASSETS/MUSIC/Ambience1.mp3");	// Test file streaming
 
 	// Load world
-	LevelFileManager::LoadLevel("Test.level", m_gameState.mapData);
+	LevelFileManager::LoadLevel("Main.level", m_gameState.mapData);
 	Raycaster::Init(m_gameState.mapData);
 
 	// Load textures
@@ -55,11 +56,22 @@ void FlowstateGame::StateEnter()
 	// Create player
 	m_gameState.player = GameObject::Create<Player>();
 
+	// Position player at LevelLink with id 0 (spawn point)
+	std::vector<OLevelLink*> levelLinks;
+	GameObject::GetAllObjects(levelLinks);
+	for (OLevelLink* levelLink : levelLinks)
+	{
+		if (levelLink->GetLinkId() == 0)
+		{
+			m_gameState.player->SetPosition(levelLink->GetPosition());
+			break;
+		}
+	}
+
 	// Set darkness
 	Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(m_gameState.mapData.darkness);
 
-	// Position player at PlayerStart
-	m_gameState.player->SetPosition(m_gameState.mapData.playerStart.ToFloat() + Vector2f(0.5f, 0.5f));
+	// Capture mouse
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
@@ -127,6 +139,53 @@ int FlowstateGame::StateUpdate(float deltaTime)
 	}
 
 	GameObject::GlobalTick(deltaTime);
+
+	const LevelTransition& pendingLevel = GetGameState().GetPendingLevelTransition();
+	if (pendingLevel.levelName != "")
+	{
+		// TODO: Set up a player state to persist through level transition - perhaps a struct representing health/inventory/etc which is separate from the player's object representation
+
+		// Destroy objects
+		GameObject::GlobalDestroy();
+
+		// Stop any audio
+		Spear::AudioManager::Get().StopAllAudio();
+
+		// Clear loaded textures
+		Spear::ServiceLocator::GetScreenRenderer().ReleaseAll();
+
+		// Load world
+		LevelFileManager::LoadLevel(pendingLevel.levelName.c_str(), m_gameState.mapData);
+		Raycaster::Init(m_gameState.mapData);
+
+		// Load textures
+		m_textures[GlobalTextureBatches::BATCH_TILESET_1].InitialiseFromDirectory(m_gameState.mapData.tileDirectory.path().string().c_str());
+		m_textures[GlobalTextureBatches::BATCH_SPRITESET_1].InitialiseFromDirectory(m_gameState.mapData.spriteDirectory.path().string().c_str());
+		for (int i = 0; i < GlobalTextureBatches::BATCH_TOTALS; i++)
+		{
+			Spear::Renderer::Get().CreateSpriteBatch(m_textures[i], 1000);
+		}
+
+		// Set darkness
+		Spear::ServiceLocator::GetScreenRenderer().SetBackgroundDepthFalloff(m_gameState.mapData.darkness);
+
+		// Create player object (TODO: Rename to PlayerAvatar then separate out state and store elsewhere)
+		m_gameState.player = GameObject::Create<Player>();
+
+		// Find matching levelLink and set position to match
+		std::vector<OLevelLink*> levelLinks;
+		GameObject::GetAllObjects(levelLinks);
+		for (OLevelLink* levelLink : levelLinks)
+		{
+			if (levelLink->GetLinkId() == pendingLevel.linkId)
+			{
+				m_gameState.player->SetPosition(levelLink->GetPosition() + pendingLevel.offset);
+				break;
+			}
+		}
+
+		GetGameState().ClearPendingLevelTransition();
+	}
 
 	return static_cast<int>(eFlowstate::STATE_THIS);
 }

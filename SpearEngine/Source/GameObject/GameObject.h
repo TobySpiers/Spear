@@ -104,11 +104,25 @@ public:
 	using ConstructorFuncPtr = GameObject*(*)();
 	static std::vector<std::pair<const char*, ConstructorFuncPtr>>* ObjectConstructors();
 	static const std::vector<GameObject*>& GetAllObjects() { return s_allocatedObjects; }
+	
+	// Slow - use sparingly for single-use operations, avoid calling every frame!
+	template<typename T>
+	static void GetAllObjects(std::vector<T*>& outVector)
+	{
+		static_assert(std::is_base_of<GameObject, T>::value, "Requested class must derive from GameObject");
+		for (GameObject* obj : s_allocatedObjects)
+		{
+			if (T* objAsType = dynamic_cast<T*>(obj))
+			{
+				outVector.push_back(objAsType);
+			}
+		}
+	}
 
 	template<typename T, typename... Args>
 	T* AddComponent(Args&&... args)
 	{
-		static_assert(std::is_base_of<GameObjectComponent, T>::value, "Requested class must derive from GameObjectComponent!");
+		static_assert(std::is_base_of<GameObjectComponent, T>::value, "Requested class must derive from GameObjectComponent");
 		T* component = new T(std::forward<Args>(args)...);
 		component->Initialise(this);
 		m_components.emplace_back(component);
@@ -118,7 +132,7 @@ public:
 	template<typename T>
 	T* FindComponent() const
 	{
-		static_assert(std::is_base_of<GameObjectComponent, T>::value, "Requested class must derive from GameObjectComponent!");
+		static_assert(std::is_base_of<GameObjectComponent, T>::value, "Requested class must derive from GameObjectComponent");
 		for (const std::unique_ptr<GameObjectComponent>& componentPtr : m_components)
 		{
 			if (T* component = dynamic_cast<T*>(componentPtr.get()))

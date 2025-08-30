@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Serializer.h"
-#include "ScreenRenderer.h"
+#include "Graphics/ScreenRenderer.h"
 #include "imgui.h"
 #include <fstream>
 
@@ -32,8 +32,6 @@ namespace Spear
 
 		TextureProperty& operator<<(ExposedPropertyData& property)
 		{
-			bool bValueChanged{false};
-
 			const Spear::TextureBase* pTextures = Spear::Renderer::Get().GetBatchTextures(m_batchId);
 			const int cachedSpriteId = m_spriteId;
 
@@ -51,7 +49,6 @@ namespace Spear
 					ImGui::Image(pTextures->GetTextureViewForLayer(i), previewSize);
 					if (ImGui::IsItemClicked())
 					{
-						bValueChanged = m_spriteId != i;
 						m_spriteId = i;
 						ImGui::CloseCurrentPopup();
 					}
@@ -68,7 +65,7 @@ namespace Spear
 			ImGui::SameLine();
 			ImGui::Text(property.propertyName.c_str());
 
-			if (bValueChanged)
+			if (cachedSpriteId != m_spriteId)
 			{
 				property.propertyChain.push_back(0);
 				property.modifiedPropertyName = property.propertyName;

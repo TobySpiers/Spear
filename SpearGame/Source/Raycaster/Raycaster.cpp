@@ -66,6 +66,15 @@ void Raycaster::Init(MapData& map)
 	m_map = &map;
 
 	ApplyConfig(m_rayConfig);
+
+	if (m_computeShader.isInitialised)
+	{
+		// Resize the GPU buffer for GridNodes using new map's size
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_computeShader.gridnodesSSBO);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, m_map->TotalNodes() * sizeof(GridNode), m_map->pNodes, GL_STATIC_DRAW);
+	}
+
+	Spear::Renderer::Get().SetBackgroundTextureDataRGBA(m_bgTexRGBA, m_bgTexDepth, m_rayConfig.xResolution, m_rayConfig.yResolution, true);
 }
 
 RaycasterConfig Raycaster::GetConfigCopy()

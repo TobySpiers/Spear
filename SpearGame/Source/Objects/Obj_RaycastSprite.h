@@ -1,7 +1,7 @@
 #pragma once
 #include "GameObject/GameObject.h"
 #include "GlobalTextureBatches.h"
-#include <Graphics/TextureProperty.h>
+#include <DataTypes/TextureProperty.h>
 
 struct RaycastSprite;
 class RaycastSpriteComponent;

@@ -69,6 +69,6 @@ virtual void DeletePropertyData(const void*& allocatedData, const std::vector<in
 	DELETE_PROPERTY_DATA(allocatedData, propertyChain, step + 1, propertyId, __VA_ARGS__);\
 }\
 
-// GameObject factory registration macro: must be placed in class .cpp file
+// Optional GameObject registration macro: place in .cpp file to expose object in editor
 #define GAMEOBJECT_REGISTER(classname)	\
 bool classname::s_factoryRegistered = GameObject::RegisterFactoryFunctionsForClass(#classname, typeid(classname).hash_code(), CreateAndDeserialise, CreateNew);

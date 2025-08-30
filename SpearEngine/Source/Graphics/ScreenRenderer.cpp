@@ -385,10 +385,14 @@ namespace Spear
 		m_backgroundDepthFalloff = falloff;
 	}
 
-	void Renderer::SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height)
+	void Renderer::SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height, bool bUploadDoubleBuffered)
 	{
 		START_PROFILE("Upload Background Array");
 		m_backgroundTexture[m_backgroundTextureActive].SetDataFromArrayRGBA(pDataRGBA, width, height);
+		if(bUploadDoubleBuffered)
+		{
+			m_backgroundTexture[(m_backgroundTextureActive + 1) % 2].SetDataFromArrayRGBA(pDataRGBA, width, height);
+		}
 		END_PROFILE("Upload Background Array");
 
 		START_PROFILE("Upload Depth Array");

@@ -353,7 +353,7 @@ void GameObject::GlobalDeserialize(std::ifstream& file)
 	{
 		typeHashStr = "";
 		std::getline(file, typeHashStr);
-		size_t typeHash = std::stoll(typeHashStr); // size_t == long long, hence std::string -> long long
+		size_t typeHash = std::stoull(typeHashStr);
 		DeserializeFuncPtr deserializeType = ObjectDeserializers()->at(typeHash); // if this FAILS, try setting Linker>UseLibraryDependencyInputs to TRUE
 
 		GameObject* obj = deserializeType(file);

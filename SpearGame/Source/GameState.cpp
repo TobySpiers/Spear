@@ -26,3 +26,10 @@ GameState* GameState::GetSafe()
 	}
 	return nullptr;
 }
+
+void GameState::QueueLevelTransition(const char* levelName, int linkId, Vector2f offset)
+{
+	levelTransition.levelName = levelName;
+	levelTransition.linkId = linkId;
+	levelTransition.offset = offset;
+}

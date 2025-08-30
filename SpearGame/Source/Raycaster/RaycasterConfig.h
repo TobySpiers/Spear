@@ -9,7 +9,7 @@ struct RaycasterConfig
 	float farClip{ 50 };
 	int xResolution{ 1920 }; // internal resolution for raycaster
 	int yResolution{ 1080 };
-	int rayEncounterLimit{ 20 }; // how many 'wall encounters' to allow per ray (used for rendering tall walls behind shorter walls)
+	int rayEncounterLimit{ 24 }; // how many 'wall encounters' to allow per ray (used for rendering tall walls behind shorter walls)
 
 	// Used only for 2D top-down rendering. Scale 1 = 1 tile : 1 pixel.
 	float scale2D{ 75.f };

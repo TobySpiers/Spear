@@ -87,7 +87,7 @@ vec2 Projection(vec2 vecToProject, vec2 vecTarget)
 
 float CalcTexX(int rayHit, vec2 intersection, ivec2 mapCheck)
 {
-	float result = (rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (textureSize(worldTextures, 0).x - 1);
+	float result = (rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (textureSize(worldTextures, 0).x);
 	if (result < 0)
 	{
 		result += textureSize(worldTextures, 0).x;
@@ -317,7 +317,7 @@ void main()
 					if (renderDepth < existingDepth) //|| (cachedDepths[screenY] == -1 && renderDepth < existingDepth))
 					{
 						// Y Index into WallTexture = percentage through current Y forloop
-						int texY = (textureSize(worldTextures, 0).y - 1) - int((float(screenY - bottom) / (top - bottom)) * (textureSize(worldTextures, 0).y - 1));
+						int texY = (textureSize(worldTextures, 0).y - 1) - int((float(screenY - bottom) / (top - bottom)) * (textureSize(worldTextures, 0).y));
 						
 						vec3 texCoord = vec3(texX, float(texY) / textureSize(worldTextures, 0).y, wallTexture);
 						vec4 texel = texture(worldTextures, texCoord);

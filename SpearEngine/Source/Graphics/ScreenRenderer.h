@@ -116,7 +116,7 @@ namespace Spear
 		Texture& GetBackgroundTextureForNextFrame();
 		GLuint GetBackgroundDepthBufferForNextFrame();
 		void SetBackgroundDepthFalloff(float falloff);
-		void SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height);
+		void SetBackgroundTextureDataRGBA(GLuint* pDataRGBA, GLfloat* pDataDepth, int width, int height, bool bUploadDoubleBuffered = false);
 		void EraseBackgroundTextureData();
 
 	private:
