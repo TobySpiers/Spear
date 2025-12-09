@@ -314,12 +314,14 @@ void main()
 
 					// Draw only if our depth is nearer than any existing pixel
 					float existingDepth = imageLoad(outDepth, ivec2(screenX, screenY)).r;
-					if (renderDepth < existingDepth) //|| (cachedDepths[screenY] == -1 && renderDepth < existingDepth))
+					if (renderDepth < existingDepth)
 					{
 						// Y Index into WallTexture = percentage through current Y forloop
-						int texY = (textureSize(worldTextures, 0).y - 1) - int((float(screenY - bottom) / (top - bottom)) * (textureSize(worldTextures, 0).y));
+                        float yPercent = float(screenY - bottom) / (top - bottom);
+                        float texSizeY = textureSize(worldTextures, 0).y;
+						float texY = (texSizeY - 0.0001f) - (yPercent * texSizeY);
 						
-						vec3 texCoord = vec3(texX, float(texY) / textureSize(worldTextures, 0).y, wallTexture);
+						vec3 texCoord = vec3(texX, float(texY) / texSizeY, wallTexture);
 						vec4 texel = texture(worldTextures, texCoord);
 						
 						// No sense updating the depth array for an invisible pixel, so early out when opacity is 0 - useful for cutout textures (fences, chainlink, etc.)
