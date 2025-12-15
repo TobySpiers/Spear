@@ -23,9 +23,31 @@ int Raycaster::m_spriteCount{0};
 Raycaster::RaycastFrameData Raycaster::m_frame;
 Raycaster::RaycastSpriteData Raycaster::m_frameSprites[RAYCAST_SPRITE_LIMIT];
 int Raycaster::m_numSpritesToRender{0};
+
 Raycaster::RaycastComputeShader Raycaster::m_computeShader;
-bool Raycaster::m_bSoftwareRendering{false};
+bool Raycaster::m_bSoftwareRendering{true};
 int Raycaster::m_softwareRenderingThreads{30};
+
+bool Raycaster::m_bPortalRenderingEnabled{true};
+Raycaster::PortalTraces* Raycaster::m_portalTraces{nullptr};
+
+Vector2f Raycaster::PortalTraces::GetPointAtTraceDistance(float distance) const
+{
+	int i = 0;
+	while (i < RAYCAST_PORTAL_LIMIT && traces[i].accumulatedLength < distance && i < finalTrace)
+	{
+		i++;
+	}
+	float traceLength = traces[0].accumulatedLength;
+	if (i > 0)
+	{
+		traceLength = traces[i].accumulatedLength - traces[i - 1].accumulatedLength;
+		distance -= traces[i - 1].accumulatedLength;
+	}
+	float trajectoryPercent = distance / traceLength;
+	return traces[i].rayStart + (traces[i].rayTrajectory * trajectoryPercent);
+}
+
 
 constexpr float FOV_MIN{ 35.f };
 constexpr float FOV_MAX{ 120.f };
@@ -39,6 +61,9 @@ void Raycaster::RecreateBackgroundArrays(int width, int height)
 	delete[] m_bgTexDepth;
 	m_bgTexDepth = new GLfloat[width * height];
 	std::fill(m_bgTexDepth, m_bgTexDepth + (width * height), GLfloat(m_rayConfig.farClip));
+	
+	delete[] m_portalTraces;
+	m_portalTraces = new PortalTraces[width];
 }
 
 void Raycaster::ClearRaycasterArrays()
@@ -64,6 +89,17 @@ void Raycaster::Init(MapData& map)
 		RecreateBackgroundArrays(m_rayConfig.xResolution, m_rayConfig.yResolution);
 	}
 	m_map = &map;
+	
+	m_bPortalRenderingEnabled = false;
+	for (int i = 0; i < m_map->TotalNodes(); i++)
+	{
+		const int specialFlag = m_map->pNodes[i].specialFlag;
+		if (specialFlag == SPECIAL_MIRROR || specialFlag == SPECIAL_MIRROR_PORTAL || specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED)
+		{
+			m_bPortalRenderingEnabled = true;
+			break;
+		}
+	}
 
 	ApplyConfig(m_rayConfig);
 
@@ -189,8 +225,12 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 
 	const Vector2f camOffset = (Spear::Core::GetWindowSize().ToFloat() / 2) - pos * m_rayConfig.scale2D;
 
+	Spear::Renderer::SpriteData sprite;
+	sprite.depth = depthWorld;
+	
 	// Draw tiles
-	constexpr float tiledepthOpacities[3] = {1.f, 0.7f, 0.5f};
+	constexpr float tiledepthOpacities[3] = {1.f, 0.7f, 0.5f};	
+	const float tileScaleFactor = 1.f / (Spear::Renderer::Get().GetBatchTextures(GlobalTextureBatches::BATCH_TILESET_1)->GetWidth() / 64.f);
 	for (int x = 0; x < m_map->gridWidth; x++)
 	{
 		for (int y = 0; y < m_map->gridHeight; y++)
@@ -215,13 +255,11 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 
 			if (texId != TEX_NONE)
 			{
-				Spear::Renderer::SpriteData sprite;
 				sprite.pos = Vector2f(x, y) * m_rayConfig.scale2D;
 				sprite.pos += (Vector2f(m_rayConfig.scale2D, m_rayConfig.scale2D) / 2) + camOffset;
-				sprite.size = 1.2f;
+				sprite.size = 1.2f * tileScaleFactor;
 				sprite.texLayer = texId;
 				sprite.opacity = tiledepthOpacities[tileDepth];
-				sprite.depth = depthWorld;
 
 				rend.AddSprite(sprite, GlobalTextureBatches::BATCH_TILESET_1);
 			}
@@ -233,7 +271,6 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 	for (int i = 0; i < m_spriteCount; i++)
 	{
 		RaycastSprite& spriteData = m_sprites[i];
-		Spear::Renderer::SpriteData sprite;
 		sprite.pos = (spriteData.spritePos + Vector2f(-0.5f)) * m_rayConfig.scale2D;
 		sprite.pos += (Vector2f(m_rayConfig.scale2D, m_rayConfig.scale2D) / 2) + camOffset;
 		sprite.size = spriteRawSize * spriteData.size;
@@ -242,8 +279,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 
 		rend.AddSprite(sprite, GlobalTextureBatches::BATCH_SPRITESET_1);
 	}
-
-	// Draw rays
+	
 	const Vector2f forward{ Normalize(Vector2f(cos(angle), sin(angle))) };
 
 	const float halfFov{ m_frame.fov / 2 };
@@ -253,9 +289,11 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 
 	const float raySpacing{ fovExtentWidth.Length() / m_rayConfig.xResolution };
 	const Vector2f raySpacingDir{ forward.Normal() * -1 };
-
+	
 	// Using DDA (digital differential analysis) to quickly calculate intersections
 	int maxRays{ 500 };
+	Spear::Renderer::LineData line;
+	line.depth = depthPlayer;
 	for(int x = 0; x < maxRays; x++)
 	{
 		Vector2f rayStart = pos;
@@ -305,8 +343,11 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 		// DETERMINE RAY LENGTH
 		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		bool tileFound{false};
+		bool bHitSide{false};
 		float distance{0.f};
-		while (!tileFound && distance < m_rayConfig.farClip)
+		float totalDistance{0.f};
+		int portalEncounters{0};
+		while (totalDistance < m_rayConfig.farClip && portalEncounters < RAYCAST_PORTAL_LIMIT)
 		{
 			if (rayLength1D.x < rayLength1D.y)
 			{
@@ -314,6 +355,7 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 				mapCheck.x += step.x;
 				distance = rayLength1D.x;
 				rayLength1D.x += rayUnitStepSize.x; // increase ray by 1 X unit
+				bHitSide = true;
 			}
 			else
 			{
@@ -321,34 +363,108 @@ void Raycaster::Draw2DGrid(const Vector2f& pos, const float angle)
 				mapCheck.y += step.y;
 				distance = rayLength1D.y;
 				rayLength1D.y += rayUnitStepSize.y; // increase ray by 1 Y unit
+				bHitSide = false;
 			}
 
 			// Check position is within range of array
 			if(mapCheck.x >= 0 && mapCheck.x < m_map->gridWidth && mapCheck.y >= 0 && mapCheck.y < m_map->gridHeight)
 			{	
 				// if tile is assigned a tex value it EXISTS
-				if (m_map->pNodes[mapCheck.x + (mapCheck.y * m_map->gridWidth)].texIdWall != eLevelTextures::TEX_NONE)
+				const GridNode& node = m_map->pNodes[mapCheck.x + (mapCheck.y * m_map->gridWidth)];
+				if (node.texIdWall != TEX_NONE || node.specialFlag != SPECIAL_NONE)
 				{
 					tileFound = true;
+					
+					rayEnd = rayStart + rayDir * distance;
+					switch (portalEncounters)
+					{
+					case 0: line.colour = Colour4f::Red(); break;
+					case 1: line.colour = Colour4f::Cyan(); break;
+					case 2: line.colour = Colour4f::Green(); break;
+					case 3: line.colour = Colour4f::Yellow(); break;
+					default: line.colour = Colour4f::Black(); break;
+					}
+					line.start = (rayStart * m_rayConfig.scale2D) + camOffset;
+					line.end = (rayEnd * m_rayConfig.scale2D) + camOffset;
+					rend.AddLine(line);
+					
+					// If tile is not a mirror/portal, we are done
+					if (node.specialFlag == SPECIAL_NONE)
+					{
+						break;
+					}
+					
+					// Reprocess our info so we can begin tracing the exit-ray from the portal/mirror
+					portalEncounters++;
+					totalDistance += distance;
+					distance = 0.f;
+					rayStart = rayEnd;
+					rayLength1D = Vector2f::ZeroVector;
+					
+					// flip ray direction and depenetrate mirror
+					if (node.specialFlag != SPECIAL_MIRROR) // if not a standard mirror, this must be a portal mirror with an inverted image
+					{
+						step *= -1;
+						rayDir *= -1;
+						
+						if (node.specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED)
+						{
+							// If multiple MirrorPortalConjoined are touching, do some extra processing to treat them as a single inverted mirror, otherwise the image gets split up
+							Vector2i hitTile = mapCheck;
+							mapCheck = m_map->GetExitTileForConjoinedPortal(mapCheck, bHitSide);
+							rayStart += (mapCheck - hitTile).ToFloat(); // offset our hit position by the distance to the mirror's exit-tile
+							
+						}
+						
+						if (!bHitSide)
+						{
+							int truncX = static_cast<int>(rayStart.x);
+							rayStart.x = truncX + (1 - (rayStart.x - truncX));
+						}
+						else
+						{
+							int truncY = static_cast<int>(rayStart.y);
+							rayStart.y = truncY + (1 - (rayStart.y - truncY));
+						}
+					}
+					else // standard mirror, no special behaviour
+					{
+						bHitSide ? step.x *= -1 : step.y *= -1;
+						bHitSide ? rayDir.x *= -1 : rayDir.y *= -1;
+					}
+					
+					if (rayDir.x < 0)
+					{
+						rayLength1D.x = (rayStart.x - static_cast<float>(mapCheck.x)) * rayUnitStepSize.x; 
+					}
+					else
+					{
+						rayLength1D.x = (static_cast<float>(mapCheck.x + 1) - rayStart.x) * rayUnitStepSize.x;
+					}
+					if (rayDir.y < 0)
+					{
+						rayLength1D.y = (rayStart.y - static_cast<float>(mapCheck.y)) * rayUnitStepSize.y;
+					}
+					else
+					{
+						rayLength1D.y = (static_cast<float>(mapCheck.y + 1) - rayStart.y) * rayUnitStepSize.y;
+					}
 				}
 			}
+			else
+			{
+				break;
+			}
 		}
-
-		// ====================================
-		// RENDER
-		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-		Spear::Renderer::LineData line;
-		if (tileFound)
+		if (!tileFound)
 		{
 			rayEnd = rayStart + rayDir * distance;
-			line.colour = Colour4f::Red();
+			line.colour = Colour4f::White();
+			line.start = (pos * m_rayConfig.scale2D) + camOffset;
+			line.end = (rayEnd * m_rayConfig.scale2D) + camOffset;
+			rend.AddLine(line);
 		}
-		line.start = (pos * m_rayConfig.scale2D) + camOffset;
-		line.end = (rayEnd * m_rayConfig.scale2D) + camOffset;
-		line.depth = depthPlayer;
-		rend.AddLine(line);
 	}
-
 	END_PROFILE("2D Raycasting");
 }
 
@@ -381,22 +497,143 @@ void Raycaster::Draw3DGrid(const Vector2f& inPos, float inPitch, const float ang
 		m_frame.planeHeights.y = m_map->planeHeights[PLANE_HEIGHT_OUTER];
 	}
 
-	// Format sprite data into screen coordinates
-	PreProcessSprites();
-
-	if (!m_bSoftwareRendering)
+	// Run a pre-pass on portals so floor/ceiling raycasts don't have to run a trace on every pixel
+	if (m_bPortalRenderingEnabled)
 	{
-		Draw3DGridCompute(inPos, inPitch, angle);
+		START_PROFILE("Preprocess Portals")
+		PreProcessPortals();
+		END_PROFILE("Preprocess Portals")
 	}
-	else
+	
+	// Format sprite data into screen coordinates
+	START_PROFILE("Preprocess Sprites")
+	PreProcessSprites();
+	END_PROFILE("Preprocess Sprites")
+
+	if (m_bSoftwareRendering)
 	{
 		Draw3DGridCPU(inPos, inPitch, angle);
 	}
+	else
+	{
+		Draw3DGridCompute(inPos, inPitch, angle);
+	}
+}
+
+void Raycaster::PreProcessPortals()
+{	
+	auto PreProcessPortalsTask = [](int taskId)
+	{
+		int xLowerBound = XResolutionPerThread() * taskId;
+		int xUpperBound = taskId == m_softwareRenderingThreads - 1 ? m_rayConfig.xResolution : xLowerBound + XResolutionPerThread(); // avoid skipping pixels under non-perfect division*/
+		
+		// Forward distance from the camera to hit the floor for the current row
+		float rowDistance;
+		const float defaultDistance = m_frame.viewHeight;
+		rowDistance = defaultDistance * m_frame.planeHeights.y;
+
+		// Vector representing position offset equivalent to 1 pixel right (imagine topdown 2D view, this 'jumps' horizontally by 1 ray)
+		Vector2f rayStep;
+		const Vector2f rayPixelWidth = (m_frame.fovMaxAngle - m_frame.fovMinAngle) / m_rayConfig.xResolution;
+		rayStep = rowDistance * rayPixelWidth;
+
+		// endpoint of first ray in row (left)
+		// essentially the 'left-most ray' along a length (depth) of rowDistance
+		Vector2f rayEnd;
+		rayEnd = m_frame.viewPos + rowDistance * m_frame.fovMinAngle;
+		rayEnd += rayStep * xLowerBound;
+		
+		// Begin tracing portal paths for each pixel column (we can do it like this because we're treating portals as infinite height blocks which lets us skip a ton of work)
+		for (int screenX = xLowerBound; screenX < xUpperBound; screenX++) // for the chunk of X pixels allocated to this thread
+		{
+			auto portalPredicate = [](const GridNode& node) {return node.specialFlag == SPECIAL_MIRROR || node.specialFlag == SPECIAL_MIRROR_PORTAL || node.specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED;};
+			Vector2f ddaStart = m_frame.viewPos;
+			Vector2f ddaEnd = rayEnd;
+			Vector2f ddaTrajectory = rayEnd - ddaStart;
+			LineSearchData search;
+			
+			// Clear the initial trace - we don't need to clear the deeper traces since they will only be visited if we end up overwriting them as part of this search loop anyway
+			m_portalTraces[screenX].traces[0].rayStart = ddaStart;
+			m_portalTraces[screenX].traces[0].rayTrajectory = ddaTrajectory;
+			m_portalTraces[screenX].traces[0].accumulatedLength = ddaTrajectory.Length();
+			m_portalTraces[screenX].finalTrace = 0;
+			
+			int portalEncounters = 0;
+			while (m_map->LineSearchDDA(ddaStart, ddaEnd, portalPredicate, &search))
+            {
+                float percentRemaining = 1.f - search.percentComplete;
+				
+				// Reign in the already-stored trajectory values based on how far along the ray we were when we collided with a portal
+				m_portalTraces[screenX].traces[portalEncounters].rayTrajectory *= search.percentComplete;
+				m_portalTraces[screenX].traces[portalEncounters].accumulatedLength = m_portalTraces[screenX].traces[portalEncounters].rayTrajectory.Length();
+				if (portalEncounters > 0)
+				{
+					m_portalTraces[screenX].traces[portalEncounters].accumulatedLength += m_portalTraces[screenX].traces[portalEncounters - 1].accumulatedLength;
+				}
+				
+				m_portalTraces[screenX].finalTrace++;
+				
+				// Figure out trajectory for the next trace
+                ddaStart = search.hitPos;
+                ddaTrajectory *= percentRemaining;
+                if (search.node->specialFlag == SPECIAL_MIRROR)
+                {
+                    search.bVerticalHit ? ddaTrajectory.y *= -1 : ddaTrajectory.x *= -1;
+                }
+                else
+                {
+                    // if not default mirror, it's an inverted mirror
+                    ddaTrajectory *= -1;
+                    
+                    if (search.node->specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED)
+                    {
+                        // If multiple MirrorPortalConjoined are touching, do some extra processing to treat them as a single inverted mirror, otherwise the image gets split up                                    
+                        const Vector2i exitTile = m_map->GetExitTileForConjoinedPortal(search.tile, !search.bVerticalHit);
+                        ddaStart += (exitTile - search.tile).ToFloat();
+                    }
+                    
+                    // invert the mirror so rays entering along left side exit along right side and vice versa
+                    if (search.bVerticalHit)
+                    {
+                        int truncX = static_cast<int>(ddaStart.x);
+                        ddaStart.x = truncX + (1 - (ddaStart.x - truncX));
+                    }
+                    else
+                    {
+                        int truncY = static_cast<int>(ddaStart.y);
+                        ddaStart.y = truncY + (1 - (ddaStart.y - truncY));
+                    }
+                }
+                ddaEnd = ddaStart + ddaTrajectory;
+				
+				// Prep the next PortalTrace
+				portalEncounters++;
+				m_portalTraces[screenX].traces[portalEncounters].rayStart = ddaStart;
+				m_portalTraces[screenX].traces[portalEncounters].rayTrajectory = ddaTrajectory;
+				m_portalTraces[screenX].traces[portalEncounters].accumulatedLength = m_portalTraces[screenX].traces[portalEncounters - 1].accumulatedLength + ddaTrajectory.Length();
+				if (portalEncounters >= RAYCAST_PORTAL_LIMIT)
+				{
+					break;
+				}
+            }
+			
+			rayEnd += rayStep;
+		}
+		
+		return 0;
+	};
+	
+	Spear::ThreadManager& threader = Spear::ServiceLocator::GetThreadManager();
+	Spear::TaskHandle PortalsTaskHandle;
+	threader.DispatchTaskDistributed(PreProcessPortalsTask, &PortalsTaskHandle, m_softwareRenderingThreads);
+	PortalsTaskHandle.WaitForTaskComplete();
 }
 
 void Raycaster::PreProcessSprites()
 {
 	m_numSpritesToRender = 0;
+	
+	// TODO: Explore how we can use this pre-process step to 'insert' portal sprite clones based on portals we have line-of-sight with
 	for (int i = 0; i < m_spriteCount; i++)
 	{
 		const RaycastSprite& sprite = m_sprites[i];
@@ -457,7 +694,7 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 {
 	Spear::Renderer& renderer = Spear::ServiceLocator::GetScreenRenderer();
 	Spear::ThreadManager& threader = Spear::ServiceLocator::GetThreadManager();
-
+	
 	// Floor/Ceiling Casting
 	auto RaycastPlanesTask = [](int taskId)
 	{
@@ -479,6 +716,10 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 			else
 			{
 				rayPitch = (y - (m_rayConfig.yResolution / 2)) - m_frame.viewPitch;
+			}
+			if (rayPitch == 0)
+			{
+				continue;
 			}
 
 			// Forward distance from the camera to hit the floor for the current row.
@@ -519,9 +760,12 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 				{
 					for (int layer = 0; layer < 2; layer++)
 					{
+						// Get samplePoint via our portalTraces if world is using portals 
+						Vector2f samplePoint = m_bPortalRenderingEnabled ? m_portalTraces[x].GetPointAtTraceDistance((rayEnd[layer] - m_frame.viewPos).Length()) : rayEnd[layer];
+					
 						// Render floor
-						const int mapCellX = (int)(rayEnd[layer].x);
-						const int mapCellY = (int)(rayEnd[layer].y);
+						const int mapCellX = (int)(samplePoint.x);
+						const int mapCellY = (int)(samplePoint.y);
 
 						if (const GridNode* node = m_map->GetNode(mapCellX, mapCellY))
 						{
@@ -531,8 +775,8 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 								const SDL_Surface* pWorldTexture = pMapTextures->GetSDLSurface(bIsFloor ? node->texIdFloor[layer] : node->texIdRoof[layer]);
 								ASSERT(pWorldTexture);
 
-								int texX = static_cast<int>((rayEnd[layer].x - mapCellX) * pWorldTexture->w);
-								int texY = static_cast<int>((rayEnd[layer].y - mapCellY) * pWorldTexture->h);
+								int texX = static_cast<int>((samplePoint.x - mapCellX) * pWorldTexture->w);
+								int texY = static_cast<int>((samplePoint.y - mapCellY) * pWorldTexture->h);
 								if (texX < 0)
 									texX += pWorldTexture->w;
 								if (texY < 0)
@@ -658,14 +902,43 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 					if (const GridNode* node = m_map->GetNode(mapCheck))
 					{
 						wallNodeIndex = mapCheck.x + (mapCheck.y * m_map->gridWidth);
-
-						// if tile has a wall texture and is tall enough to be visible...
+						
+						if (m_bPortalRenderingEnabled)
+						{
+							// is tile a mirror of any kind?
+							if (node->specialFlag == SPECIAL_MIRROR || node->specialFlag == SPECIAL_MIRROR_PORTAL || node->specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED)
+							{							
+								// flip ray direction and depenetrate mirror
+								if (node->specialFlag != SPECIAL_MIRROR) // if not a basic mirror, this must be a portal mirror with an inverted image
+								{
+									step *= -1;
+								
+									if (node->specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED)
+									{
+										// If multiple MirrorPortalConjoined are touching, do some extra processing to treat them as a single inverted mirror, otherwise the image gets split up
+										mapCheck = m_map->GetExitTileForConjoinedPortal(mapCheck, side);
+									}
+								}
+								else // standard mirror, no special behaviour
+								{
+									side ? step.x *= -1 : step.y *= -1;
+								}
+								side ? mapCheck.x += step.x : mapCheck.y += step.y;
+							}
+						}
+						
+						// if tile has any wall textures we can draw those here (if the tile is also a mirror that's still fine since we can draw cutout textures over it for extra detail)
 						const bool wallExists = node->texIdWall != TEX_NONE || (node->extendUp && node->texIdRoof[0] != TEX_NONE) || (node->extendDown && node->texIdFloor[0] != TEX_NONE);
 						if (wallExists)
 						{
 							rayHit = side ? RAY_HIT_SIDE : RAY_HIT_FRONT;
 							rayEncounters++;
 						}
+					}
+					else
+					{
+						// if ray has left the grid, might as well quit here
+						break;
 					}
 				}
 
@@ -696,10 +969,16 @@ void Raycaster::Draw3DGridCPU(const Vector2f& inPos, float inPitch, const float 
 					auto CalcTexX = [&]()
 					{
 						// X Index into WallTexture = x position inside cell
-						texX = static_cast<int>((rayHit == RAY_HIT_FRONT ? (intersection.x - mapCheck.x) : (intersection.y - mapCheck.y)) * (pWallTexture->w - 1));
+						float percentageIntoTexture = rayHit == RAY_HIT_FRONT ? (intersection.x - static_cast<int>(intersection.x)) : (intersection.y - static_cast<int>(intersection.y));
+						texX = static_cast<int>(percentageIntoTexture * (pWallTexture->w - 1));
 						if (texX < 0)
 						{
 							texX += pWallTexture->w;
+						}
+						if ((rayHit == RAY_HIT_SIDE && rayDir.x < 0)
+						|| (rayHit == RAY_HIT_FRONT && rayDir.y < 0))
+						{
+							texX = (pWallTexture->w - 1) - texX; // keeps texture horizontal direction consistent per side, necessary for maintaing portal illusions
 						}
 						ASSERT(texX < pWallTexture->w && texX >= 0);
 					};

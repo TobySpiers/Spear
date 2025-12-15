@@ -1,7 +1,6 @@
 #include "Core/Core.h"
 #include "Core/ServiceLocator.h"
 #include "Core/InputManager.h"
-#include "Graphics/ScreenRenderer.h"
 #include "Flowstates/FlowstateGame.h"
 #include <Collision/CollisionComponent2D.h>
 #include "Player.h"
@@ -46,9 +45,12 @@ void Player::OnTick(float deltaTime)
 
 	// Pre-checked movement for player prevents tunneling during low FPS spikes and guarantees smooth sliding against tiled AABBs, but is probably overkill for objects other than the player
 	// Some scenarios are smoother without pre-checks (squeezing through a slightly-too-small gap between a tile and a SolidObject), but without this we get caught on corners when sliding along tiled AABBs
+	// The pre-checked movement also handles traversing portals
 	if (moveDirection.x || moveDirection.y)
 	{
-		SetPosition(GameState::Get().mapData.PreCheckedMovement(GetPosition().XY(), moveDirection * moveDistance, m_collisionComp));
+		float rotationOffset;
+		SetPosition(GameState::Get().mapData.PreCheckedMovement(GetPosition().XY(), moveDirection * moveDistance, m_collisionComp, rotationOffset));
+		m_rotation += rotationOffset;
 	}
 
 	// mouse look

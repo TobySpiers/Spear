@@ -24,6 +24,7 @@ class Raycaster
 		RAY_HIT_SIDE
 	};
 
+	static constexpr int RAYCAST_PORTAL_LIMIT{ 9 };
 	static constexpr int RAYCAST_SPRITE_LIMIT{ 100 };
 
 public:
@@ -46,7 +47,9 @@ private:
 	static void RecreateBackgroundArrays(int width, int height);
 	static void ClearRaycasterArrays();
 
+	static void PreProcessPortals();
 	static void PreProcessSprites();
+	
 	static void Draw3DGridCPU(const Vector2f& pos, float pitch, const float angle);
 	static void Draw3DGridCompute(const Vector2f& pos, float pitch, const float angle);
 
@@ -64,6 +67,7 @@ private:
 	// (RENDERING SETTINGS)
 	friend class PanelRaycaster;
 	static bool m_bSoftwareRendering;
+	static bool m_bPortalRenderingEnabled;
 	static int m_softwareRenderingThreads;
 	static int XResolutionPerThread();
 	static int YResolutionPerThread();
@@ -112,6 +116,20 @@ private:
 	};
 	static RaycastSpriteData m_frameSprites[RAYCAST_SPRITE_LIMIT];
 	static int m_numSpritesToRender;
+	
+	struct PortalTrace
+	{
+		Vector2f rayStart;
+		Vector2f rayTrajectory;
+		float accumulatedLength;
+	};
+	struct PortalTraces
+	{
+		int finalTrace{0};
+		PortalTrace traces[RAYCAST_PORTAL_LIMIT + 1]; // +1 since each portal adds 1 trace to the base trace
+		Vector2f GetPointAtTraceDistance(float distance) const; // given a distance, returns the position (accounting for portals) this trace lands
+	};
+	static PortalTraces* m_portalTraces;
 
 	struct RaycastComputeShader
 	{

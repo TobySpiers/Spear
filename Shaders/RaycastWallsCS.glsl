@@ -8,12 +8,12 @@ struct GridNode
 	int texIdRoof[2];
 	int texIdWall;
 	int texIdFloor[2];
-	
 	int drawFlags;
 	
 	int extendUp;
 	int extendDown;
 	int collisionMask;
+    int specialFlags;
 };
 
 struct RaycasterConfig

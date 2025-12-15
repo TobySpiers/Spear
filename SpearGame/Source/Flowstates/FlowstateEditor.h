@@ -48,10 +48,10 @@ class FlowstateEditor : public Spear::Flowstate
 		INPUT_MODE_NEXT,
 		INPUT_MODE_PREV,
 
-		INPUT_FACE_NORTH,
-		INPUT_FACE_EAST,
-		INPUT_FACE_SOUTH,
-		INPUT_FACE_WEST,
+		INPUT_TRANSLATE_UP,
+		INPUT_TRANSLATE_RIGHT,
+		INPUT_TRANSLATE_DOWN,
+		INPUT_TRANSLATE_LEFT,
 
 		INPUT_COUNT
 	};
@@ -107,12 +107,13 @@ class FlowstateEditor : public Spear::Flowstate
 	bool MakePopup_TextureSelect(int& outValue, const char* popupId);
 
 	const char* GetModeText(DrawFlags flag);
+	const char* GetSpecialFlagText(eSpecialMapFlags flag);
 
 	// Tile Helpers
 	Vector2i MousePosToGridIndex();
 	bool ValidTile(const Vector2i& index);
-	float MapSpacing() { return m_camZoom * m_textures[GlobalTextureBatches::BATCH_TILESET_1].GetWidth(); };
-	float TileRadius(){return m_camZoom * (m_textures[GlobalTextureBatches::BATCH_TILESET_1].GetWidth() * 0.5f);};
+	float MapSpacing() { return m_camZoom * 64; }
+	float TileRadius(){return m_camZoom * (64 * 0.5f);}
 
 	// Object Helpers
 	Vector2f MousePosToWorldPos();
@@ -128,6 +129,7 @@ class FlowstateEditor : public Spear::Flowstate
 	// Tiles - Editor Input
 	bool ProcessInput_Tiles_FloodSelect();
 	bool ProcessInput_Tiles_Select();
+	bool ProcessInput_Tiles_Translate();
 
 	// Objects - Editor Input
 	bool ProcessInput_Objects_Select();

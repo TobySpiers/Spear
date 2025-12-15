@@ -20,128 +20,120 @@ const GridNode* MapData::GetNode(int x, int y) const
 	return nullptr;
 }
 
-bool MapData::LineTraceDDA(const Vector2f& start, const Vector2f& trajectory, u8 collisionTestMask, Vector2f* out_hitPos, bool* out_bVerticalHit) const
+Vector2i MapData::GetExitTileForConjoinedPortal(Vector2i entryTile, bool bScanY) const
 {
-	if (out_hitPos)
+	// If multiple MirrorPortalConjoined are touching, combine them into a single inverted mirror so the image isn't split up
+	int portalLength = 0;
+	int entryTilePosition = 0;
+	Vector2i nextConjoinedPortalStep = bScanY ? Vector2i(0, 1) : Vector2i(1, 0);
+								
+	// Discover how big this conjoined portal is, and where the tile our ray has hit lies within it
+	Vector2i mapCheck = entryTile;
+	mapCheck -= nextConjoinedPortalStep;
+	while (const GridNode* portalNode = GetNode(mapCheck))
 	{
-		*out_hitPos = start + trajectory;
-	}
-
-	const float distanceLimit{ trajectory.Length() };
-	const Vector2f end{ start + trajectory };
-	const Vector2f direction = Normalize(end - start);
-	const Vector2f stepSize{sqrt(1 + (direction.y / direction.x) * (direction.y / direction.x)),	// length required to travel 1 X unit in Ray Direction
-							sqrt(1 + (direction.x / direction.y) * (direction.x / direction.y)) };	// length required to travel 1 Y unit in Ray Direction
-
-	Vector2i mapCheck = start.ToInt(); // truncation will 'snap' position to tile
-	Vector2f testProgression; // tracks accumulating length of 'test' ray: via x units, via y units
-
-	// 1. Calculate initial direction/distance values
-	Vector2i step;
-	if (direction.x < 0)
-	{
-		step.x = -1;
-		testProgression.x = (start.x - static_cast<float>(mapCheck.x)) * stepSize.x;
-	}
-	else
-	{
-		step.x = 1;
-		testProgression.x = (static_cast<float>(mapCheck.x + 1) - start.x) * stepSize.x;
-
-	}
-	if (direction.y < 0)
-	{
-		step.y = -1;
-		testProgression.y = (start.y - static_cast<float>(mapCheck.y)) * stepSize.y;
-	}
-	else
-	{
-		step.y = 1;
-		testProgression.y = (static_cast<float>(mapCheck.y + 1) - start.y) * stepSize.y;
-	}
-
-	// 2. Search step-by-step for a collision
-	float distance{ 0.f };
-	while (distance < distanceLimit)
-	{
-		if (testProgression.x < testProgression.y)
+		if (portalNode->specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED)
 		{
-			// X distance is currently shortest, increase X
-			mapCheck.x += step.x;
-			distance = testProgression.x;
-			testProgression.x += stepSize.x; // increase ray by 1 X unit
-
-			if (out_bVerticalHit)
-			{
-				*out_bVerticalHit = false;
-			}
+			entryTilePosition++;
+			mapCheck -= nextConjoinedPortalStep;
 		}
-		else
-		{
-			// Y distance is currently shortest, increase Y
-			mapCheck.y += step.y;
-			distance = testProgression.y;
-			testProgression.y += stepSize.y; // increase ray by 1 Y unit
-
-			if (out_bVerticalHit)
-			{
-				*out_bVerticalHit = true;
-			}
-		}
-
-		// If we've exceeded our distance limit prior to finding a collision, then requested trace param does not collide
-		if (distance > distanceLimit)
-		{
-			return false;
-		}
-
-		// Check position is within range of array
-		if (const GridNode* node = GetNode(mapCheck))
-		{
-			// Test 'collision' based on critera
-			if (node->collisionMask & collisionTestMask)
-			{
-				if (out_hitPos)
-				{
-					*out_hitPos = start + (direction * distance);
-				}
-				return true;
-			}
-		}
+		else break;
 	}
-
-	return false;
+	portalLength += entryTilePosition;
+	mapCheck = entryTile;
+	mapCheck += nextConjoinedPortalStep;
+	while (const GridNode* portalNode = GetNode(mapCheck))
+	{
+		if (portalNode->specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED)
+		{
+			portalLength++;
+			mapCheck += nextConjoinedPortalStep;
+		}
+		else break;
+	}
+	
+	// portalLength tells us how many portals are touching which we should consider a single mirror
+	// entryTilePosition tells us the index into those portals of the entryTile, we use this to invert the exit: if we entered at position 0/5, we would exit at position 5/5. 1/5 -> 4/5, etc.
+	int portalOutPosition = portalLength - entryTilePosition;
+	mapCheck = entryTile;
+	bScanY ? mapCheck.y = (mapCheck.y - entryTilePosition) + portalOutPosition : mapCheck.x = (mapCheck.x - entryTilePosition) + portalOutPosition;
+	return mapCheck;
 }
 
-Vector2f MapData::PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, CollisionComponent2D* collisionComp) const
+Vector2f MapData::PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, CollisionComponent2D* collisionComp, float& outRotationOffset) const
 {
-	return PreCheckedMovement(start, trajectory, collisionComp->GetAABBExtent(), collisionComp->GetBlockingFlags());
+	return PreCheckedMovement(start, trajectory, collisionComp->GetAABBExtent(), collisionComp->GetBlockingFlags(), outRotationOffset);
 }
 
-Vector2f MapData::PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, const Vector2f& AABB, u8 collisionMask) const
+Vector2f MapData::PreCheckedMovement(const Vector2f& start, const Vector2f& trajectory, const Vector2f& AABB, u8 collisionMask, float& outRotationOffset) const
 {
-	Vector2f result{start};
-	Vector2f halfAABB = AABB / 2;
-
-	// Trace horizontally from top & bottom of AABB
-	const Vector2f horizontalTrajectory = Vector2f(trajectory.x + (Sign(trajectory.x) * halfAABB.x), 0.f);
-	if (!LineTraceDDA(result + Vector2f(0.f, halfAABB.y), horizontalTrajectory, collisionMask)
-	&& !LineTraceDDA(result - Vector2f(0.f, halfAABB.y), horizontalTrajectory, collisionMask))
+	outRotationOffset = 0.f;
+	
+	Vector2f traceTrajectory{trajectory};
+	Vector2f AABBHalfX = Vector2f(AABB.x / 2.f, 0.f);
+	Vector2f AABBHalfY = Vector2f(0.f, AABB.y / 2.f);
+	
+	auto portalPredicate = [](const GridNode& node) {return node.specialFlag == SPECIAL_MIRROR_PORTAL || node.specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED;};
+	auto collisionPredicate = [collisionMask](const GridNode& node) { return node.collisionMask & collisionMask;};
+	
+	Vector2f curPosition{start};
+	Vector2f nextPosition{start};
+	
+	LineSearchData search;
+	bool bCrossedPortal;
+	do
 	{
-		result.x += trajectory.x;
+		// Find the position our AABB is able to reach.
+		Vector2f trajectoryX = Vector2f(traceTrajectory.x + (Sign(traceTrajectory.x) * AABBHalfX.x), 0.f);
+		if (!LineSearchDDA(curPosition + AABBHalfY, curPosition + AABBHalfY + trajectoryX, collisionPredicate)
+		&& !LineSearchDDA(curPosition - AABBHalfY, curPosition - AABBHalfY + trajectoryX, collisionPredicate))
+		{
+			nextPosition.x += traceTrajectory.x;
+		}
+		
+		Vector2f trajectoryY = Vector2f(0.f, traceTrajectory.y + (Sign(traceTrajectory.y) * AABBHalfY.y));
+		if (!LineSearchDDA(curPosition + AABBHalfX, curPosition + AABBHalfX + trajectoryY, collisionPredicate)
+		&& !LineSearchDDA(curPosition - AABBHalfX, curPosition - AABBHalfX + trajectoryY, collisionPredicate))
+		{
+			nextPosition.y += traceTrajectory.y;
+		}
+	
+		// Trace center-of-AABB until destination to check if it crossed a portal threshold.
+		bCrossedPortal = false;
+		if (LineSearchDDA(curPosition, nextPosition, portalPredicate, &search))
+		{
+			bCrossedPortal = true;
+			
+			// There was a portal in our path. Prepare for the next phase of the trace. Reflect our ray.
+			outRotationOffset += PI;
+			traceTrajectory *= (1.f - search.percentComplete);
+	
+			if (search.node->specialFlag == SPECIAL_MIRROR_PORTAL_CONJOINED)
+			{
+				const Vector2i exitTile = GetExitTileForConjoinedPortal(search.tile, !search.bVerticalHit);
+				search.hitPos += (exitTile - search.tile).ToFloat(); // update hitPos to represent the exit tile instead of the entry tile
+			}
+			if (search.bVerticalHit)
+			{
+				traceTrajectory.y *= -1;
+				int truncX = static_cast<int>(search.hitPos.x);
+				search.hitPos.x = truncX + (1 - (search.hitPos.x - truncX)); // mirror portals are inverted, so we flip positioning such that 0.25 becomes 0.75, 0.66 becomes 0.33, etc.
+			}
+			else
+			{
+				traceTrajectory.x *= -1;
+				int truncY = static_cast<int>(search.hitPos.y);
+				search.hitPos.y = truncY + (1 - (search.hitPos.y - truncY));
+			}
+			
+			curPosition = search.hitPos;
+			nextPosition = curPosition;
+		}
 	}
+	while (bCrossedPortal);
 
-	// Trace vertically from left & right of AABB
-	const Vector2f verticalTrajectory = Vector2f(0.f, trajectory.y + (Sign(trajectory.y) * halfAABB.y));
-	if (!LineTraceDDA(result + Vector2f(halfAABB.x, 0.f), verticalTrajectory, collisionMask)
-	&& !LineTraceDDA(result - Vector2f(halfAABB.x, 0.f), verticalTrajectory, collisionMask))
-	{
-		result.y += trajectory.y;
-	}
-
-	return result;
+	return nextPosition;
 }
-
 
 void GridNode::Reset()
 {

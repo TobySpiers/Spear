@@ -15,6 +15,8 @@
 #include <imgui_stdlib.h>
 #include <filesystem>
 #include <imgui_internal.h>
+
+#include "Collision/CollisionTypes.h"
 #include "Editor/EditorAction_ModifyProperties.h"
 #include "Editor/EditorAction_CreateObject.h"
 #include "Editor/EditorAction_DeleteObjects.h"
@@ -93,10 +95,10 @@ void FlowstateEditor::StateEnter()
 	config[INPUT_MODE_NEXT] = SDL_SCANCODE_RIGHTBRACKET;
 	config[INPUT_MODE_PREV] = SDL_SCANCODE_LEFTBRACKET;
 
-	config[INPUT_FACE_NORTH] = SDL_SCANCODE_UP;
-	config[INPUT_FACE_EAST] = SDL_SCANCODE_RIGHT;
-	config[INPUT_FACE_SOUTH] = SDL_SCANCODE_DOWN;
-	config[INPUT_FACE_WEST] = SDL_SCANCODE_LEFT;
+	config[INPUT_TRANSLATE_UP] = SDL_SCANCODE_UP;
+	config[INPUT_TRANSLATE_RIGHT] = SDL_SCANCODE_RIGHT;
+	config[INPUT_TRANSLATE_DOWN] = SDL_SCANCODE_DOWN;
+	config[INPUT_TRANSLATE_LEFT] = SDL_SCANCODE_LEFT;
 
 	Spear::ServiceLocator::GetInputManager().ConfigureInputBindings(config, INPUT_COUNT);
 	Spear::ServiceLocator::GetInputManager().AllowImguiKeyboardConsumption(false);
@@ -459,6 +461,11 @@ void FlowstateEditor::ProcessInput()
 		{
 			return;
 		}
+		
+		if (ProcessInput_Tiles_Translate())
+		{
+			return;
+		}
 	}
 	else if (m_editorMode == EditorMode::MODE_OBJECTS)
 	{
@@ -582,6 +589,103 @@ bool FlowstateEditor::ProcessInput_Tiles_Select()
 	}
 
 	return true;
+}
+
+bool FlowstateEditor::ProcessInput_Tiles_Translate()
+{
+	Spear::InputManager& input = Spear::ServiceLocator::GetInputManager();
+	
+	const bool bTranslateDown = input.InputStart(INPUT_TRANSLATE_DOWN);
+	const bool bTranslateUp = input.InputStart(INPUT_TRANSLATE_UP);
+	const bool bTranslateLeft = input.InputStart(INPUT_TRANSLATE_LEFT);
+	const bool bTranslateRight = input.InputStart(INPUT_TRANSLATE_RIGHT);
+	
+	auto ShiftTile = [&](const Vector2i& tile, const Vector2i& delta)
+	{
+		const Vector2i newPos = tile + delta;
+		if (newPos.x < 0 || newPos.y < 0 || newPos.x >= m_map->gridWidth || newPos.y >= m_map->gridHeight)
+		{
+			return;
+		}
+		
+		GridNode& oldNode = m_map->GetNode(tile);
+		GridNode& newNode = m_map->GetNode(newPos);
+		newNode = oldNode;
+		oldNode = GridNode{};
+	};
+	
+	if (bTranslateDown || bTranslateUp || bTranslateLeft || bTranslateRight)
+	{
+		std::vector<Vector2i> sortedTiles;
+		sortedTiles.insert(sortedTiles.end(), m_selectedTiles.begin(), m_selectedTiles.end());
+		Vector2i delta = Vector2i::ZeroVector;
+		if (bTranslateUp)
+		{
+			delta.y = -1;
+			std::sort(sortedTiles.begin(), sortedTiles.end(), [](const Vector2i& a, const Vector2i& b)
+			{
+				return (a.y != b.y) ? a.y < b.y : a.x < b.x;
+			});
+			
+			for (Vector2i tile : sortedTiles)
+			{
+				ShiftTile(tile, Vector2i(0, -1));
+			}
+		}
+		else if (bTranslateDown)
+		{
+			delta.y = 1;
+			std::sort(sortedTiles.begin(), sortedTiles.end(), [](const Vector2i& a, const Vector2i& b)
+			{
+				return (a.y != b.y) ? a.y > b.y : a.x > b.x;
+			});
+			
+			for (Vector2i tile : sortedTiles)
+			{
+				ShiftTile(tile, Vector2i(0, 1));
+			}
+		}
+		if (bTranslateLeft)
+		{
+			delta.x = -1;
+			std::sort(sortedTiles.begin(), sortedTiles.end(), [](const Vector2i& a, const Vector2i& b)
+			{
+				return (a.x != b.x) ? a.x < b.x : a.y < b.y;
+			});
+			
+			for (Vector2i tile : sortedTiles)
+			{
+				ShiftTile(tile, Vector2i(-1, 0));
+			}
+		}
+		else if (bTranslateRight)
+		{
+			delta.x = 1;
+			std::sort(sortedTiles.begin(), sortedTiles.end(), [](const Vector2i& a, const Vector2i& b)
+			{
+				return (a.x != b.x) ? a.x > b.x : a.y > b.y;
+			});
+			
+			for (Vector2i tile : sortedTiles)
+			{
+				ShiftTile(tile, Vector2i(1, 0));
+			}
+		}
+		
+		m_selectedTiles.clear();
+		for (const Vector2i& tile : sortedTiles)
+		{
+			Vector2i newPos = tile + delta;
+			if (newPos.x < 0 || newPos.y < 0 || newPos.x >= m_map->gridWidth || newPos.y >= m_map->gridHeight)
+			{
+				continue;
+			}
+			m_selectedTiles.insert(newPos);
+		}
+		
+		return true;
+	}
+	return false;
 }
 
 bool FlowstateEditor::ProcessInput_Objects_Select()
@@ -953,36 +1057,53 @@ void FlowstateEditor::MakePanel_Details_Tile()
 
 	Spear::TextureArray* tileTextures = &m_textures[GlobalTextureBatches::BATCH_TILESET_1];
 
+	const ImVec2 previewSize(64, 64);
+	
 	const char* strRoofA = "Roof (Far)";
-	ImGui::ImageButton(strRoofA, tileTextures->GetTextureViewForLayer(commonNode.texIdRoof[1]), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
+	ImGui::ImageButton(strRoofA, tileTextures->GetTextureViewForLayer(commonNode.texIdRoof[1]), previewSize);
 	bool modifiedRoofA = MakePopup_TextureSelect(commonNode.texIdRoof[1], strRoofA);
 	ImGui::SameLine();
 	ImGui::Text(strRoofA);
 
 	const char* strRoofB = "Roof (Near)";
-	ImGui::ImageButton(strRoofB, tileTextures->GetTextureViewForLayer(commonNode.texIdRoof[0]), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
+	ImGui::ImageButton(strRoofB, tileTextures->GetTextureViewForLayer(commonNode.texIdRoof[0]), previewSize);
 	bool modifiedRoofB = MakePopup_TextureSelect(commonNode.texIdRoof[0], strRoofB);
 	ImGui::SameLine();
 	ImGui::Text(strRoofB);
 
 	const char* strWall = "Wall";
-	ImGui::ImageButton(strWall, tileTextures->GetTextureViewForLayer(commonNode.texIdWall), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
+	ImGui::ImageButton(strWall, tileTextures->GetTextureViewForLayer(commonNode.texIdWall), previewSize);
 	bool modifiedWall = MakePopup_TextureSelect(commonNode.texIdWall, strWall);
 	ImGui::SameLine();
 	ImGui::Text(strWall);
 
 	const char* strFloorA = "Floor (Near)";
-	ImGui::ImageButton(strFloorA, tileTextures->GetTextureViewForLayer(commonNode.texIdFloor[0]), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
+	ImGui::ImageButton(strFloorA, tileTextures->GetTextureViewForLayer(commonNode.texIdFloor[0]), previewSize);
 	bool modifiedFloorA = MakePopup_TextureSelect(commonNode.texIdFloor[0], strFloorA);
 	ImGui::SameLine();
 	ImGui::Text(strFloorA);
 
 	const char* strFloorB = "Floor (Far)";
-	ImGui::ImageButton(strFloorB, tileTextures->GetTextureViewForLayer(commonNode.texIdFloor[1]), ImVec2(tileTextures->GetWidth(), tileTextures->GetHeight()));
+	ImGui::ImageButton(strFloorB, tileTextures->GetTextureViewForLayer(commonNode.texIdFloor[1]), previewSize);
 	bool modifiedFloorB = MakePopup_TextureSelect(commonNode.texIdFloor[1], strFloorB);
 	ImGui::SameLine();
 	ImGui::Text(strFloorB);
 
+	ImGui::SeparatorText("Tile Settings");
+	bool modifiedSpecialFlag = false;
+	if (ImGui::BeginCombo("Wall Type", GetSpecialFlagText(static_cast<eSpecialMapFlags>(commonNode.specialFlag))))
+	{
+		for (int i = 0; i < eSpecialMapFlags::SPECIAL_TOTAL; i++)
+		{
+			if (ImGui::Selectable(GetSpecialFlagText(static_cast<eSpecialMapFlags>(i)), commonNode.specialFlag == i))
+			{
+				commonNode.specialFlag = i;
+				modifiedSpecialFlag = true;
+			}
+		}
+		ImGui::EndCombo();
+	}
+	
 	ImGui::SeparatorText("Height Settings");
 	bool modifiedRise = ImGui::InputInt("Rise", &commonNode.extendUp);
 	commonNode.extendUp = std::max(commonNode.extendUp, 0);
@@ -1036,6 +1157,9 @@ void FlowstateEditor::MakePanel_Details_Tile()
 			node.drawFlags = (node.drawFlags & ~DRAW_S) | (commonNode.drawFlags & DRAW_S);
 		if (modifiedDrawW)
 			node.drawFlags = (node.drawFlags & ~DRAW_W) | (commonNode.drawFlags & DRAW_W);
+		
+		if (modifiedSpecialFlag)
+			node.specialFlag = commonNode.specialFlag;
 
 	}
 }
@@ -1124,7 +1248,7 @@ bool FlowstateEditor::MakePopup_TextureSelect(int& outValue, const char* popupId
 	{
 		for (int i = 0; i < mapTextures->GetDepth(); i++)
 		{
-			ImGui::Image(mapTextures->GetTextureViewForLayer(i), ImVec2(mapTextures->GetWidth(), mapTextures->GetHeight()));
+			ImGui::Image(mapTextures->GetTextureViewForLayer(i), ImVec2(64, 64));
 			if (ImGui::IsItemClicked())
 			{
 				valueChanged = outValue != i;
@@ -1180,6 +1304,23 @@ const char* FlowstateEditor::GetModeText(DrawFlags flag)
 			return "Directional";
 		default:
 			return "Unknown";
+	}
+}
+
+const char* FlowstateEditor::GetSpecialFlagText(eSpecialMapFlags flag)
+{
+	switch (flag)
+	{
+	case SPECIAL_NONE:
+		return "Default";
+	case SPECIAL_MIRROR:
+		return "Mirror";
+	case SPECIAL_MIRROR_PORTAL:
+		return "Mirror Portal (Single)";
+	case SPECIAL_MIRROR_PORTAL_CONJOINED:
+		return "Mirror Portal (Conjoined)";
+	default:
+		return "Unknown";
 	}
 }
 
@@ -1295,13 +1436,15 @@ void FlowstateEditor::StateRender()
 				Spear::ServiceLocator::GetScreenRenderer().AddText(textDraw);
 			}
 			
+			const float spriteScaleFactor = 1.f / (static_cast<float>(m_textures[GlobalTextureBatches::BATCH_TILESET_1].GetWidth()) / 64.f);
+			Spear::Renderer::SpriteData sprite;
+			sprite.pos = Vector2f(x, y) * MapSpacing();
+			sprite.pos += m_camOffset;
+			sprite.size = Vector2f(m_camZoom * spriteScaleFactor);
+			
 			// Wall Textures
 			if (m_visibilityFlags & DRAW_WALL && node.texIdWall != TEX_NONE)
 			{
-				Spear::Renderer::SpriteData sprite;
-				sprite.pos = Vector2f(x, y) * MapSpacing();
-				sprite.pos += m_camOffset;
-				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdWall;
 				sprite.depth = wallDepth;
 				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
@@ -1314,10 +1457,6 @@ void FlowstateEditor::StateRender()
 			// Roof Textures
 			if (m_visibilityFlags & DRAW_ROOF && node.texIdRoof[0] != TEX_NONE)
 			{
-				Spear::Renderer::SpriteData sprite;
-				sprite.pos = Vector2f(x, y) * MapSpacing();
-				sprite.pos += m_camOffset;
-				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdRoof[0];
 				sprite.depth = roofDepth;
 				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
@@ -1328,10 +1467,6 @@ void FlowstateEditor::StateRender()
 			}
 			if (m_visibilityFlags & DRAW_ROOF2 && node.texIdRoof[1] != TEX_NONE)
 			{
-				Spear::Renderer::SpriteData sprite;
-				sprite.pos = Vector2f(x, y) * MapSpacing();
-				sprite.pos += m_camOffset;
-				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdRoof[1];
 				sprite.depth = roofDepth;
 				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
@@ -1344,10 +1479,6 @@ void FlowstateEditor::StateRender()
 			// Floor Textures
 			if (m_visibilityFlags & DRAW_FLOOR && node.texIdFloor[0] != TEX_NONE)
 			{
-				Spear::Renderer::SpriteData sprite;
-				sprite.pos = Vector2f(x, y) * MapSpacing();
-				sprite.pos += m_camOffset;
-				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdFloor[0];
 				sprite.depth = floorDepth;
 				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
@@ -1358,10 +1489,6 @@ void FlowstateEditor::StateRender()
 			}
 			if (m_visibilityFlags & DRAW_FLOOR2 && node.texIdFloor[1] != TEX_NONE)
 			{
-				Spear::Renderer::SpriteData sprite;
-				sprite.pos = Vector2f(x, y) * MapSpacing();
-				sprite.pos += m_camOffset;
-				sprite.size = Vector2f(m_camZoom, m_camZoom);
 				sprite.texLayer = node.texIdFloor[1];
 				sprite.depth = floorDepth;
 				if (m_editorMode == MODE_OBJECTS || (bActiveSelection && !bIsSelected))
